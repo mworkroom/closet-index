@@ -41,14 +41,17 @@ export function HomePage() {
   const [validationError, setValidationError] = useState<string | null>(null)
   const [showAll, setShowAll] = useState(false)
   const [showAllTrials, setShowAllTrials] = useState(false)
+  const [showAllUnknownTrials, setShowAllUnknownTrials] = useState(false)
 
-  const { recentPurchases, recommendations, trialRecommendations } = useMemo(
-    () => {
-      const results = data && submitted ? recommendOutfits(data, submitted) : []
-      return partitionRecommendations(results)
-    },
-    [data, submitted],
-  )
+  const {
+    recentPurchases,
+    recommendations,
+    trialRecommendations,
+    unknownTrialRecommendations,
+  } = useMemo(() => {
+    const results = data && submitted ? recommendOutfits(data, submitted) : []
+    return partitionRecommendations(results)
+  }, [data, submitted])
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
@@ -66,6 +69,7 @@ export function HomePage() {
     setValidationError(null)
     setShowAll(false)
     setShowAllTrials(false)
+    setShowAllUnknownTrials(false)
     setSubmitted({
       tempOut: parsedOut,
       tempBack: parsedBack,
@@ -221,10 +225,12 @@ export function HomePage() {
               </div>
 
               <div className="recommendation-intro">
-                <strong>가장 최근에 산 아이템을 먼저 입어볼 수 있는 착장이에요.</strong>
+                <strong>
+                  오늘 온도에 맞는 후보 중 최근 구매 아이템을 먼저 골랐어요.
+                </strong>
                 <p>
-                  Outfit에 포함된 아이템의 구매일을 기준으로 골랐습니다.
-                  온도 적합성은 카드의 추천 단계를 함께 확인해 주세요.
+                  직접 착용 또는 비슷한 과거 착장의 OK 온도 범위와 맞는
+                  Outfit만 구매일 최신순으로 보여줍니다.
                 </p>
               </div>
 
@@ -301,11 +307,13 @@ export function HomePage() {
               </div>
 
               <div className="trial-intro">
-                <strong>아직 실제로 입어보지 않은 계획된 착장이에요.</strong>
+                <strong>
+                  아직 직접 입지는 않았지만 오늘 온도와 비슷한 근거가 있어요.
+                </strong>
                 <p>
-                  직접 착용한 온도는 없지만, 비슷한 과거 착장이 있으면 부분
-                  근거를 함께 보여줍니다. 실제로 입고 기록하면 다음 추천부터
-                  기록 기반 후보로 이동합니다.
+                  비슷한 과거 착장의 OK 온도 범위와 오늘 온도가 맞는
+                  착장입니다. 실제로 입고 기록하면 다음 추천부터 직접 근거
+                  후보로 이동합니다.
                 </p>
               </div>
 
@@ -330,6 +338,57 @@ export function HomePage() {
                     나머지 {trialRecommendations.length - 3}개 더 보기
                   </button>
                 )}
+              </div>
+            </section>
+          )}
+
+          {unknownTrialRecommendations.length > 0 && (
+            <section className="section trial-section">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">TEMPERATURE UNKNOWN</p>
+                  <h2>적정 온도 미확인 착장</h2>
+                </div>
+                <span className="count">
+                  {unknownTrialRecommendations.length}개 미확인
+                </span>
+              </div>
+
+              <div className="trial-intro">
+                <strong>오늘 온도와 대조할 OK 기록이 아직 없어요.</strong>
+                <p>
+                  비슷한 과거 착장을 찾지 못했거나 적정 온도 기록이 없는
+                  계획입니다. 오늘 추천이 아니라 참고용 시험 후보입니다.
+                </p>
+              </div>
+
+              <div className="card-list">
+                {unknownTrialRecommendations
+                  .slice(
+                    0,
+                    showAllUnknownTrials
+                      ? unknownTrialRecommendations.length
+                      : 3,
+                  )
+                  .map((recommendation) => (
+                    <OutfitCard
+                      key={recommendation.outfit.id}
+                      outfit={recommendation.outfit}
+                      data={data}
+                      recommendation={recommendation}
+                      state={{ recommendation, input: submitted }}
+                    />
+                  ))}
+                {!showAllUnknownTrials &&
+                  unknownTrialRecommendations.length > 3 && (
+                    <button
+                      className="button button--secondary button--wide"
+                      type="button"
+                      onClick={() => setShowAllUnknownTrials(true)}
+                    >
+                      나머지 {unknownTrialRecommendations.length - 3}개 더 보기
+                    </button>
+                  )}
               </div>
             </section>
           )}

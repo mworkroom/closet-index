@@ -361,8 +361,18 @@ export function partitionRecommendations(
   results: RecommendationResult[],
   recentPurchaseLimit = 3,
 ) {
+  const temperatureRangeFor = (result: RecommendationResult) =>
+    result.evidence === 'observed'
+      ? result.okRange
+      : (result.similarEvidence?.matches[0]?.okRange ?? null)
+  const matchesTargetTemperature = (result: RecommendationResult) =>
+    rangeDistance(result.targetTemp, temperatureRangeFor(result)) === 0
+
   const recentPurchases = results
-    .filter((result) => result.latestAcquiredOn !== null)
+    .filter(
+      (result) =>
+        result.latestAcquiredOn !== null && matchesTargetTemperature(result),
+    )
     .sort((a, b) =>
       (b.latestAcquiredOn ?? '').localeCompare(a.latestAcquiredOn ?? ''),
     )
@@ -375,7 +385,16 @@ export function partitionRecommendations(
       (result) => result.evidence === 'observed' && !recentIds.has(result.outfit.id),
     ),
     trialRecommendations: results.filter(
-      (result) => result.evidence === 'untried' && !recentIds.has(result.outfit.id),
+      (result) =>
+        result.evidence === 'untried' &&
+        matchesTargetTemperature(result) &&
+        !recentIds.has(result.outfit.id),
+    ),
+    unknownTrialRecommendations: results.filter(
+      (result) =>
+        result.evidence === 'untried' &&
+        temperatureRangeFor(result) === null &&
+        !recentIds.has(result.outfit.id),
     ),
   }
 }

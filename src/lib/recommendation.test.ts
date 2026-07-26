@@ -336,19 +336,73 @@ describe('recommendOutfits', () => {
     expect(result?.latestAcquiredItemNames).toEqual(['블루 가디건'])
   })
 
-  it('최근 구매 착장을 별도 영역으로 분리하고 기존 추천과 중복시키지 않는다', () => {
-    const groups = partitionRecommendations(recommendOutfits(demoData, baseInput), 2)
+  it('오늘 온도에 맞는 최근 구매 착장만 별도 영역으로 분리한다', () => {
+    const groups = partitionRecommendations(
+      recommendOutfits(demoData, baseInput),
+      10,
+    )
     const recentIds = groups.recentPurchases.map((entry) => entry.outfit.id)
     const remainingIds = [
       ...groups.recommendations,
       ...groups.trialRecommendations,
+      ...groups.unknownTrialRecommendations,
     ].map((entry) => entry.outfit.id)
 
-    expect(groups.recentPurchases.map((entry) => entry.latestAcquiredOn)).toEqual([
-      '2026-07-01',
-      '2026-07-01',
-    ])
+    expect(recentIds).toContain('outfit-favorite')
+    expect(recentIds).not.toContain('outfit-layered')
     expect(remainingIds).not.toContain(recentIds[0])
-    expect(remainingIds).not.toContain(recentIds[1])
+  })
+
+  it('부분 근거 온도가 맞지 않는 최근 구매 시험 착장은 오늘 후보에서 제외한다', () => {
+    const coldGroups = partitionRecommendations(
+      recommendOutfits(demoData, {
+        ...baseInput,
+        tempOut: 13,
+      }),
+      10,
+    )
+    const warmGroups = partitionRecommendations(
+      recommendOutfits(demoData, {
+        ...baseInput,
+        tempOut: 26,
+      }),
+      10,
+    )
+
+    expect(coldGroups.recentPurchases.map((entry) => entry.outfit.id)).not.toContain(
+      'outfit-layered',
+    )
+    expect(
+      coldGroups.trialRecommendations.map((entry) => entry.outfit.id),
+    ).not.toContain('outfit-layered')
+    expect(
+      coldGroups.unknownTrialRecommendations.map((entry) => entry.outfit.id),
+    ).not.toContain('outfit-layered')
+    expect(warmGroups.recentPurchases.map((entry) => entry.outfit.id)).toContain(
+      'outfit-layered',
+    )
+  })
+
+  it('OK 온도 근거가 없는 시험 착장은 미확인 후보로 분리한다', () => {
+    const data: AppData = {
+      ...structuredClone(demoData),
+      outfits: [
+        {
+          id: 'unknown-trial',
+          displayName: null,
+          rating: null,
+          itemIds: ['item-pants'],
+        },
+      ],
+      wearLogs: [],
+    }
+
+    const groups = partitionRecommendations(recommendOutfits(data, baseInput), 10)
+
+    expect(groups.recentPurchases).toHaveLength(0)
+    expect(groups.trialRecommendations).toHaveLength(0)
+    expect(
+      groups.unknownTrialRecommendations.map((entry) => entry.outfit.id),
+    ).toEqual(['unknown-trial'])
   })
 })
