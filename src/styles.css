@@ -1,11 +1,11 @@
 :root {
-  color: #171717;
+  color: #252525;
   background: #f0f0f0;
   font-family:
     Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --ink: #171717;
+  --ink: #252525;
   --muted: #73736f;
   --line: #deded9;
   --surface: #ffffff;
@@ -118,7 +118,7 @@ select:focus,
 textarea:focus,
 button:focus-visible,
 a:focus-visible {
-  outline: 3px solid rgba(23, 23, 23, 0.18);
+  outline: 3px solid rgba(37, 37, 37, 0.18);
   outline-offset: 2px;
 }
 
@@ -378,7 +378,7 @@ button:disabled {
 }
 
 .segmented input:focus-visible + span {
-  outline: 3px solid rgba(23, 23, 23, 0.18);
+  outline: 3px solid rgba(37, 37, 37, 0.18);
   outline-offset: -3px;
 }
 
@@ -542,7 +542,7 @@ button:disabled {
 
 .badge--favorite {
   background: #f1efec;
-  color: #171717;
+  color: #252525;
 }
 
 .badge--error {
@@ -731,7 +731,7 @@ button:disabled {
 .swatch {
   display: inline-block;
   flex: none;
-  border: 1px solid rgba(23, 23, 23, 0.17);
+  border: 1px solid rgba(37, 37, 37, 0.17);
   border-radius: 50%;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
 }
