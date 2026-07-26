@@ -3,11 +3,12 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  base: process.env.GITHUB_ACTIONS === 'true' ? '/closet-index/' : '/',
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg'],
+      includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Closet Index',
         short_name: 'Closet',
@@ -15,14 +16,21 @@ export default defineConfig({
         theme_color: '#ffffff',
         background_color: '#f6f6f4',
         display: 'standalone',
-        start_url: '/',
+        start_url: '.',
+        scope: '.',
         lang: 'ko',
         icons: [
           {
-            src: '/icon.svg',
+            src: 'icon.svg',
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any maskable',
+          },
+          {
+            src: 'apple-touch-icon.png',
+            sizes: '1254x1254',
+            type: 'image/png',
+            purpose: 'any',
           },
         ],
       },
