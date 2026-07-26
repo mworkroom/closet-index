@@ -1,6 +1,6 @@
 :root {
   color: #171717;
-  background: #efefed;
+  background: #f0f0f0;
   font-family:
     Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
@@ -24,14 +24,14 @@
 
 html {
   min-width: 320px;
-  background: #efefed;
+  background: #f0f0f0;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #efefed;
+  background: #f0f0f0;
 }
 
 body,
@@ -340,6 +340,10 @@ button:disabled {
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 12px;
+}
+
+.segmented--two {
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .segmented label {

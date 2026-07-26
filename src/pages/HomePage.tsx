@@ -12,11 +12,15 @@ import {
 import type { ConditionChoice, RecommendationInput } from '../lib/types'
 import { conditionLabels } from '../lib/types'
 
+type HomeConditionChoice = Exclude<ConditionChoice, 'unknown'>
+
+const homeConditionValues: HomeConditionChoice[] = ['no', 'yes']
+
 const defaultInput: RecommendationInput = {
   tempOut: 20,
   tempBack: null,
-  rainCondition: 'unknown',
-  longWalkCondition: 'unknown',
+  rainCondition: 'no',
+  longWalkCondition: 'no',
   placeId: null,
   transportModeId: null,
 }
@@ -32,9 +36,9 @@ export function HomePage() {
   const [tempOut, setTempOut] = useState(String(defaultInput.tempOut))
   const [tempBack, setTempBack] = useState('')
   const [rainCondition, setRainCondition] =
-    useState<ConditionChoice>('unknown')
+    useState<HomeConditionChoice>('no')
   const [longWalkCondition, setLongWalkCondition] =
-    useState<ConditionChoice>('unknown')
+    useState<HomeConditionChoice>('no')
   const [placeId, setPlaceId] = useState('')
   const [transportModeId, setTransportModeId] = useState('')
   const [submitted, setSubmitted] = useState<RecommendationInput | null>(null)
@@ -133,8 +137,8 @@ export function HomePage() {
             <CloudRain size={17} aria-hidden="true" />
             비
           </legend>
-          <div className="segmented">
-            {(Object.keys(conditionLabels) as ConditionChoice[]).map((value) => (
+          <div className="segmented segmented--two">
+            {homeConditionValues.map((value) => (
               <label key={value}>
                 <input
                   type="radio"
@@ -154,8 +158,8 @@ export function HomePage() {
             <Footprints size={17} aria-hidden="true" />
             오래 걷기
           </legend>
-          <div className="segmented">
-            {(Object.keys(conditionLabels) as ConditionChoice[]).map((value) => (
+          <div className="segmented segmented--two">
+            {homeConditionValues.map((value) => (
               <label key={value}>
                 <input
                   type="radio"
