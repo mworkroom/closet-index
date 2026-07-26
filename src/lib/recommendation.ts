@@ -6,6 +6,8 @@ import type {
   RecommendationInput,
   RecommendationLevel,
   RecommendationResult,
+  SimilarOutfitEvidence,
+  SimilarOutfitMatch,
   ThermalFeeling,
   WearLog,
 } from './types'
@@ -28,6 +30,30 @@ const ratingRank: Record<Exclude<OutfitRating, null> | 'unrated', number> = {
   error: 3,
 }
 
+function thermalWeight(item: Item) {
+  const category = item.category.toLowerCase()
+
+  if (
+    category.includes('outer') ||
+    category.includes('bottom') ||
+    category.includes('dress')
+  ) {
+    return 3
+  }
+  if (category.includes('top') || category.includes('inner')) return 2
+  if (category.includes('bag') || category.includes('accessor')) return 0.25
+  return 1
+}
+
+function isThermalAnchor(item: Item) {
+  const category = item.category.toLowerCase()
+  return (
+    category.includes('outer') ||
+    category.includes('bottom') ||
+    category.includes('dress')
+  )
+}
+
 function observationsFor(logs: WearLog[]): Observation[] {
   return logs.flatMap((log) => {
     const observations: Observation[] = []
@@ -47,6 +73,137 @@ function observationsFor(logs: WearLog[]): Observation[] {
 
     return observations
   })
+}
+
+function okRangeFor(observations: Observation[]) {
+  const okTemps = observations
+    .filter((entry) => entry.feeling === 'ok')
+    .map((entry) => entry.temp)
+
+  return {
+    okTemps,
+    okRange:
+      okTemps.length > 0
+        ? {
+            min: Math.min(...okTemps) - 2,
+            max: Math.max(...okTemps) + 2,
+          }
+        : null,
+  }
+}
+
+function weightedSimilarity(targetItems: Item[], candidateItems: Item[]) {
+  const targetIds = new Set(targetItems.map((item) => item.id))
+  const candidateIds = new Set(candidateItems.map((item) => item.id))
+  const union = new Map<string, Item>()
+
+  targetItems.forEach((item) => union.set(item.id, item))
+  candidateItems.forEach((item) => union.set(item.id, item))
+
+  const sharedWeight = [...union.values()]
+    .filter((item) => targetIds.has(item.id) && candidateIds.has(item.id))
+    .reduce((sum, item) => sum + thermalWeight(item), 0)
+  const unionWeight = [...union.values()].reduce(
+    (sum, item) => sum + thermalWeight(item),
+    0,
+  )
+
+  return unionWeight > 0 ? sharedWeight / unionWeight : 0
+}
+
+function similarOutfitEvidence(
+  target: Outfit,
+  available: Outfit[],
+  data: AppData,
+): SimilarOutfitEvidence | null {
+  const targetItems = target.itemIds
+    .map((id) => data.items.find((item) => item.id === id))
+    .filter((item): item is Item => Boolean(item))
+  const observedItemIds = new Set<string>()
+
+  const matches = available
+    .filter((candidate) => candidate.id !== target.id)
+    .flatMap((candidate): SimilarOutfitMatch[] => {
+      const logs = data.wearLogs.filter((log) => log.outfitId === candidate.id)
+      const observations = observationsFor(logs)
+      if (observations.length === 0) return []
+
+      const candidateItems = candidate.itemIds
+        .map((id) => data.items.find((item) => item.id === id))
+        .filter((item): item is Item => Boolean(item))
+      candidateItems.forEach((item) => observedItemIds.add(item.id))
+
+      const candidateIds = new Set(candidateItems.map((item) => item.id))
+      const sharedItems = targetItems.filter((item) => candidateIds.has(item.id))
+      const sharedAnchors = sharedItems.filter(isThermalAnchor)
+      const similarity = weightedSimilarity(targetItems, candidateItems)
+
+      if (
+        sharedItems.length < 2 ||
+        similarity < 0.4 ||
+        sharedItems.every((item) => thermalWeight(item) < 1) ||
+        (sharedAnchors.length === 0 && similarity < 0.65)
+      ) {
+        return []
+      }
+
+      const { okRange, okTemps } = okRangeFor(observations)
+      const sortedLogs = [...logs].sort((a, b) =>
+        b.wornOn.localeCompare(a.wornOn),
+      )
+
+      return [
+        {
+          outfitId: candidate.id,
+          sharedItemCount: sharedItems.length,
+          targetItemCount: targetItems.length,
+          weightedSimilarity: similarity,
+          sharedItemNames: sharedItems.map((item) => item.name),
+          changedItemNames: targetItems
+            .filter((item) => !candidateIds.has(item.id))
+            .map((item) => item.name),
+          wearCount: logs.length,
+          lastWornOn: sortedLogs[0]?.wornOn ?? null,
+          okRange,
+          okObservationCount: okTemps.length,
+        },
+      ]
+    })
+    .sort((a, b) => {
+      if (a.weightedSimilarity !== b.weightedSimilarity) {
+        return b.weightedSimilarity - a.weightedSimilarity
+      }
+      if (a.sharedItemCount !== b.sharedItemCount) {
+        return b.sharedItemCount - a.sharedItemCount
+      }
+      if (a.wearCount !== b.wearCount) return b.wearCount - a.wearCount
+      if (a.lastWornOn !== b.lastWornOn) {
+        return (b.lastWornOn ?? '').localeCompare(a.lastWornOn ?? '')
+      }
+      return a.outfitId.localeCompare(b.outfitId)
+    })
+    .slice(0, 3)
+
+  if (matches.length === 0) return null
+
+  const best = matches[0]
+  const supportingWearCount = matches
+    .filter(
+      (match) => best.weightedSimilarity - match.weightedSimilarity <= 0.05,
+    )
+    .reduce((sum, match) => sum + match.wearCount, 0)
+  const confidence =
+    best.weightedSimilarity >= 0.7 && supportingWearCount >= 2
+      ? 'medium'
+      : 'low'
+
+  return {
+    confidence,
+    knownItemCount: targetItems.filter((item) => observedItemIds.has(item.id))
+      .length,
+    totalItemCount: targetItems.length,
+    matches,
+  }
 }
 
 function rangeDistance(target: number, range: { min: number; max: number } | null) {
@@ -114,20 +271,12 @@ function evaluateOutfit(
   items: Item[],
   logs: WearLog[],
   input: RecommendationInput,
+  similarEvidence: SimilarOutfitEvidence | null,
 ): RecommendationResult {
   const tempBack = input.tempBack ?? input.tempOut
   const targetTemp = (input.tempOut + tempBack) / 2
   const observations = observationsFor(logs)
-  const okTemps = observations
-    .filter((entry) => entry.feeling === 'ok')
-    .map((entry) => entry.temp)
-  const okRange =
-    okTemps.length > 0
-      ? {
-          min: Math.min(...okTemps) - 2,
-          max: Math.max(...okTemps) + 2,
-        }
-      : null
+  const { okRange, okTemps } = okRangeFor(observations)
   const distance = rangeDistance(targetTemp, okRange)
 
   const warnings = [
@@ -152,6 +301,18 @@ function evaluateOutfit(
     reasons.push(
       `${okRange.min}~${okRange.max}°C 적정 범위 · OK ${okTemps.length}회`,
     )
+  } else if (similarEvidence) {
+    const best = similarEvidence.matches[0]
+    reasons.push(
+      `비슷한 과거 착장 ${best.sharedItemCount}/${best.targetItemCount}개 일치`,
+    )
+    if (best.okRange) {
+      reasons.push(
+        `유사 착장 ${best.okRange.min}~${best.okRange.max}°C · OK ${best.okObservationCount}회`,
+      )
+    } else {
+      reasons.push('유사 착장에 OK 온도 기록 없음')
+    }
   } else {
     reasons.push('온도 근거 없음')
   }
@@ -184,6 +345,7 @@ function evaluateOutfit(
     outfit,
     level,
     evidence: logs.length > 0 ? 'observed' : 'untried',
+    similarEvidence,
     reasons,
     warnings,
     okRange,
@@ -236,7 +398,9 @@ export function recommendOutfits(
         .map((id) => data.items.find((item) => item.id === id))
         .filter((item): item is Item => Boolean(item))
       const logs = data.wearLogs.filter((log) => log.outfitId === outfit.id)
-      return evaluateOutfit(outfit, items, logs, input)
+      const similarEvidence =
+        logs.length === 0 ? similarOutfitEvidence(outfit, available, data) : null
+      return evaluateOutfit(outfit, items, logs, input, similarEvidence)
     })
     .sort((a, b) => {
       const level = levelRank[a.level] - levelRank[b.level]
@@ -245,6 +409,14 @@ export function recommendOutfits(
       const aDistance = rangeDistance(a.targetTemp, a.okRange)
       const bDistance = rangeDistance(b.targetTemp, b.okRange)
       if (aDistance !== bDistance) return aDistance - bDistance
+
+      if (a.evidence === 'untried' && b.evidence === 'untried') {
+        const aSimilarity =
+          a.similarEvidence?.matches[0]?.weightedSimilarity ?? -1
+        const bSimilarity =
+          b.similarEvidence?.matches[0]?.weightedSimilarity ?? -1
+        if (aSimilarity !== bSimilarity) return bSimilarity - aSimilarity
+      }
 
       const aRating = ratingRank[a.outfit.rating ?? 'unrated']
       const bRating = ratingRank[b.outfit.rating ?? 'unrated']

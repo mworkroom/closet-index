@@ -85,6 +85,68 @@ export function OutfitDetailPage() {
                   </li>
                 ))}
               </ul>
+              {navigationState.recommendation.similarEvidence && (
+                <div className="similar-outfits">
+                  <div className="similar-outfits__heading">
+                    <div>
+                      <p className="eyebrow">PARTIAL EVIDENCE</p>
+                      <h2>비슷한 과거 착장</h2>
+                    </div>
+                    <span
+                      className={`level level--partial-${navigationState.recommendation.similarEvidence.confidence}`}
+                    >
+                      근거{' '}
+                      {navigationState.recommendation.similarEvidence.confidence ===
+                      'medium'
+                        ? '보통'
+                        : '낮음'}
+                    </span>
+                  </div>
+                  <p className="similar-outfits__note">
+                    직접 입어본 기록은 아닙니다. 겹치는 아우터·하의·원피스에
+                    더 큰 비중을 두고, 저장된 과거 Outfit만 비교했습니다.
+                  </p>
+                  <div className="similar-outfits__list">
+                    {navigationState.recommendation.similarEvidence.matches.map(
+                      (match) => {
+                        const matchedOutfit = data.outfits.find(
+                          (entry) => entry.id === match.outfitId,
+                        )
+                        if (!matchedOutfit) return null
+
+                        return (
+                          <Link
+                            className="similar-outfit-row"
+                            to={`/outfits/${match.outfitId}`}
+                            key={match.outfitId}
+                          >
+                            <span>
+                              <strong>
+                                {outfitLabel(matchedOutfit, data.items)}
+                              </strong>
+                              <small>
+                                {match.sharedItemCount}/{match.targetItemCount}개
+                                일치 · 착용 {match.wearCount}회
+                              </small>
+                              {match.changedItemNames.length > 0 && (
+                                <small>
+                                  달라진 아이템 ·{' '}
+                                  {match.changedItemNames.join(', ')}
+                                </small>
+                              )}
+                            </span>
+                            <span className="similar-outfit-row__range">
+                              {match.okRange
+                                ? `${match.okRange.min}~${match.okRange.max}°C`
+                                : 'OK 온도 없음'}
+                            </span>
+                          </Link>
+                        )
+                      },
+                    )}
+                  </div>
+                </div>
+              )}
             </section>
           )}
 

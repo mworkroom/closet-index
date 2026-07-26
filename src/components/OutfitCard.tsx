@@ -23,6 +23,7 @@ export function OutfitCard({
     .filter((item): item is AppData['items'][number] => Boolean(item))
   const stats = getOutfitStats(outfit.id, data.wearLogs)
   const isTrial = recommendation?.evidence === 'untried'
+  const similarEvidence = recommendation?.similarEvidence
 
   return (
     <Link className="outfit-card" to={`/outfits/${outfit.id}`} state={state}>
@@ -69,8 +70,21 @@ export function OutfitCard({
             >
               {isTrial ? '시험 착장' : recommendationLabels[recommendation.level]}
             </span>
+            {isTrial && similarEvidence && (
+              <span
+                className={`level level--partial-${similarEvidence.confidence}`}
+              >
+                부분 근거 {similarEvidence.confidence === 'medium' ? '보통' : '낮음'}
+              </span>
+            )}
             <span>{recommendation.reasons[0]}</span>
           </div>
+        )}
+        {isTrial && similarEvidence && (
+          <p className="similar-evidence-summary">
+            기존 아이템 {similarEvidence.knownItemCount}/
+            {similarEvidence.totalItemCount}개에 착용 근거 있음
+          </p>
         )}
         {purchaseHighlight &&
           recommendation &&

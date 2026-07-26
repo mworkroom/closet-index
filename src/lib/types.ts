@@ -82,10 +82,33 @@ export interface RecommendationInput {
   transportModeId: string | null
 }
 
+export type SimilarityConfidence = 'medium' | 'low'
+
+export interface SimilarOutfitMatch {
+  outfitId: string
+  sharedItemCount: number
+  targetItemCount: number
+  weightedSimilarity: number
+  sharedItemNames: string[]
+  changedItemNames: string[]
+  wearCount: number
+  lastWornOn: string | null
+  okRange: { min: number; max: number } | null
+  okObservationCount: number
+}
+
+export interface SimilarOutfitEvidence {
+  confidence: SimilarityConfidence
+  knownItemCount: number
+  totalItemCount: number
+  matches: SimilarOutfitMatch[]
+}
+
 export interface RecommendationResult {
   outfit: Outfit
   level: RecommendationLevel
   evidence: RecommendationEvidence
+  similarEvidence: SimilarOutfitEvidence | null
   reasons: string[]
   warnings: string[]
   okRange: { min: number; max: number } | null

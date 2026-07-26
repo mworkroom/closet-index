@@ -85,6 +85,128 @@ describe('recommendOutfits', () => {
     ).toBe('observed')
   })
 
+  it('미착용 Outfit에 구성품이 겹치는 과거 착장의 부분 근거를 계산한다', () => {
+    const data: AppData = structuredClone(demoData)
+    const shoes = data.items.find((item) => item.id === 'item-shoes')
+    if (!shoes) throw new Error('fixture missing')
+    data.items.push({
+      ...shoes,
+      id: 'item-new-shoes',
+      name: '새 신발',
+    })
+    data.outfits = [
+      {
+        id: 'observed',
+        displayName: '과거 착장',
+        rating: 'ok',
+        itemIds: ['item-cardigan', 'item-knit', 'item-pants', 'item-shoes'],
+      },
+      {
+        id: 'untried',
+        displayName: '새 신발 착장',
+        rating: null,
+        itemIds: ['item-cardigan', 'item-knit', 'item-pants', 'item-new-shoes'],
+      },
+    ]
+    data.wearLogs = [
+      wearLog('observed-1', 'observed', '2026-06-01'),
+      wearLog('observed-2', 'observed', '2026-07-01'),
+    ]
+
+    const result = recommendOutfits(data, baseInput).find(
+      (entry) => entry.outfit.id === 'untried',
+    )
+    const best = result?.similarEvidence?.matches[0]
+
+    expect(result?.evidence).toBe('untried')
+    expect(result?.level).toBe('caution')
+    expect(result?.similarEvidence?.confidence).toBe('medium')
+    expect(best?.outfitId).toBe('observed')
+    expect(best?.sharedItemCount).toBe(3)
+    expect(best?.targetItemCount).toBe(4)
+    expect(best?.changedItemNames).toEqual(['새 신발'])
+    expect(best?.weightedSimilarity).toBeCloseTo(0.8)
+    expect(result?.reasons[0]).toBe('비슷한 과거 착장 3/4개 일치')
+  })
+
+  it('가방과 액세서리만 겹치는 과거 Outfit은 온도 근거로 쓰지 않는다', () => {
+    const data: AppData = structuredClone(demoData)
+    const template = data.items[0]
+    data.items = [
+      {
+        ...template,
+        id: 'bag',
+        name: '가방',
+        category: 'Bags',
+      },
+      {
+        ...template,
+        id: 'accessory',
+        name: '액세서리',
+        category: 'Accessories',
+      },
+      {
+        ...template,
+        id: 'new-top',
+        name: '새 상의',
+        category: 'Top-Shirts',
+      },
+    ]
+    data.outfits = [
+      {
+        id: 'observed',
+        displayName: null,
+        rating: 'ok',
+        itemIds: ['bag', 'accessory'],
+      },
+      {
+        id: 'untried',
+        displayName: null,
+        rating: null,
+        itemIds: ['bag', 'accessory', 'new-top'],
+      },
+    ]
+    data.wearLogs = [wearLog('observed-1', 'observed', '2026-07-01')]
+
+    const result = recommendOutfits(data, baseInput).find(
+      (entry) => entry.outfit.id === 'untried',
+    )
+
+    expect(result?.similarEvidence).toBeNull()
+    expect(result?.reasons[0]).toBe('온도 근거 없음')
+  })
+
+  it('직접 착용 기록이 생기면 유사 착장 대신 직접 근거만 사용한다', () => {
+    const data: AppData = {
+      ...structuredClone(demoData),
+      outfits: [
+        {
+          id: 'observed',
+          displayName: null,
+          rating: 'ok',
+          itemIds: ['item-cardigan', 'item-knit', 'item-pants'],
+        },
+        {
+          id: 'target',
+          displayName: null,
+          rating: null,
+          itemIds: ['item-cardigan', 'item-knit', 'item-pants', 'item-shoes'],
+        },
+      ],
+      wearLogs: [
+        wearLog('observed-1', 'observed', '2026-06-01'),
+        wearLog('target-1', 'target', '2026-07-01'),
+      ],
+    }
+
+    const result = recommendOutfits(data, baseInput).find(
+      (entry) => entry.outfit.id === 'target',
+    )
+
+    expect(result?.evidence).toBe('observed')
+    expect(result?.similarEvidence).toBeNull()
+  })
+
   it('귀가 온도가 추움 관측과 충돌하면 주의 경고를 만든다', () => {
     const result = recommendOutfits(demoData, {
       ...baseInput,
