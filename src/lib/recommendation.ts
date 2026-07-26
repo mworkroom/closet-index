@@ -30,6 +30,18 @@ const ratingRank: Record<Exclude<OutfitRating, null> | 'unrated', number> = {
   error: 3,
 }
 
+const recentPurchaseExcludedCategories = new Set([
+  'innerwear',
+  'socks',
+  'acc-neck',
+  'acc-head-made',
+  'acc-hands-made',
+])
+
+function countsAsRecentPurchase(item: Item) {
+  return !recentPurchaseExcludedCategories.has(item.category.trim().toLowerCase())
+}
+
 function thermalWeight(item: Item) {
   const category = item.category.toLowerCase()
 
@@ -320,13 +332,14 @@ function evaluateOutfit(
   const sortedLogs = [...logs].sort((a, b) => b.wornOn.localeCompare(a.wornOn))
   const lastWornOn = sortedLogs[0]?.wornOn ?? null
   if (lastWornOn) reasons.push(`마지막 착용 ${lastWornOn}`)
+  const recentPurchaseItems = items.filter(countsAsRecentPurchase)
   const latestAcquiredOn =
-    items
+    recentPurchaseItems
       .map((item) => item.acquiredOn)
       .filter((date): date is string => Boolean(date))
       .sort((a, b) => b.localeCompare(a))[0] ?? null
   const latestAcquiredItemNames = latestAcquiredOn
-    ? items
+    ? recentPurchaseItems
         .filter((item) => item.acquiredOn === latestAcquiredOn)
         .map((item) => item.name)
     : []

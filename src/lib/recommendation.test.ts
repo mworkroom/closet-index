@@ -371,6 +371,46 @@ describe('recommendOutfits', () => {
     expect(result?.latestAcquiredItemNames).toEqual(['블루 가디건'])
   })
 
+  it('최근 구매 기준에서 보조 카테고리는 제외하고 Acc-Neck-made는 포함한다', () => {
+    const data: AppData = structuredClone(demoData)
+    const template = data.items.find((item) => item.id === 'item-pants')
+    if (!template) throw new Error('fixture missing')
+
+    const categoryItems = [
+      { id: 'innerwear', name: '이너웨어', category: 'Innerwear' },
+      { id: 'socks', name: '양말', category: 'Socks' },
+      { id: 'acc-neck', name: '기성 목 액세서리', category: 'Acc-Neck' },
+      { id: 'acc-head-made', name: '손뜨개 머리 액세서리', category: 'Acc-Head-made' },
+      { id: 'acc-hands-made', name: '손뜨개 손 액세서리', category: 'Acc-Hands-made' },
+    ].map((item, index) => ({
+      ...template,
+      ...item,
+      acquiredOn: `2026-07-${String(index + 20).padStart(2, '0')}`,
+    }))
+    const madeNeck = {
+      ...template,
+      id: 'acc-neck-made',
+      name: '손뜨개 목 액세서리',
+      category: 'Acc-Neck-made',
+      acquiredOn: '2026-07-10',
+    }
+    data.items = [template, ...categoryItems, madeNeck]
+    data.outfits = [
+      {
+        id: 'category-filter',
+        displayName: null,
+        rating: 'ok',
+        itemIds: data.items.map((item) => item.id),
+      },
+    ]
+    data.wearLogs = [wearLog('category-filter-log', 'category-filter', '2026-07-01')]
+
+    const result = recommendOutfits(data, baseInput)[0]
+
+    expect(result.latestAcquiredOn).toBe('2026-07-10')
+    expect(result.latestAcquiredItemNames).toEqual(['손뜨개 목 액세서리'])
+  })
+
   it('오늘 온도에 맞는 최근 구매 착장만 별도 영역으로 분리한다', () => {
     const groups = partitionRecommendations(
       recommendOutfits(demoData, baseInput),

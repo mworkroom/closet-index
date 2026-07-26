@@ -224,6 +224,7 @@ Phase 1A는 실제 옷 이미지 없이 데이터·추천·기록의 정확성�
 - 추천 근거
 - 출발·귀가 위험 경고
 - 정렬 결과 상위 3개의 Outfit 후보
+- 오늘 온도 근거와 맞는 최근 구매 착장. 대표 구매일 계산에서 `Innerwear`, `Socks`, `Acc-Neck`, `Acc-Head-made`, `Acc-Hands-made`는 제외하고 `Acc-Neck-made`는 포함
 - 착용 기록 0회 Outfit을 분리한 `새 착장 시험해보기`
 - 전체 후보를 여는 `더 보기`
 
