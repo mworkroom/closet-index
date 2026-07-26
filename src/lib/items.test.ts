@@ -11,8 +11,8 @@ function item(id: string, name: string, acquiredOn: string | null): Item {
     displayHex: '#000000',
     seasons: [],
     retired: false,
-    rainOk: 'unknown',
-    longWalkOk: 'unknown',
+    rainOk: true,
+    longWalkOk: true,
     memo: null,
     acquiredOn,
   }

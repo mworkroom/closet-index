@@ -236,22 +236,57 @@ describe('recommendOutfits', () => {
     expect(result?.reasons[0]).toContain('OK 2회')
   })
 
-  it('비 적합성 미확인은 제외하지 않고 추천 가능 경고로 남긴다', () => {
+  it('비 오는 날은 불가로 지정한 아이템만 경고한다', () => {
     const data: AppData = structuredClone(demoData)
     const cardigan = data.items.find((item) => item.id === 'item-cardigan')
     if (!cardigan) throw new Error('fixture missing')
-    cardigan.rainOk = 'unknown'
+    cardigan.rainOk = true
     const shoes = data.items.find((item) => item.id === 'item-shoes')
     if (!shoes) throw new Error('fixture missing')
-    shoes.rainOk = 'suitable'
+    shoes.rainOk = true
 
     const result = recommendOutfits(data, {
       ...baseInput,
       rainCondition: 'yes',
     }).find((entry) => entry.outfit.id === 'outfit-favorite')
 
-    expect(result?.level).toBe('possible')
-    expect(result?.warnings).toContain('비 적합성 미확인 1개')
+    expect(result?.warnings).not.toContain(expect.stringContaining('비에 부적합'))
+
+    cardigan.rainOk = false
+    const blockedResult = recommendOutfits(data, {
+      ...baseInput,
+      rainCondition: 'yes',
+    }).find((entry) => entry.outfit.id === 'outfit-favorite')
+
+    expect(blockedResult?.level).toBe('caution')
+    expect(blockedResult?.warnings).toContain('비에 부적합: 블루 가디건')
+  })
+
+  it('장거리 걷기는 신발의 불가 여부만 검사한다', () => {
+    const data: AppData = structuredClone(demoData)
+    const cardigan = data.items.find((item) => item.id === 'item-cardigan')
+    const shoes = data.items.find((item) => item.id === 'item-shoes')
+    if (!cardigan || !shoes) throw new Error('fixture missing')
+    cardigan.longWalkOk = false
+    shoes.longWalkOk = true
+
+    const allowed = recommendOutfits(data, {
+      ...baseInput,
+      longWalkCondition: 'yes',
+    }).find((entry) => entry.outfit.id === 'outfit-favorite')
+
+    expect(allowed?.warnings).not.toContain(
+      expect.stringContaining('오래 걷기 부적합'),
+    )
+
+    shoes.longWalkOk = false
+    const blocked = recommendOutfits(data, {
+      ...baseInput,
+      longWalkCondition: 'yes',
+    }).find((entry) => entry.outfit.id === 'outfit-favorite')
+
+    expect(blocked?.level).toBe('caution')
+    expect(blocked?.warnings).toContain('오래 걷기 부적합: 화이트 스니커즈')
   })
 
   it('같은 날짜와 같은 Outfit의 여러 Wear Log를 모두 집계한다', () => {

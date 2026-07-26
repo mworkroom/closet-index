@@ -1,4 +1,3 @@
-export type Suitability = 'suitable' | 'unsuitable' | 'unknown'
 export type ConditionChoice = 'no' | 'yes' | 'unknown'
 export type OutfitRating = 'favorite' | 'ok' | 'error' | null
 export type ThermalFeeling = 'cold' | 'ok' | 'hot' | null
@@ -13,8 +12,8 @@ export interface Item {
   displayHex: string
   seasons: string[]
   retired: boolean
-  rainOk: Suitability
-  longWalkOk: Suitability
+  rainOk: boolean
+  longWalkOk: boolean
   memo: string | null
   acquiredOn: string | null
 }
@@ -135,12 +134,6 @@ export const conditionLabels: Record<ConditionChoice, string> = {
   no: '해당 없음',
   yes: '해당',
   unknown: '미지정',
-}
-
-export const suitabilityLabels: Record<Suitability, string> = {
-  suitable: '가능',
-  unsuitable: '불가',
-  unknown: '미확인',
 }
 
 export const recommendationLabels: Record<RecommendationLevel, string> = {

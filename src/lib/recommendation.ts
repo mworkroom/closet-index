@@ -234,36 +234,26 @@ function endpointWarning(
 function conditionWarnings(
   input: RecommendationInput,
   items: Item[],
-): { warnings: string[]; hasUnknown: boolean; hasConflict: boolean } {
+): string[] {
   const warnings: string[] = []
-  let hasUnknown = false
-  let hasConflict = false
 
   if (input.rainCondition === 'yes') {
-    const unsuitable = items.filter((item) => item.rainOk === 'unsuitable')
-    const unknown = items.filter((item) => item.rainOk === 'unknown')
+    const unsuitable = items.filter((item) => !item.rainOk)
     if (unsuitable.length > 0) {
-      hasConflict = true
       warnings.push(`비에 부적합: ${unsuitable.map((item) => item.name).join(', ')}`)
-    } else if (unknown.length > 0) {
-      hasUnknown = true
-      warnings.push(`비 적합성 미확인 ${unknown.length}개`)
     }
   }
 
   if (input.longWalkCondition === 'yes') {
-    const unsuitable = items.filter((item) => item.longWalkOk === 'unsuitable')
-    const unknown = items.filter((item) => item.longWalkOk === 'unknown')
+    const unsuitable = items.filter(
+      (item) => item.category.toLowerCase().includes('shoe') && !item.longWalkOk,
+    )
     if (unsuitable.length > 0) {
-      hasConflict = true
       warnings.push(`오래 걷기 부적합: ${unsuitable.map((item) => item.name).join(', ')}`)
-    } else if (unknown.length > 0) {
-      hasUnknown = true
-      warnings.push(`걷기 적합성 미확인 ${unknown.length}개`)
     }
   }
 
-  return { warnings, hasUnknown, hasConflict }
+  return warnings
 }
 
 function evaluateOutfit(
@@ -284,13 +274,13 @@ function evaluateOutfit(
     endpointWarning(tempBack, '귀가', observations),
   ].filter((warning): warning is string => Boolean(warning))
 
-  const conditions = conditionWarnings(input, items)
-  warnings.push(...conditions.warnings)
+  const conditionWarningsForItems = conditionWarnings(input, items)
+  warnings.push(...conditionWarningsForItems)
 
   let level: RecommendationLevel
-  if (warnings.some((warning) => !warning.includes('미확인')) || distance > 2) {
+  if (warnings.length > 0 || distance > 2) {
     level = 'caution'
-  } else if (distance === 0 && !conditions.hasUnknown) {
+  } else if (distance === 0) {
     level = 'high'
   } else {
     level = 'possible'

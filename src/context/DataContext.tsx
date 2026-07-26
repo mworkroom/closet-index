@@ -7,7 +7,7 @@ import {
   useMemo,
   useState,
 } from 'react'
-import type { AppData, Suitability, WearLogInput } from '../lib/types'
+import type { AppData, WearLogInput } from '../lib/types'
 import type { ClosetRepository } from '../data/repository'
 
 interface DataState {
@@ -17,8 +17,8 @@ interface DataState {
   refresh: () => Promise<void>
   updateItemSuitability: (
     itemId: string,
-    rainOk: Suitability,
-    longWalkOk: Suitability,
+    rainOk: boolean,
+    longWalkOk: boolean,
   ) => Promise<void>
   createWearLog: (input: WearLogInput) => Promise<void>
   updateWearLog: (id: string, input: WearLogInput) => Promise<void>

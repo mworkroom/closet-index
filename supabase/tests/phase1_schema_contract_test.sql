@@ -1,6 +1,6 @@
 begin;
 
-select plan(27);
+select plan(31);
 
 select is(
   (
@@ -170,6 +170,54 @@ select ok(
 select ok(
   has_column_privilege('authenticated', 'public.closet_items', 'long_walk_ok', 'update'),
   'authenticated users can update walking suitability'
+);
+
+select is(
+  (
+    select data_type
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'closet_items'
+      and column_name = 'rain_ok'
+  ),
+  'boolean',
+  'rain suitability is a boolean exception flag'
+);
+
+select is(
+  (
+    select column_default
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'closet_items'
+      and column_name = 'rain_ok'
+  ),
+  'true',
+  'rain suitability defaults to allowed'
+);
+
+select is(
+  (
+    select data_type
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'closet_items'
+      and column_name = 'long_walk_ok'
+  ),
+  'boolean',
+  'walking suitability is a boolean exception flag'
+);
+
+select is(
+  (
+    select column_default
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'closet_items'
+      and column_name = 'long_walk_ok'
+  ),
+  'true',
+  'walking suitability defaults to allowed'
 );
 
 select ok(

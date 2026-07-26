@@ -6,17 +6,13 @@ import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { Swatch } from '../components/Swatch'
 import { useClosetData } from '../context/DataContext'
 import { getItemStats, outfitLabel } from '../lib/outfits'
-import type { Suitability } from '../lib/types'
-import { suitabilityLabels } from '../lib/types'
-
-const suitabilityValues: Suitability[] = ['suitable', 'unsuitable', 'unknown']
 
 export function ItemDetailPage() {
   const { itemId = '' } = useParams()
   const { data, loading, error, refresh, updateItemSuitability } = useClosetData()
   const item = data?.items.find((entry) => entry.id === itemId)
-  const [rainOk, setRainOk] = useState<Suitability>('unknown')
-  const [longWalkOk, setLongWalkOk] = useState<Suitability>('unknown')
+  const [rainOk, setRainOk] = useState(true)
+  const [longWalkOk, setLongWalkOk] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -32,6 +28,7 @@ export function ItemDetailPage() {
   )
   const stats =
     data && item ? getItemStats(item.id, data.outfits, data.wearLogs) : null
+  const isShoes = item?.category.toLowerCase().includes('shoe') ?? false
 
   const save = async () => {
     if (!item) return
@@ -106,38 +103,30 @@ export function ItemDetailPage() {
                 <h2>조건 적합성</h2>
               </div>
             </div>
-            <label className="field">
+            <label className="field field--checkbox">
               <span>
                 <CloudRain size={17} />
-                비 오는 날
+                비 오는 날 착용 불가
               </span>
-              <select
-                value={rainOk}
-                onChange={(event) => setRainOk(event.target.value as Suitability)}
-              >
-                {suitabilityValues.map((value) => (
-                  <option value={value} key={value}>
-                    {suitabilityLabels[value]}
-                  </option>
-                ))}
-              </select>
+              <input
+                type="checkbox"
+                checked={!rainOk}
+                onChange={(event) => setRainOk(!event.target.checked)}
+              />
             </label>
-            <label className="field">
-              <span>
-                <Footprints size={17} />
-                장거리 걷기
-              </span>
-              <select
-                value={longWalkOk}
-                onChange={(event) => setLongWalkOk(event.target.value as Suitability)}
-              >
-                {suitabilityValues.map((value) => (
-                  <option value={value} key={value}>
-                    {suitabilityLabels[value]}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {isShoes && (
+              <label className="field field--checkbox">
+                <span>
+                  <Footprints size={17} />
+                  장거리 걷기 불가
+                </span>
+                <input
+                  type="checkbox"
+                  checked={!longWalkOk}
+                  onChange={(event) => setLongWalkOk(!event.target.checked)}
+                />
+              </label>
+            )}
             <button
               className="button button--primary button--wide"
               type="button"

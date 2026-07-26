@@ -3,7 +3,6 @@ import type {
   AppData,
   Item,
   Outfit,
-  Suitability,
   ThermalFeeling,
   WearLog,
   WearLogInput,
@@ -21,8 +20,8 @@ interface ItemRow {
   semantic_color: string | null
   seasons: string[]
   retired: boolean
-  rain_ok: Suitability
-  long_walk_ok: Suitability
+  rain_ok: boolean
+  long_walk_ok: boolean
   memo: string | null
   acquired_on: string | null
   color_palette: PaletteRelation | PaletteRelation[] | null
@@ -218,8 +217,8 @@ export class SupabaseRepository implements ClosetRepository {
 
   async updateItemSuitability(
     itemId: string,
-    rainOk: Suitability,
-    longWalkOk: Suitability,
+    rainOk: boolean,
+    longWalkOk: boolean,
   ) {
     const { error } = await this.client
       .from('closet_items')

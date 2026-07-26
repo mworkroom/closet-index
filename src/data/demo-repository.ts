@@ -1,4 +1,4 @@
-import type { Suitability, WearLog, WearLogInput } from '../lib/types'
+import type { WearLog, WearLogInput } from '../lib/types'
 import { demoData } from './demo-data'
 import type { ClosetRepository } from './repository'
 
@@ -30,8 +30,8 @@ export class DemoRepository implements ClosetRepository {
 
   async updateItemSuitability(
     itemId: string,
-    rainOk: Suitability,
-    longWalkOk: Suitability,
+    rainOk: boolean,
+    longWalkOk: boolean,
   ) {
     const data = readData()
     const item = data.items.find((entry) => entry.id === itemId)
