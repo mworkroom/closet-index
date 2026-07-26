@@ -13,6 +13,7 @@ export const demoData: AppData = {
       rainOk: 'unknown',
       longWalkOk: 'suitable',
       memo: null,
+      acquiredOn: '2026-07-01',
     },
     {
       id: 'item-knit',
@@ -25,6 +26,7 @@ export const demoData: AppData = {
       rainOk: 'suitable',
       longWalkOk: 'suitable',
       memo: null,
+      acquiredOn: '2025-11-20',
     },
     {
       id: 'item-tee',
@@ -37,6 +39,7 @@ export const demoData: AppData = {
       rainOk: 'suitable',
       longWalkOk: 'suitable',
       memo: null,
+      acquiredOn: '2026-06-15',
     },
     {
       id: 'item-skirt',
@@ -49,6 +52,7 @@ export const demoData: AppData = {
       rainOk: 'unsuitable',
       longWalkOk: 'unknown',
       memo: null,
+      acquiredOn: '2024-10-10',
     },
     {
       id: 'item-pants',
@@ -61,6 +65,7 @@ export const demoData: AppData = {
       rainOk: 'suitable',
       longWalkOk: 'suitable',
       memo: null,
+      acquiredOn: '2025-02-01',
     },
     {
       id: 'item-shoes',
@@ -73,6 +78,7 @@ export const demoData: AppData = {
       rainOk: 'unsuitable',
       longWalkOk: 'suitable',
       memo: null,
+      acquiredOn: '2026-01-10',
     },
     {
       id: 'item-loafers',
@@ -85,6 +91,7 @@ export const demoData: AppData = {
       rainOk: 'unsuitable',
       longWalkOk: 'unsuitable',
       memo: '과거 착장 보존용',
+      acquiredOn: '2020-01-01',
     },
   ],
   outfits: [

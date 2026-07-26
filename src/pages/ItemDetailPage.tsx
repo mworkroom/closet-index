@@ -80,6 +80,16 @@ export function ItemDetailPage() {
               <strong>{item.retired ? 'Retired' : '사용 중'}</strong>
             </div>
             <div>
+              <span>구매일</span>
+              <strong>
+                {item.acquiredOn ? (
+                  <time dateTime={item.acquiredOn}>{item.acquiredOn}</time>
+                ) : (
+                  '미입력'
+                )}
+              </strong>
+            </div>
+            <div>
               <span>착용 횟수</span>
               <strong>{stats?.wearCount ?? 0}회</strong>
             </div>

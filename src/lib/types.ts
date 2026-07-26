@@ -16,6 +16,7 @@ export interface Item {
   rainOk: Suitability
   longWalkOk: Suitability
   memo: string | null
+  acquiredOn: string | null
 }
 
 export interface Outfit {
@@ -91,6 +92,8 @@ export interface RecommendationResult {
   targetTemp: number
   wearCount: number
   lastWornOn: string | null
+  latestAcquiredOn: string | null
+  latestAcquiredItemNames: string[]
 }
 
 export const ratingLabels: Record<Exclude<OutfitRating, null>, string> = {

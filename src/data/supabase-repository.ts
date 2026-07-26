@@ -24,6 +24,7 @@ interface ItemRow {
   rain_ok: Suitability
   long_walk_ok: Suitability
   memo: string | null
+  acquired_on: string | null
   color_palette: PaletteRelation | PaletteRelation[] | null
 }
 
@@ -133,10 +134,10 @@ export class SupabaseRepository implements ClosetRepository {
         this.client
           .from('closet_items')
           .select(
-            'id,name,category,semantic_color,seasons,retired,rain_ok,long_walk_ok,memo,color_palette:closet_color_palette(display_hex)',
+            'id,name,category,semantic_color,seasons,retired,rain_ok,long_walk_ok,memo,acquired_on,color_palette:closet_color_palette(display_hex)',
           )
           .eq('workspace_id', this.workspaceId)
-          .order('category')
+          .order('acquired_on', { ascending: false, nullsFirst: false })
           .order('name'),
         this.client
           .from('closet_outfits')
@@ -190,6 +191,7 @@ export class SupabaseRepository implements ClosetRepository {
       rainOk: row.rain_ok,
       longWalkOk: row.long_walk_ok,
       memo: row.memo,
+      acquiredOn: row.acquired_on,
     }))
 
     const outfits: Outfit[] = outfitRows.map((row) => ({

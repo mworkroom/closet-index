@@ -537,6 +537,11 @@ button:disabled {
   color: var(--danger);
 }
 
+.badge--recent {
+  background: #f0eef8;
+  color: #51486f;
+}
+
 .level--high {
   background: #edf6f0;
   color: var(--success);
@@ -566,11 +571,20 @@ button:disabled {
   font-size: 0.72rem;
 }
 
+.purchase-highlight {
+  margin-top: 8px;
+  color: #51486f;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.recent-purchase-section,
 .trial-section {
   border-top: 1px solid var(--line);
   padding-top: 28px;
 }
 
+.recommendation-intro,
 .trial-intro {
   margin-bottom: 12px;
   border: 1px solid var(--line);
@@ -579,10 +593,12 @@ button:disabled {
   padding: 14px 15px;
 }
 
+.recommendation-intro strong,
 .trial-intro strong {
   font-size: 0.83rem;
 }
 
+.recommendation-intro p,
 .trial-intro p {
   margin-top: 5px;
   color: var(--muted);
@@ -615,7 +631,7 @@ button:disabled {
 
 .filter-row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 

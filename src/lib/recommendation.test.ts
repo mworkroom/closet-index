@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { demoData } from '../data/demo-data'
 import type { AppData, RecommendationInput, WearLog } from './types'
-import { recommendOutfits } from './recommendation'
+import { partitionRecommendations, recommendOutfits } from './recommendation'
 
 const baseInput: RecommendationInput = {
   tempOut: 20,
@@ -203,5 +203,30 @@ describe('recommendOutfits', () => {
       'a',
       'b',
     ])
+  })
+
+  it('Outfit에서 구매일이 가장 최근인 아이템을 식별한다', () => {
+    const result = recommendOutfits(demoData, baseInput).find(
+      (entry) => entry.outfit.id === 'outfit-favorite',
+    )
+
+    expect(result?.latestAcquiredOn).toBe('2026-07-01')
+    expect(result?.latestAcquiredItemNames).toEqual(['블루 가디건'])
+  })
+
+  it('최근 구매 착장을 별도 영역으로 분리하고 기존 추천과 중복시키지 않는다', () => {
+    const groups = partitionRecommendations(recommendOutfits(demoData, baseInput), 2)
+    const recentIds = groups.recentPurchases.map((entry) => entry.outfit.id)
+    const remainingIds = [
+      ...groups.recommendations,
+      ...groups.trialRecommendations,
+    ].map((entry) => entry.outfit.id)
+
+    expect(groups.recentPurchases.map((entry) => entry.latestAcquiredOn)).toEqual([
+      '2026-07-01',
+      '2026-07-01',
+    ])
+    expect(remainingIds).not.toContain(recentIds[0])
+    expect(remainingIds).not.toContain(recentIds[1])
   })
 })

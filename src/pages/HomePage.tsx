@@ -5,7 +5,10 @@ import { AppShell } from '../components/AppShell'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { OutfitCard } from '../components/OutfitCard'
 import { useClosetData } from '../context/DataContext'
-import { recommendOutfits } from '../lib/recommendation'
+import {
+  partitionRecommendations,
+  recommendOutfits,
+} from '../lib/recommendation'
 import type { ConditionChoice, RecommendationInput } from '../lib/types'
 import { conditionLabels } from '../lib/types'
 
@@ -39,17 +42,10 @@ export function HomePage() {
   const [showAll, setShowAll] = useState(false)
   const [showAllTrials, setShowAllTrials] = useState(false)
 
-  const { recommendations, trialRecommendations } = useMemo(
+  const { recentPurchases, recommendations, trialRecommendations } = useMemo(
     () => {
       const results = data && submitted ? recommendOutfits(data, submitted) : []
-      return {
-        recommendations: results.filter(
-          (recommendation) => recommendation.evidence === 'observed',
-        ),
-        trialRecommendations: results.filter(
-          (recommendation) => recommendation.evidence === 'untried',
-        ),
-      }
+      return partitionRecommendations(results)
     },
     [data, submitted],
   )
@@ -214,6 +210,39 @@ export function HomePage() {
 
       {data && submitted && (
         <>
+          {recentPurchases.length > 0 && (
+            <section className="section recent-purchase-section">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">RECENT PURCHASES</p>
+                  <h2>최근 구매 착장</h2>
+                </div>
+                <span className="count">{recentPurchases.length}개 후보</span>
+              </div>
+
+              <div className="recommendation-intro">
+                <strong>가장 최근에 산 아이템을 먼저 입어볼 수 있는 착장이에요.</strong>
+                <p>
+                  Outfit에 포함된 아이템의 구매일을 기준으로 골랐습니다.
+                  온도 적합성은 카드의 추천 단계를 함께 확인해 주세요.
+                </p>
+              </div>
+
+              <div className="card-list">
+                {recentPurchases.map((recommendation) => (
+                  <OutfitCard
+                    key={recommendation.outfit.id}
+                    outfit={recommendation.outfit}
+                    data={data}
+                    recommendation={recommendation}
+                    purchaseHighlight
+                    state={{ recommendation, input: submitted }}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
           <section className="section">
             <div className="section-heading">
               <div>

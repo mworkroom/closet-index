@@ -9,11 +9,13 @@ export function OutfitCard({
   outfit,
   data,
   recommendation,
+  purchaseHighlight = false,
   state,
 }: {
   outfit: Outfit
   data: AppData
   recommendation?: RecommendationResult
+  purchaseHighlight?: boolean
   state?: unknown
 }) {
   const items = outfit.itemIds
@@ -50,6 +52,11 @@ export function OutfitCard({
               {ratingLabels[outfit.rating]}
             </span>
           )}
+          {purchaseHighlight && recommendation?.latestAcquiredOn && (
+            <span className="badge badge--recent">
+              최근 구매 {recommendation.latestAcquiredOn}
+            </span>
+          )}
           <span>착용 {stats.wearCount}회</span>
           <span>{stats.lastWornOn ? `최근 ${stats.lastWornOn}` : '기록 없음'}</span>
         </div>
@@ -65,6 +72,13 @@ export function OutfitCard({
             <span>{recommendation.reasons[0]}</span>
           </div>
         )}
+        {purchaseHighlight &&
+          recommendation &&
+          recommendation.latestAcquiredItemNames.length > 0 && (
+            <p className="purchase-highlight">
+              최근 아이템 · {recommendation.latestAcquiredItemNames.join(', ')}
+            </p>
+          )}
       </div>
     </Link>
   )

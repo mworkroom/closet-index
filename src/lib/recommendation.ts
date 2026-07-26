@@ -169,6 +169,16 @@ function evaluateOutfit(
   const sortedLogs = [...logs].sort((a, b) => b.wornOn.localeCompare(a.wornOn))
   const lastWornOn = sortedLogs[0]?.wornOn ?? null
   if (lastWornOn) reasons.push(`마지막 착용 ${lastWornOn}`)
+  const latestAcquiredOn =
+    items
+      .map((item) => item.acquiredOn)
+      .filter((date): date is string => Boolean(date))
+      .sort((a, b) => b.localeCompare(a))[0] ?? null
+  const latestAcquiredItemNames = latestAcquiredOn
+    ? items
+        .filter((item) => item.acquiredOn === latestAcquiredOn)
+        .map((item) => item.name)
+    : []
 
   return {
     outfit,
@@ -180,6 +190,31 @@ function evaluateOutfit(
     targetTemp,
     wearCount: logs.length,
     lastWornOn,
+    latestAcquiredOn,
+    latestAcquiredItemNames,
+  }
+}
+
+export function partitionRecommendations(
+  results: RecommendationResult[],
+  recentPurchaseLimit = 3,
+) {
+  const recentPurchases = results
+    .filter((result) => result.latestAcquiredOn !== null)
+    .sort((a, b) =>
+      (b.latestAcquiredOn ?? '').localeCompare(a.latestAcquiredOn ?? ''),
+    )
+    .slice(0, recentPurchaseLimit)
+  const recentIds = new Set(recentPurchases.map((result) => result.outfit.id))
+
+  return {
+    recentPurchases,
+    recommendations: results.filter(
+      (result) => result.evidence === 'observed' && !recentIds.has(result.outfit.id),
+    ),
+    trialRecommendations: results.filter(
+      (result) => result.evidence === 'untried' && !recentIds.has(result.outfit.id),
+    ),
   }
 }
 

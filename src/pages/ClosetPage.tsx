@@ -5,6 +5,9 @@ import { AppShell } from '../components/AppShell'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { Swatch } from '../components/Swatch'
 import { useClosetData } from '../context/DataContext'
+import { sortItems, type ItemSort } from '../lib/items'
+
+const defaultSort: ItemSort = 'acquired-desc'
 
 export function ClosetPage() {
   const { data, loading, error, refresh } = useClosetData()
@@ -12,6 +15,7 @@ export function ClosetPage() {
   const [category, setCategory] = useState('')
   const [color, setColor] = useState('')
   const [includeRetired, setIncludeRetired] = useState(false)
+  const [sort, setSort] = useState<ItemSort>(defaultSort)
 
   const categories = useMemo(
     () => [...new Set(data?.items.map((item) => item.category) ?? [])].sort(),
@@ -31,23 +35,27 @@ export function ClosetPage() {
   const items = useMemo(() => {
     if (!data) return []
     const normalized = query.trim().toLocaleLowerCase('ko')
-    return data.items.filter((item) => {
-      if (!includeRetired && item.retired) return false
-      if (category && item.category !== category) return false
-      if (color && item.semanticColor !== color) return false
-      return (
-        !normalized ||
-        item.name.toLocaleLowerCase('ko').includes(normalized) ||
-        item.category.toLocaleLowerCase('ko').includes(normalized)
-      )
-    })
-  }, [category, color, data, includeRetired, query])
+    return sortItems(
+      data.items.filter((item) => {
+        if (!includeRetired && item.retired) return false
+        if (category && item.category !== category) return false
+        if (color && item.semanticColor !== color) return false
+        return (
+          !normalized ||
+          item.name.toLocaleLowerCase('ko').includes(normalized) ||
+          item.category.toLocaleLowerCase('ko').includes(normalized)
+        )
+      }),
+      sort,
+    )
+  }, [category, color, data, includeRetired, query, sort])
 
   const reset = () => {
     setQuery('')
     setCategory('')
     setColor('')
     setIncludeRetired(false)
+    setSort(defaultSort)
   }
 
   return (
@@ -83,6 +91,15 @@ export function ClosetPage() {
             {colors.map((value) => (
               <option key={value}>{value}</option>
             ))}
+          </select>
+          <select
+            aria-label="정렬"
+            value={sort}
+            onChange={(event) => setSort(event.target.value as ItemSort)}
+          >
+            <option value="acquired-desc">구매일 최신순</option>
+            <option value="acquired-asc">구매일 오래된순</option>
+            <option value="name">이름순</option>
           </select>
         </div>
         <label className="check-row">
@@ -123,7 +140,14 @@ export function ClosetPage() {
                   />
                   <span className="item-row__body">
                     <strong>{item.name}</strong>
-                    <span>{item.category}</span>
+                    <span>
+                      {item.category} · 구매{' '}
+                      {item.acquiredOn ? (
+                        <time dateTime={item.acquiredOn}>{item.acquiredOn}</time>
+                      ) : (
+                        '미입력'
+                      )}
+                    </span>
                   </span>
                   {item.retired && <span className="badge">Retired</span>}
                 </Link>
