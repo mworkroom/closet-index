@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": {
+    "type": "object",
+    "required": ["displayName", "displayHex", "semanticColor"],
+    "properties": {
+      "displayName": { "type": "string", "minLength": 1 },
+      "displayHex": {
+        "type": "string",
+        "pattern": "^#[0-9A-Fa-f]{6}$"
+      },
+      "semanticColor": { "type": ["string", "null"] }
+    },
+    "additionalProperties": false
+  }
+}

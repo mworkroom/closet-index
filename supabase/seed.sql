@@ -1,0 +1,2 @@
+-- Real wardrobe data is never committed as seed data.
+-- Local tests create isolated fixtures and roll them back.

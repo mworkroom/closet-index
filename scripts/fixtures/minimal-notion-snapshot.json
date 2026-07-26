@@ -1,0 +1,90 @@
+{
+  "metadata": {
+    "extractedAt": "2026-07-26T00:00:00.000Z",
+    "notionApiVersion": "2026-03-11",
+    "dataSources": {}
+  },
+  "report": {
+    "counts": {
+      "items": 1,
+      "outfits": 1,
+      "wearLogs": 1,
+      "replacementLines": 1,
+      "colorIcons": 1
+    },
+    "unresolved": {
+      "itemName": [],
+      "itemCategory": [],
+      "itemColorIcon": [],
+      "outfitItems": [],
+      "brokenOutfitItems": [],
+      "wearLogDate": [],
+      "wearLogOutfit": [],
+      "brokenWearLogOutfit": [],
+      "wearLogTempOut": [],
+      "replacementItems": [],
+      "replacementStyleIdentity": []
+    }
+  },
+  "colorIcons": [
+    {
+      "id": "90000000-0000-0000-0000-000000000001",
+      "name": "fixture-blue",
+      "sourceUrl": "https://example.invalid/fixture.png"
+    }
+  ],
+  "items": [
+    {
+      "id": "91000000-0000-0000-0000-000000000001",
+      "notionPageId": "91000000-0000-0000-0000-000000000001",
+      "name": "Fixture item",
+      "category": "Top",
+      "semanticColor": "Blue",
+      "notionIconId": "90000000-0000-0000-0000-000000000001",
+      "seasons": ["Spring"],
+      "retired": false,
+      "memo": null,
+      "acquiredOn": null,
+      "notionCreatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "outfits": [
+    {
+      "id": "92000000-0000-0000-0000-000000000001",
+      "notionPageId": "92000000-0000-0000-0000-000000000001",
+      "displayName": "Fixture outfit",
+      "rating": "ok",
+      "itemIds": ["91000000-0000-0000-0000-000000000001"],
+      "notionCreatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "wearLogs": [
+    {
+      "id": "93000000-0000-0000-0000-000000000001",
+      "notionPageId": "93000000-0000-0000-0000-000000000001",
+      "outfitId": "92000000-0000-0000-0000-000000000001",
+      "wornOn": "2026-01-02",
+      "tempOut": 15,
+      "tempBack": 15,
+      "tempBackInferred": true,
+      "feelingOut": "ok",
+      "feelingBack": "ok",
+      "rainCondition": "unknown",
+      "longWalkCondition": "unknown",
+      "place": "Fixture place",
+      "transport": "도보",
+      "memo": null,
+      "notionCreatedAt": "2026-01-02T00:00:00.000Z"
+    }
+  ],
+  "replacementLines": [
+    {
+      "id": "94000000-0000-0000-0000-000000000001",
+      "notionPageId": "94000000-0000-0000-0000-000000000001",
+      "name": "Fixture line",
+      "styleIdentity": "Fixture",
+      "itemIds": ["91000000-0000-0000-0000-000000000001"],
+      "notionCreatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  ]
+}

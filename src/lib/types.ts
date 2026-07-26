@@ -1,0 +1,124 @@
+export type Suitability = 'suitable' | 'unsuitable' | 'unknown'
+export type ConditionChoice = 'no' | 'yes' | 'unknown'
+export type OutfitRating = 'favorite' | 'ok' | 'error' | null
+export type ThermalFeeling = 'cold' | 'ok' | 'hot' | null
+export type RecommendationLevel = 'high' | 'possible' | 'caution'
+export type RecommendationEvidence = 'observed' | 'untried'
+
+export interface Item {
+  id: string
+  name: string
+  category: string
+  semanticColor: string | null
+  displayHex: string
+  seasons: string[]
+  retired: boolean
+  rainOk: Suitability
+  longWalkOk: Suitability
+  memo: string | null
+}
+
+export interface Outfit {
+  id: string
+  displayName: string | null
+  rating: OutfitRating
+  itemIds: string[]
+}
+
+export interface SelectOption {
+  id: string
+  name: string
+}
+
+export interface WearLog {
+  id: string
+  outfitId: string
+  wornOn: string
+  tempOut: number | null
+  tempBack: number | null
+  tempBackInferred: boolean
+  feelingOut: ThermalFeeling
+  feelingBack: ThermalFeeling
+  rainCondition: ConditionChoice
+  longWalkCondition: ConditionChoice
+  placeId: string | null
+  transportModeId: string | null
+  memo: string | null
+  submissionToken: string
+  createdAt: string
+}
+
+export interface WearLogInput {
+  outfitId: string
+  wornOn: string
+  tempOut: number | null
+  tempBack: number | null
+  tempBackInferred: boolean
+  feelingOut: ThermalFeeling
+  feelingBack: ThermalFeeling
+  rainCondition: ConditionChoice
+  longWalkCondition: ConditionChoice
+  placeId: string | null
+  transportModeId: string | null
+  memo: string | null
+  submissionToken: string
+}
+
+export interface AppData {
+  items: Item[]
+  outfits: Outfit[]
+  wearLogs: WearLog[]
+  places: SelectOption[]
+  transportModes: SelectOption[]
+}
+
+export interface RecommendationInput {
+  tempOut: number
+  tempBack: number | null
+  rainCondition: ConditionChoice
+  longWalkCondition: ConditionChoice
+  placeId: string | null
+  transportModeId: string | null
+}
+
+export interface RecommendationResult {
+  outfit: Outfit
+  level: RecommendationLevel
+  evidence: RecommendationEvidence
+  reasons: string[]
+  warnings: string[]
+  okRange: { min: number; max: number } | null
+  targetTemp: number
+  wearCount: number
+  lastWornOn: string | null
+}
+
+export const ratingLabels: Record<Exclude<OutfitRating, null>, string> = {
+  favorite: 'Favorite',
+  ok: 'OK',
+  error: 'Error',
+}
+
+export const feelingLabels: Record<Exclude<ThermalFeeling, null>, string> = {
+  cold: '추움',
+  ok: 'OK',
+  hot: '더움',
+}
+
+export const conditionLabels: Record<ConditionChoice, string> = {
+  no: '해당 없음',
+  yes: '해당',
+  unknown: '미지정',
+}
+
+export const suitabilityLabels: Record<Suitability, string> = {
+  suitable: '가능',
+  unsuitable: '불가',
+  unknown: '미확인',
+}
+
+export const recommendationLabels: Record<RecommendationLevel, string> = {
+  high: '추천 높음',
+  possible: '추천 가능',
+  caution: '주의',
+}

@@ -1,0 +1,8 @@
+{
+  "$schema": "./color-map.schema.json",
+  "custom-emoji-id": {
+    "displayName": "Purple 01",
+    "displayHex": "#6E347D",
+    "semanticColor": "Purple"
+  }
+}

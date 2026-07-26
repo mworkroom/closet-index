@@ -1,0 +1,33 @@
+README.md
+
+
+
+# Personal notes / local-only references
+docs/ideas/
+docs/project specs/
+
+# Local source assets / temporary data
+*.psd
+*.csv
+data/notion-snapshot*.json
+data/notion-color-icons/
+scripts/notion-source.json
+scripts/color-map.json
+
+
+# Keep example CSVs only if intentionally needed
+
+# Node.js / Vite / Vitest generated files
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.supabase/
+supabase/.branches/
+supabase/.temp/
+.env
+.env.*
+!.env.example
+!.env.notion.example
+!.env.supabase.example
+.DS_Store

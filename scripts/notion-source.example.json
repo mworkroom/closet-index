@@ -1,0 +1,44 @@
+{
+  "apiVersion": "2026-03-11",
+  "dataSources": {
+    "wardrobe": "349f66af-29b2-801a-bdd3-000b14390931",
+    "outfits": "349f66af-29b2-80a6-82d1-000b2dc56ca6",
+    "dailyLog": "327010b4-b582-4f08-abb2-440ea77fbcab",
+    "replacementLine": "35ef66af-29b2-802b-9a9c-000b03f7a7bd"
+  },
+  "properties": {
+    "wardrobe": {
+      "name": "Name",
+      "category": "Category",
+      "color": "Colors",
+      "seasons": "Seasons",
+      "retired": "Retired",
+      "memo": "Memo",
+      "acquiredOn": "구매일"
+    },
+    "outfits": {
+      "name": "Name",
+      "items": "All Items",
+      "rating": "Rating",
+      "createdTime": "Created time"
+    },
+    "dailyLog": {
+      "category": "Category",
+      "outfitCategoryValue": "Outfits",
+      "date": "End",
+      "tempOut": "Temp Out",
+      "tempBack": "Temp Back",
+      "feelingOut": "Feeling Out",
+      "feelingBack": "Feeling Back",
+      "place": "Place",
+      "transport": "Transportation",
+      "outfit": "👚 Outfits",
+      "memo": "Memo"
+    },
+    "replacementLine": {
+      "name": "Name",
+      "items": "Items",
+      "styleIdentity": "Style Identity"
+    }
+  }
+}
