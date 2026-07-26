@@ -77,7 +77,7 @@ Phase 1에서는 relation만 보존하고 UI에 노출하지 않는다.
 | Seasons | `seasons` | `seasons` | text array |
 | Retired | `retired` | `retired` | boolean |
 | Memo | `memo` | `memo` | nullable |
-| 구매일 | `acquiredOn` | `acquired_on` | nullable date |
+| Acquired Date formula | `acquiredOn` | `acquired_on` | 구매일 또는 Knitting Projects 완성일을 계산한 nullable date |
 | Page created time | `notionCreatedAt` | `notion_created_at` | 원본 추적 |
 
 ### Outfits → Outfits / Outfit Items
