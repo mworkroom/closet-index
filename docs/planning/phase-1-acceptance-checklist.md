@@ -1,7 +1,7 @@
 # Closet Index Phase 1 Acceptance Checklist
 
-- 최종 수정일: 2026-07-26
-- 현재 단계: Phase 1A 앱·원격 schema·실제 로그인·Notion 시험 이전 완료, Technical Alpha 가능
+- 최종 수정일: 2026-07-27
+- 현재 단계: Phase 1B B6 실제 회원 signed URL·배포 전 검증 완료, iPhone PWA·공개 배포 검증 대기
 
 ## 1. 자동 검증
 
@@ -94,18 +94,30 @@
 - [x] custom emoji ID별 HEX 확정
 - [x] dry-run 수량·relation 대조
 - [x] Supabase 시험 이전
-- [ ] Technical Alpha
+- [x] Technical Alpha
 - [ ] 전환 직전 수동 추가분 이전
 - [ ] 최종 원본 대조와 전환 시점 선언
 
 ## 6. Phase 1B
 
-- [ ] 이미지 규격
-- [ ] Storage bucket과 객체 정책
-- [ ] 누끼 이미지 준비
-- [ ] Item image fallback
-- [ ] 고정 slot Outfit 합성
-- [ ] 이미지 있는 항목과 없는 항목 혼합 검증
+- [x] 이미지 규격
+- [x] private Storage bucket과 ready member 객체 정책
+- [x] Batch 0 누끼 이미지 7개 로컬 준비
+- [x] 로컬 이미지 준비·업로드 도구 dry-run·apply
+- [x] Batch 0 Item 원격 객체 14개·metadata 14행 업로드
+- [x] ready metadata 조회와 private Storage signed URL 캐시
+- [x] metadata·서명 실패가 기본 데이터 로딩을 막지 않는 B4 계약
+- [x] URL 만료·이미지 로드 실패용 재사용 fallback 컴포넌트
+- [x] Item image fallback
+- [x] Batch 0 고정 slot Outfit 합성
+- [x] Batch 0 Outfit preview v1 원격 업로드·재실행 `unchanged` 검증
+- [x] 이미지 있는 항목과 없는 항목 혼합 검증
+- [x] Phase 1B Storage/RLS·metadata 원격 계약 14개 대조
+- [x] 비로그인·비회원 이미지 거부와 Batch 0 수량·고아 객체 0건 확인
+- [x] 전체 56개 테스트와 Pages base·PWA·SPA fallback 배포 전 산출물 검증
+- [x] 실제 회원 브라우저 세션의 Batch 0 signed URL 이미지 표시
+- [ ] iPhone Safari·홈 화면 PWA 핵심 흐름 5회 실사용
+- [ ] 공개 GitHub Pages 배포 후 HTML·asset·딥링크 확인
 
 ## 7. 현재 판단
 

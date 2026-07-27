@@ -7,6 +7,11 @@ import type {
   WearLog,
   WearLogInput,
 } from '../lib/types'
+import {
+  emptyReadyImageAssets,
+  loadReadyImageAssets,
+  SignedImageUrlCache,
+} from './image-assets'
 import type { ClosetRepository } from './repository'
 
 interface PaletteRelation {
@@ -104,12 +109,19 @@ function toWearLog(row: WearLogRow): WearLog {
 }
 
 export class SupabaseRepository implements ClosetRepository {
+  private readonly imageUrlCache = new SignedImageUrlCache()
+
   constructor(
     private readonly client: SupabaseClient,
     private readonly workspaceId: string,
   ) {}
 
   async load(): Promise<AppData> {
+    const imageAssetsPromise = loadReadyImageAssets(
+      this.client,
+      this.workspaceId,
+      this.imageUrlCache,
+    ).catch(() => emptyReadyImageAssets())
     const outfitItemsPromise = collectAllPages<OutfitItemRow>(
       async (from, to) => {
         const result = await this.client
@@ -128,42 +140,50 @@ export class SupabaseRepository implements ClosetRepository {
       },
     )
 
-    const [itemsResult, outfitsResult, outfitItemsResult, logsResult, placesResult, transportsResult] =
-      await Promise.all([
-        this.client
-          .from('closet_items')
-          .select(
-            'id,name,category,semantic_color,seasons,retired,rain_ok,long_walk_ok,memo,acquired_on,color_palette:closet_color_palette(display_hex)',
-          )
-          .eq('workspace_id', this.workspaceId)
-          .order('acquired_on', { ascending: false, nullsFirst: false })
-          .order('name'),
-        this.client
-          .from('closet_outfits')
-          .select('id,display_name,rating')
-          .eq('workspace_id', this.workspaceId)
-          .order('created_at'),
-        outfitItemsPromise,
-        this.client
-          .from('closet_wear_logs')
-          .select(
-            'id,outfit_id,worn_on,temp_out,temp_back,temp_back_inferred,feeling_out,feeling_back,rain_condition,long_walk_condition,place_id,transport_mode_id,memo,submission_token,created_at',
-          )
-          .eq('workspace_id', this.workspaceId)
-          .order('worn_on', { ascending: false }),
-        this.client
-          .from('closet_places')
-          .select('id,name')
-          .eq('workspace_id', this.workspaceId)
-          .eq('active', true)
-          .order('name'),
-        this.client
-          .from('closet_transport_modes')
-          .select('id,name')
-          .eq('workspace_id', this.workspaceId)
-          .eq('active', true)
-          .order('name'),
-      ])
+    const [
+      itemsResult,
+      outfitsResult,
+      outfitItemsResult,
+      logsResult,
+      placesResult,
+      transportsResult,
+      imageAssets,
+    ] = await Promise.all([
+      this.client
+        .from('closet_items')
+        .select(
+          'id,name,category,semantic_color,seasons,retired,rain_ok,long_walk_ok,memo,acquired_on,color_palette:closet_color_palette(display_hex)',
+        )
+        .eq('workspace_id', this.workspaceId)
+        .order('acquired_on', { ascending: false, nullsFirst: false })
+        .order('name'),
+      this.client
+        .from('closet_outfits')
+        .select('id,display_name,rating')
+        .eq('workspace_id', this.workspaceId)
+        .order('created_at'),
+      outfitItemsPromise,
+      this.client
+        .from('closet_wear_logs')
+        .select(
+          'id,outfit_id,worn_on,temp_out,temp_back,temp_back_inferred,feeling_out,feeling_back,rain_condition,long_walk_condition,place_id,transport_mode_id,memo,submission_token,created_at',
+        )
+        .eq('workspace_id', this.workspaceId)
+        .order('worn_on', { ascending: false }),
+      this.client
+        .from('closet_places')
+        .select('id,name')
+        .eq('workspace_id', this.workspaceId)
+        .eq('active', true)
+        .order('name'),
+      this.client
+        .from('closet_transport_modes')
+        .select('id,name')
+        .eq('workspace_id', this.workspaceId)
+        .eq('active', true)
+        .order('name'),
+      imageAssetsPromise,
+    ])
 
     const failure = [
       itemsResult,
@@ -191,6 +211,7 @@ export class SupabaseRepository implements ClosetRepository {
       longWalkOk: row.long_walk_ok,
       memo: row.memo,
       acquiredOn: row.acquired_on,
+      image: imageAssets.itemImages.get(row.id) ?? null,
     }))
 
     const outfits: Outfit[] = outfitRows.map((row) => ({
@@ -201,6 +222,7 @@ export class SupabaseRepository implements ClosetRepository {
         .filter((link) => link.outfit_id === row.id)
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((link) => link.item_id),
+      preview: imageAssets.outfitPreviews.get(row.id) ?? null,
     }))
 
     return {

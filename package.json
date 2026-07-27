@@ -10,9 +10,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -b --pretty false",
+    "verify:pages": "node scripts/verify-pages-artifact.mjs dist /closet-index/",
     "supabase": "supabase",
     "notion:extract": "node scripts/extract-notion.mjs",
-    "notion:import": "node scripts/import-supabase.mjs"
+    "notion:import": "node scripts/import-supabase.mjs",
+    "outfit:preview": "node scripts/compose-outfit-preview.mjs",
+    "outfit:upload": "node scripts/upload-outfit-preview.mjs",
+    "images:prepare": "node scripts/prepare-image-upload.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.110.8",
@@ -30,6 +34,7 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.4",
     "jsdom": "29.1.1",
+    "sharp": "0.35.3",
     "supabase": "2.109.1",
     "typescript": "7.0.2",
     "vite": "8.1.5",

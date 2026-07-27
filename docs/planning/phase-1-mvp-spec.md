@@ -1,11 +1,11 @@
 # Closet Index Phase 1 MVP Spec
 
-- 최종 수정일: 2026-07-26
-- 문서 상태: Phase 1A 앱·원격 schema 완료, 실제 로그인·시험 이전 대기
+- 최종 수정일: 2026-07-27
+- 문서 상태: Phase 1A Technical Alpha와 Phase 1B B1~B5 구현 완료, B6 통합 검증 전
 - 확정 범위: 화면과 내비게이션, 시각 방향, 색상 스와치, 착용 기록, 추천 규칙, 데이터 모델, RLS, 이전 도구, 수용 기준, 원본 전환
-- 미확정 범위: 커스텀 아이콘별 최종 HEX, Phase 1B 이미지 슬롯·Storage 정책, 실제 전환일
+- 미확정 범위: 커스텀 아이콘별 최종 HEX, Batch 1 이후 pilot 확대 시점, 실제 전환일
 - 상위 문서: [Product Plan](./product-plan.md), [Roadmap](./roadmap.md)
-- 세부 문서: [Data & Security](./phase-1-data-security-spec.md), [Notion Migration Map](./notion-migration-map.md), [Acceptance Checklist](./phase-1-acceptance-checklist.md), [Implementation Status](./phase-1-implementation-status.md)
+- 세부 문서: [Data & Security](./phase-1-data-security-spec.md), [Notion Migration Map](./notion-migration-map.md), [Acceptance Checklist](./phase-1-acceptance-checklist.md), [Implementation Status](./phase-1-implementation-status.md), [Phase 1B Plan](./phase-1b-plan.md)
 
 ## 1. 문서의 역할
 
@@ -498,6 +498,8 @@ Phase 1B는 별도의 앱 구조를 만들지 않는다. A-01부터 A-12까지 �
 | FAVORITE | LOOKBOOK과 같은 이미지 카드 표현 |
 | Outfit 상세 | 착장 합성 이미지와 구성 Item 이미지 표시 |
 | Calendar | 이미지가 있는 Outfit은 작은 착장 미리보기 표시 |
+
+B5 구현에서는 HOME의 근거 중심 목록형 카드와 LOOKBOOK·FAVORITE의 3열 비교형 카드를 같은 visual 컴포넌트로 연결했다. 이미지 metadata 없음, signed URL 만료, 실제 이미지 로드 실패는 기존 스와치·텍스트 표현으로 돌아가며 실제 로그인 signed URL과 iPhone PWA 통합은 B6에서 확인한다.
 
 Phase 1B의 완료 조건:
 

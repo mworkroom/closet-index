@@ -4,6 +4,19 @@ export type ThermalFeeling = 'cold' | 'ok' | 'hot' | null
 export type RecommendationLevel = 'high' | 'possible' | 'caution'
 export type RecommendationEvidence = 'observed' | 'untried'
 
+export interface ImageAsset {
+  id: string
+  storagePath: string
+  url: string
+  widthPx: number | null
+  heightPx: number | null
+  expiresAt: string | null
+}
+
+export interface OutfitPreview extends ImageAsset {
+  compositionVersion: number
+}
+
 export interface Item {
   id: string
   name: string
@@ -16,6 +29,7 @@ export interface Item {
   longWalkOk: boolean
   memo: string | null
   acquiredOn: string | null
+  image?: ImageAsset | null
 }
 
 export interface Outfit {
@@ -23,6 +37,7 @@ export interface Outfit {
   displayName: string | null
   rating: OutfitRating
   itemIds: string[]
+  preview?: OutfitPreview | null
 }
 
 export interface SelectOption {

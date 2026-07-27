@@ -44,6 +44,25 @@ describe('DemoRepository wear log contract', () => {
     ])
   })
 
+  it('이미지 있음·없음·오류 demo fixture를 함께 제공한다', async () => {
+    const data = await new DemoRepository().load()
+
+    expect(
+      data.items.find((item) => item.id === 'item-cardigan')?.image?.url,
+    ).toMatch(/^data:image\/svg\+xml/)
+    expect(data.items.find((item) => item.id === 'item-knit')?.image).toBeNull()
+    expect(
+      data.items.find((item) => item.id === 'item-tee')?.image?.url,
+    ).toContain('broken-image-fixture')
+    expect(
+      data.outfits.find((outfit) => outfit.id === 'outfit-favorite')?.preview
+        ?.compositionVersion,
+    ).toBe(1)
+    expect(
+      data.outfits.find((outfit) => outfit.id === 'outfit-summer')?.preview,
+    ).toBeNull()
+  })
+
   it('같은 폼의 동일 제출 토큰만 멱등 처리한다', async () => {
     const repository = new DemoRepository()
 

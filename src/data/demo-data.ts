@@ -1,5 +1,22 @@
 import type { AppData } from '../lib/types'
 
+const demoItemImage = `data:image/svg+xml,${encodeURIComponent(`
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 400">
+    <path fill="#6F8FAF" d="M75 72 126 42h68l51 30 43 73-52 30-20-42v225H104V133l-20 42-52-30z"/>
+    <path fill="none" stroke="#f7f5ef" stroke-width="7" d="M160 50v300M140 118h40"/>
+  </svg>
+`)}`
+const demoOutfitPreview = `data:image/svg+xml,${encodeURIComponent(`
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200">
+    <rect width="900" height="1200" fill="#f7f5ef"/>
+    <path fill="#6F8FAF" d="M180 150h330v360H180z"/>
+    <path fill="#1C1C1C" d="M220 510h250l45 400H175z"/>
+    <path fill="#F4F2E9" stroke="#b8b8b4" stroke-width="8" d="M150 940h190v90H150zM370 940h190v90H370z"/>
+    <circle cx="690" cy="370" r="105" fill="#293A5B"/>
+  </svg>
+`)}`
+const demoBrokenImage = 'data:image/webp;base64,broken-image-fixture'
+
 export const demoData: AppData = {
   items: [
     {
@@ -14,6 +31,14 @@ export const demoData: AppData = {
       longWalkOk: true,
       memo: null,
       acquiredOn: '2026-07-01',
+      image: {
+        id: 'demo-item-image',
+        storagePath: 'demo/items/item-cardigan/cutout.svg',
+        url: demoItemImage,
+        widthPx: 320,
+        heightPx: 400,
+        expiresAt: null,
+      },
     },
     {
       id: 'item-knit',
@@ -27,6 +52,7 @@ export const demoData: AppData = {
       longWalkOk: true,
       memo: null,
       acquiredOn: '2025-11-20',
+      image: null,
     },
     {
       id: 'item-tee',
@@ -40,6 +66,14 @@ export const demoData: AppData = {
       longWalkOk: true,
       memo: null,
       acquiredOn: '2026-06-15',
+      image: {
+        id: 'demo-broken-item-image',
+        storagePath: 'demo/items/item-tee/broken.webp',
+        url: demoBrokenImage,
+        widthPx: 320,
+        heightPx: 400,
+        expiresAt: null,
+      },
     },
     {
       id: 'item-skirt',
@@ -100,18 +134,37 @@ export const demoData: AppData = {
       displayName: null,
       rating: 'favorite',
       itemIds: ['item-cardigan', 'item-knit', 'item-pants', 'item-shoes'],
+      preview: {
+        id: 'demo-outfit-preview',
+        storagePath: 'demo/outfits/outfit-favorite/preview/v1.svg',
+        url: demoOutfitPreview,
+        widthPx: 900,
+        heightPx: 1200,
+        expiresAt: null,
+        compositionVersion: 1,
+      },
     },
     {
       id: 'outfit-summer',
       displayName: '가볍게 걷는 날',
       rating: 'ok',
       itemIds: ['item-tee', 'item-pants', 'item-shoes'],
+      preview: null,
     },
     {
       id: 'outfit-skirt',
       displayName: null,
       rating: 'ok',
       itemIds: ['item-knit', 'item-skirt', 'item-shoes'],
+      preview: {
+        id: 'demo-broken-outfit-preview',
+        storagePath: 'demo/outfits/outfit-skirt/preview/broken.webp',
+        url: demoBrokenImage,
+        widthPx: 900,
+        heightPx: 1200,
+        expiresAt: null,
+        compositionVersion: 1,
+      },
     },
     {
       id: 'outfit-layered',

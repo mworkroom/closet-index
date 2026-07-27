@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
-import { Swatch } from '../components/Swatch'
+import { ItemVisual } from '../components/ItemVisual'
 import { useClosetData } from '../context/DataContext'
 import { sortItems, type ItemSort } from '../lib/items'
 
@@ -133,11 +133,7 @@ export function ClosetPage() {
             <div className="item-list">
               {items.map((item) => (
                 <Link className="item-row" to={`/closet/${item.id}`} key={item.id}>
-                  <Swatch
-                    color={item.displayHex}
-                    label={item.semanticColor ?? item.name}
-                    size="medium"
-                  />
+                  <ItemVisual item={item} className="item-visual--row" />
                   <span className="item-row__body">
                     <strong>{item.name}</strong>
                     <span>

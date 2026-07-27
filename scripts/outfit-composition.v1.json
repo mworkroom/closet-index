@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "canvas": {
+    "width": 900,
+    "height": 1200
+  },
+  "preview": {
+    "format": "webp",
+    "quality": 90,
+    "alphaQuality": 100,
+    "effort": 6,
+    "targetMaxBytes": 358400
+  },
+  "slots": {
+    "main-neck": {
+      "x": 72,
+      "y": 8,
+      "width": 342,
+      "height": 192,
+      "anchor": "top"
+    },
+    "main-outer": {
+      "x": 30,
+      "y": 150,
+      "width": 432,
+      "height": 456,
+      "anchor": "top"
+    },
+    "main-innerwear": {
+      "x": 130,
+      "y": 225,
+      "width": 220,
+      "height": 220,
+      "anchor": "top"
+    },
+    "main-bottom": {
+      "x": 82,
+      "y": 438,
+      "width": 378,
+      "height": 456,
+      "anchor": "top"
+    },
+    "main-socks": {
+      "x": 145,
+      "y": 786,
+      "width": 162,
+      "height": 156,
+      "anchor": "bottom"
+    },
+    "main-shoes": {
+      "x": 96,
+      "y": 908,
+      "width": 270,
+      "height": 192,
+      "anchor": "bottom"
+    },
+    "side-top": {
+      "x": 510,
+      "y": 170,
+      "width": 270,
+      "height": 336,
+      "anchor": "top"
+    },
+    "side-bag": {
+      "x": 480,
+      "y": 430,
+      "width": 270,
+      "height": 336,
+      "anchor": "center"
+    }
+  },
+  "categoryRules": [
+    {
+      "match": "prefix",
+      "value": "Acc-Neck",
+      "slot": "main-neck",
+      "zIndex": 60
+    },
+    {
+      "match": "prefix",
+      "value": "Outer",
+      "slot": "main-outer",
+      "zIndex": 50
+    },
+    {
+      "match": "exact",
+      "value": "Top-T-shirts-innerwear",
+      "slot": "main-innerwear",
+      "zIndex": 40
+    },
+    {
+      "match": "prefix",
+      "value": "Top",
+      "slotWhenOuter": "side-top",
+      "slotWithoutOuter": "main-outer",
+      "zIndex": 40
+    },
+    {
+      "match": "prefix",
+      "value": "Bottom",
+      "slot": "main-bottom",
+      "zIndex": 30
+    },
+    {
+      "match": "prefix",
+      "value": "Pants",
+      "slot": "main-bottom",
+      "zIndex": 30
+    },
+    {
+      "match": "prefix",
+      "value": "Skirt",
+      "slot": "main-bottom",
+      "zIndex": 30
+    },
+    {
+      "match": "prefix",
+      "value": "Dress",
+      "slot": "main-bottom",
+      "zIndex": 30
+    },
+    {
+      "match": "exact",
+      "value": "Shoes",
+      "slot": "main-shoes",
+      "zIndex": 20
+    },
+    {
+      "match": "exact",
+      "value": "Socks",
+      "slot": "main-socks",
+      "zIndex": 10
+    },
+    {
+      "match": "prefix",
+      "value": "Bags",
+      "slot": "side-bag",
+      "zIndex": 30
+    }
+  ]
+}

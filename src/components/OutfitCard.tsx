@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import type { AppData, Outfit, RecommendationResult } from '../lib/types'
 import { getOutfitStats, outfitLabel } from '../lib/outfits'
 import { ratingLabels, recommendationLabels } from '../lib/types'
-import { Swatch } from './Swatch'
+import { OutfitVisual } from './OutfitVisual'
 
 export function OutfitCard({
   outfit,
@@ -11,12 +11,14 @@ export function OutfitCard({
   recommendation,
   purchaseHighlight = false,
   state,
+  layout = 'list',
 }: {
   outfit: Outfit
   data: AppData
   recommendation?: RecommendationResult
   purchaseHighlight?: boolean
   state?: unknown
+  layout?: 'list' | 'grid'
 }) {
   const items = outfit.itemIds
     .map((id) => data.items.find((item) => item.id === id))
@@ -26,17 +28,16 @@ export function OutfitCard({
   const similarEvidence = recommendation?.similarEvidence
 
   return (
-    <Link className="outfit-card" to={`/outfits/${outfit.id}`} state={state}>
-      <div className="outfit-card__swatches" aria-label="구성 아이템 색상">
-        {items.slice(0, 5).map((item) => (
-          <Swatch
-            key={item.id}
-            color={item.displayHex}
-            label={item.semanticColor ?? item.name}
-            size="large"
-          />
-        ))}
-      </div>
+    <Link
+      className={`outfit-card outfit-card--${layout}`}
+      to={`/outfits/${outfit.id}`}
+      state={state}
+    >
+      <OutfitVisual
+        outfit={outfit}
+        items={data.items}
+        className="outfit-card__visual"
+      />
       <div className="outfit-card__body">
         <div className="outfit-card__title-row">
           <h2>{outfitLabel(outfit, data.items)}</h2>

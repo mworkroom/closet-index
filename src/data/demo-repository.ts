@@ -2,7 +2,7 @@ import type { WearLog, WearLogInput } from '../lib/types'
 import { demoData } from './demo-data'
 import type { ClosetRepository } from './repository'
 
-const STORAGE_KEY = 'closet-index-demo-data-v2'
+const STORAGE_KEY = 'closet-index-demo-data-v3'
 
 function cloneDemoData() {
   return structuredClone(demoData)

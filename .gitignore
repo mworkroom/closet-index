@@ -9,6 +9,7 @@ docs/project specs/
 # Local source assets / temporary data
 *.psd
 *.csv
+assets/private/
 data/notion-snapshot*.json
 data/notion-color-icons/
 scripts/notion-source.json

@@ -9,8 +9,9 @@ import {
 } from 'lucide-react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
+import { ItemVisual } from '../components/ItemVisual'
+import { OutfitVisual } from '../components/OutfitVisual'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
-import { Swatch } from '../components/Swatch'
 import { useClosetData } from '../context/DataContext'
 import type { RecommendationNavigationState } from '../lib/navigation'
 import { getOutfitStats, outfitLabel } from '../lib/outfits'
@@ -151,16 +152,12 @@ export function OutfitDetailPage() {
           )}
 
           <section className="identity-card identity-card--outfit">
-            <div className="outfit-card__swatches">
-              {items.map((item) => (
-                <Swatch
-                  key={item.id}
-                  color={item.displayHex}
-                  label={item.semanticColor ?? item.name}
-                  size="large"
-                />
-              ))}
-            </div>
+            <OutfitVisual
+              outfit={outfit}
+              items={data.items}
+              className="outfit-visual--hero"
+              maxSwatches={items.length}
+            />
             <div>
               <p className="muted">품질 상태</p>
               <h2>{outfit.rating ? ratingLabels[outfit.rating] : '미입력'}</h2>
@@ -193,10 +190,7 @@ export function OutfitDetailPage() {
             <div className="item-list">
               {items.map((item) => (
                 <Link className="item-row" to={`/closet/${item.id}`} key={item.id}>
-                  <Swatch
-                    color={item.displayHex}
-                    label={item.semanticColor ?? item.name}
-                  />
+                  <ItemVisual item={item} className="item-visual--row" />
                   <span className="item-row__body">
                     <strong>{item.name}</strong>
                     <span>{item.category}</span>

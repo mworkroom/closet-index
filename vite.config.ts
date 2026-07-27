@@ -4,6 +4,11 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   base: process.env.GITHUB_ACTIONS === 'true' ? '/closet-index/' : '/',
+  server: {
+    host: '127.0.0.1',
+    port: 5173,
+    strictPort: true,
+  },
   plugins: [
     react(),
     VitePWA({

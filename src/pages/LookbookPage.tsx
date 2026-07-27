@@ -229,9 +229,14 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
               }
             />
           ) : (
-            <div className="card-list">
+            <div className="outfit-grid">
               {outfits.map((outfit) => (
-                <OutfitCard outfit={outfit} data={data} key={outfit.id} />
+                <OutfitCard
+                  outfit={outfit}
+                  data={data}
+                  layout="grid"
+                  key={outfit.id}
+                />
               ))}
             </div>
           )}

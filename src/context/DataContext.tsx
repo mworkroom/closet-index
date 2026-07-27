@@ -9,6 +9,7 @@ import {
 } from 'react'
 import type { AppData, WearLogInput } from '../lib/types'
 import type { ClosetRepository } from '../data/repository'
+import { getImageRefreshDelay } from '../data/image-assets'
 
 interface DataState {
   data: AppData | null
@@ -50,6 +51,17 @@ export function DataProvider({
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  useEffect(() => {
+    if (!data) return
+    const delay = getImageRefreshDelay(data)
+    if (delay === null) return
+
+    const timeout = window.setTimeout(() => {
+      void refresh()
+    }, delay)
+    return () => window.clearTimeout(timeout)
+  }, [data, refresh])
 
   const mutate = useCallback(
     async (operation: () => Promise<unknown>) => {

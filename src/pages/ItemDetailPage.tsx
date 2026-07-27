@@ -2,8 +2,8 @@ import { CloudRain, Footprints } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
+import { ItemVisual } from '../components/ItemVisual'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
-import { Swatch } from '../components/Swatch'
 import { useClosetData } from '../context/DataContext'
 import { getItemStats, outfitLabel } from '../lib/outfits'
 
@@ -53,12 +53,8 @@ export function ItemDetailPage() {
       )}
       {item && data && (
         <>
-          <section className="identity-card">
-            <Swatch
-              color={item.displayHex}
-              label={item.semanticColor ?? item.name}
-              size="large"
-            />
+          <section className="identity-card identity-card--item">
+            <ItemVisual item={item} className="item-visual--detail" />
             <div>
               <h2>{item.name}</h2>
               <p className="muted">

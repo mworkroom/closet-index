@@ -2,6 +2,7 @@ import { MapPin, Pencil, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
+import { OutfitVisual } from '../components/OutfitVisual'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
 import { formatKoreanDate, todayInKorea } from '../lib/date'
@@ -78,6 +79,15 @@ export function CalendarPage() {
                   const place = data.places.find((entry) => entry.id === log.placeId)
                   return (
                     <article className="record-card" key={log.id}>
+                      {outfit?.preview && (
+                        <OutfitVisual
+                          outfit={outfit}
+                          items={data.items}
+                          className="record-card__preview"
+                          maxSwatches={3}
+                          swatchSize="small"
+                        />
+                      )}
                       <div className="record-card__body">
                         <p className="eyebrow">RECORD {index + 1}</p>
                         <h3>

@@ -44,6 +44,9 @@ jobs:
       - name: Add single-page app fallback
         run: cp dist/index.html dist/404.html
 
+      - name: Verify Pages artifact
+        run: npm run verify:pages
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
