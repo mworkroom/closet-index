@@ -59,13 +59,14 @@ export class DemoRepository implements ClosetRepository {
     if (existing) {
       existing.positionX = input.positionX
       existing.positionY = input.positionY
+      existing.itemScale = input.itemScale
     } else {
       outfit.itemPlacements.push({
         itemId: input.itemId,
         slot: null,
         positionX: input.positionX,
         positionY: input.positionY,
-        itemScale: null,
+        itemScale: input.itemScale,
         zIndex: null,
       })
     }

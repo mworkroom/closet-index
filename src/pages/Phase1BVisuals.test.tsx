@@ -2,7 +2,10 @@ import { cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { DataProvider } from '../context/DataContext'
+import { demoData } from '../data/demo-data'
 import { DemoRepository } from '../data/demo-repository'
+import { formatMonthDayYear } from '../lib/date'
+import { getItemStats, getOutfitStats, outfitLabel } from '../lib/outfits'
 import { CalendarPage } from './CalendarPage'
 import { ClosetPage } from './ClosetPage'
 import { ItemDetailPage } from './ItemDetailPage'
@@ -34,10 +37,32 @@ describe('Phase 1B screen visuals', () => {
   it('LOOKBOOK에서 이미지·fallback 카드를 3열 grid에 함께 표시한다', async () => {
     renderRoute('/lookbook', '/lookbook', <LookbookPage />)
 
-    await screen.findByText('가볍게 걷는 날')
+    await screen.findByRole('link', { name: /가볍게 걷는 날/ })
     const grid = document.querySelector<HTMLElement>('.outfit-grid')
     expect(grid).toBeInTheDocument()
     expect(within(grid!).getAllByRole('link')).toHaveLength(5)
+    const favoriteOutfit = demoData.outfits.find(
+      (outfit) => outfit.id === 'outfit-favorite',
+    )
+    if (!favoriteOutfit) throw new Error('outfit fixture missing')
+    const favoriteStats = getOutfitStats(
+      favoriteOutfit.id,
+      demoData.wearLogs,
+    )
+    const favoriteLink = within(grid!).getByRole('link', {
+      name: `${outfitLabel(favoriteOutfit, demoData.items)} 착장 상세 보기`,
+    })
+    expect(within(favoriteLink).queryByRole('heading')).not.toBeInTheDocument()
+    expect(
+      within(favoriteLink).getByText(`착용 ${favoriteStats.wearCount}회`),
+    ).toBeInTheDocument()
+    expect(
+      within(favoriteLink).getByText(
+        favoriteStats.lastWornOn
+          ? `최근 ${formatMonthDayYear(favoriteStats.lastWornOn)}`
+          : '최근 기록 없음',
+      ),
+    ).toBeInTheDocument()
     expect(
       within(grid!).getByRole('img', {
         name: '블루 가디건 + 아이보리 니트 + 블랙 팬츠 외 1개 착장 미리보기',
@@ -55,7 +80,30 @@ describe('Phase 1B screen visuals', () => {
       name: /블루 가디건/,
     })
     const knitLink = screen.getByRole('link', { name: /아이보리 니트/ })
+    const grid = document.querySelector<HTMLElement>('.item-grid')
+    const cardigan = demoData.items.find((item) => item.id === 'item-cardigan')
+    if (!cardigan) throw new Error('item fixture missing')
+    const cardiganStats = getItemStats(
+      cardigan.id,
+      demoData.outfits,
+      demoData.wearLogs,
+    )
 
+    expect(grid).toBeInTheDocument()
+    expect(within(grid!).getAllByRole('link')).toHaveLength(
+      demoData.items.filter((item) => !item.retired).length,
+    )
+    expect(within(cardiganLink).queryByText(cardigan.name)).not.toBeInTheDocument()
+    expect(
+      within(cardiganLink).getByText(`착용 ${cardiganStats.wearCount}회`),
+    ).toBeInTheDocument()
+    expect(
+      within(cardiganLink).getByText(
+        cardiganStats.lastWornOn
+          ? `최근 ${formatMonthDayYear(cardiganStats.lastWornOn)}`
+          : '최근 기록 없음',
+      ),
+    ).toBeInTheDocument()
     expect(
       within(cardiganLink).getByRole('img', {
         name: '블루 가디건 아이템 이미지',

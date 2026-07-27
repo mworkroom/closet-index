@@ -1,7 +1,8 @@
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { demoData } from '../data/demo-data'
+import { formatMonthDayYear } from '../lib/date'
 import { recommendOutfits } from '../lib/recommendation'
 import type { RecommendationInput } from '../lib/types'
 import { outfitLabel } from '../lib/outfits'
@@ -15,6 +16,10 @@ const input: RecommendationInput = {
   placeId: null,
   transportModeId: null,
 }
+
+afterEach(() => {
+  cleanup()
+})
 
 describe('OutfitCard home layout', () => {
   it('착장 제목을 숨기고 구조화된 착용·추천 요약을 표시한다', () => {
@@ -50,6 +55,40 @@ describe('OutfitCard home layout', () => {
     ).toBeInTheDocument()
     expect(
       screen.getByText(`OK ${recommendation.okObservationCount}회`),
+    ).toBeInTheDocument()
+  })
+
+  it('Lookbook grid에서는 제목 없이 착용 횟수와 최근 날짜만 표시한다', () => {
+    const recommendation = recommendOutfits(demoData, input).find(
+      (result) => result.outfit.id === 'outfit-favorite',
+    )
+    if (!recommendation) throw new Error('recommendation fixture missing')
+
+    const label = outfitLabel(recommendation.outfit, demoData.items)
+
+    render(
+      <MemoryRouter>
+        <OutfitCard
+          outfit={recommendation.outfit}
+          data={demoData}
+          layout="grid"
+        />
+      </MemoryRouter>,
+    )
+
+    expect(
+      screen.getByRole('link', { name: `${label} 착장 상세 보기` }),
+    ).toHaveClass('outfit-card--grid')
+    expect(screen.queryByRole('heading', { name: label })).not.toBeInTheDocument()
+    expect(
+      screen.getByText(`착용 ${recommendation.wearCount}회`),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        recommendation.lastWornOn
+          ? `최근 ${formatMonthDayYear(recommendation.lastWornOn)}`
+          : '최근 기록 없음',
+      ),
     ).toBeInTheDocument()
   })
 })

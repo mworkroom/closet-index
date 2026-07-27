@@ -5,7 +5,9 @@ import { AppShell } from '../components/AppShell'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { ItemVisual } from '../components/ItemVisual'
 import { useClosetData } from '../context/DataContext'
+import { formatMonthDayYear } from '../lib/date'
 import { sortItems, type ItemSort } from '../lib/items'
+import { getItemStats } from '../lib/outfits'
 
 const defaultSort: ItemSort = 'acquired-desc'
 
@@ -130,24 +132,29 @@ export function ClosetPage() {
               }
             />
           ) : (
-            <div className="item-list">
-              {items.map((item) => (
-                <Link className="item-row" to={`/closet/${item.id}`} key={item.id}>
-                  <ItemVisual item={item} className="item-visual--row" />
-                  <span className="item-row__body">
-                    <strong>{item.name}</strong>
-                    <span>
-                      {item.category} · 구매{' '}
-                      {item.acquiredOn ? (
-                        <time dateTime={item.acquiredOn}>{item.acquiredOn}</time>
-                      ) : (
-                        '미입력'
-                      )}
+            <div className="item-grid">
+              {items.map((item) => {
+                const stats = getItemStats(item.id, data.outfits, data.wearLogs)
+
+                return (
+                  <Link
+                    className="item-card"
+                    to={`/closet/${item.id}`}
+                    key={item.id}
+                    aria-label={`${item.name} 아이템 상세 보기`}
+                  >
+                    <ItemVisual item={item} className="item-visual--grid" />
+                    <span className="item-card__summary" aria-hidden="true">
+                      <span>착용 {stats.wearCount}회</span>
+                      <span>
+                        {stats.lastWornOn
+                          ? `최근 ${formatMonthDayYear(stats.lastWornOn)}`
+                          : '최근 기록 없음'}
+                      </span>
                     </span>
-                  </span>
-                  {item.retired && <span className="badge">Retired</span>}
-                </Link>
-              ))}
+                  </Link>
+                )
+              })}
             </div>
           )}
         </section>

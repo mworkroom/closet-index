@@ -33,7 +33,7 @@ function item(
   }
 }
 
-describe('browser outfit composition v2', () => {
+describe('browser outfit composition v4', () => {
   it('keeps bag on top and innerwear between outer and bottom', () => {
     const items = [
       item('bag', 'Bags'),
@@ -136,7 +136,42 @@ describe('browser outfit composition v2', () => {
     const skirtLayer = layers.find((layer) => layer.item.id === skirt.id)!
     const shoesLayer = layers.find((layer) => layer.item.id === shoes.id)!
 
-    expect(shoesLayer.top - (skirtLayer.top + skirtLayer.height)).toBeCloseTo(40)
+    expect(shoesLayer.top - (skirtLayer.top + skirtLayer.height)).toBeCloseTo(24)
+  })
+
+  it('uses the tighter default hem gap and a 95% shoe baseline', () => {
+    const skirt = item('skirt', 'Bottom-Skirts', 621, 1219)
+    const shoes = item('shoes', 'Shoes')
+    const outfit: Outfit = {
+      id: 'outfit',
+      displayName: null,
+      rating: null,
+      itemIds: [skirt.id, shoes.id],
+    }
+
+    const layers = composeOutfitLayers(outfit, [skirt, shoes])
+    const skirtLayer = layers.find((layer) => layer.item.id === skirt.id)!
+    const shoesLayer = layers.find((layer) => layer.item.id === shoes.id)!
+
+    expect(shoesLayer.width).toBeCloseTo(164.92)
+    expect(shoesLayer.height).toBeCloseTo(164.92)
+    expect(shoesLayer.top + shoesLayer.height).toBeCloseTo(1123)
+    expect(shoesLayer.top - (skirtLayer.top + skirtLayer.height)).toBeCloseTo(16)
+  })
+
+  it('moves the top-layer bag 40px toward the main column', () => {
+    const bag = item('bag', 'Bags')
+    const outfit: Outfit = {
+      id: 'outfit',
+      displayName: null,
+      rating: null,
+      itemIds: [bag.id],
+    }
+
+    const bagLayer = composeOutfitLayers(outfit, [bag])[0]
+    expect(bagLayer.left).toBeCloseTo(579.6)
+    expect(bagLayer.left + bagLayer.width / 2).toBeCloseTo(685)
+    expect(bagLayer.zIndex).toBe(80)
   })
 
   it('applies saved 4px position offsets without changing size', () => {
@@ -169,5 +204,39 @@ describe('browser outfit composition v2', () => {
       width: originalLayer.width,
       height: originalLayer.height,
     })
+  })
+
+  it('applies the saved item scale without changing the slot anchor', () => {
+    const outer = item('outer', 'Outer-Cardigan', 100, 100)
+    const base: Outfit = {
+      id: 'outfit',
+      displayName: null,
+      rating: null,
+      itemIds: [outer.id],
+    }
+    const resized: Outfit = {
+      ...base,
+      itemPlacements: [
+        {
+          itemId: outer.id,
+          slot: null,
+          positionX: 0,
+          positionY: 0,
+          itemScale: 1.1,
+          zIndex: null,
+        },
+      ],
+    }
+
+    const originalLayer = composeOutfitLayers(base, [outer])[0]
+    const resizedLayer = composeOutfitLayers(resized, [outer])[0]
+    expect(resizedLayer).toMatchObject({
+      top: originalLayer.top,
+      width: originalLayer.width * 1.1,
+      height: originalLayer.height * 1.1,
+    })
+    expect(resizedLayer.left + resizedLayer.width / 2).toBeCloseTo(
+      originalLayer.left + originalLayer.width / 2,
+    )
   })
 })

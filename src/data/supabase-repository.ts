@@ -286,11 +286,12 @@ export class SupabaseRepository implements ClosetRepository {
       .update({
         position_x: input.positionX,
         position_y: input.positionY,
+        scale: input.itemScale,
       })
       .eq('workspace_id', this.workspaceId)
       .eq('outfit_id', input.outfitId)
       .eq('item_id', input.itemId)
-      .select('outfit_id,item_id,position_x,position_y')
+      .select('outfit_id,item_id,position_x,position_y,scale')
       .maybeSingle()
 
     if (error) throw error

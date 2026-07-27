@@ -31,6 +31,7 @@ export interface OutfitItemPositionInput {
   itemId: string
   positionX: number
   positionY: number
+  itemScale: number
 }
 
 export interface Item {

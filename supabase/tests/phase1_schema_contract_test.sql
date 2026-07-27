@@ -237,24 +237,24 @@ select ok(
     'public.closet_outfit_items',
     'position_y',
     'update'
+  )
+  and has_column_privilege(
+    'authenticated',
+    'public.closet_outfit_items',
+    'scale',
+    'update'
   ),
-  'authenticated users can update outfit item positions'
+  'authenticated users can update outfit item positions and scale'
 );
 
 select ok(
   not has_column_privilege(
     'authenticated',
     'public.closet_outfit_items',
-    'scale',
-    'update'
-  )
-  and not has_column_privilege(
-    'authenticated',
-    'public.closet_outfit_items',
     'z_index',
     'update'
   ),
-  'position editing does not grant scale or layer updates'
+  'position and scale editing does not grant layer updates'
 );
 
 select ok(

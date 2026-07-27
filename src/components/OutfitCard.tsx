@@ -39,7 +39,9 @@ export function OutfitCard({
       className={`outfit-card outfit-card--${layout}`}
       to={`/outfits/${outfit.id}`}
       state={state}
-      aria-label={layout === 'home' ? accessibleLabel : undefined}
+      aria-label={
+        layout === 'home' || layout === 'grid' ? accessibleLabel : undefined
+      }
     >
       <OutfitVisual
         outfit={outfit}
@@ -97,6 +99,15 @@ export function OutfitCard({
               </span>
             </div>
           )}
+        </div>
+      ) : layout === 'grid' ? (
+        <div className="outfit-card__grid-summary" aria-hidden="true">
+          <span>착용 {stats.wearCount}회</span>
+          <span>
+            {stats.lastWornOn
+              ? `최근 ${formatMonthDayYear(stats.lastWornOn)}`
+              : '최근 기록 없음'}
+          </span>
         </div>
       ) : (
         <div className="outfit-card__body">

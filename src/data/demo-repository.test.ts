@@ -98,7 +98,7 @@ describe('DemoRepository wear log contract', () => {
     expect(data.wearLogs.some((log) => log.id === created.id)).toBe(false)
   })
 
-  it('Outfit 구성 아이템의 위치만 저장한다', async () => {
+  it('Outfit 구성 아이템의 위치와 크기를 저장한다', async () => {
     const repository = new DemoRepository()
 
     await repository.updateOutfitItemPosition({
@@ -106,6 +106,7 @@ describe('DemoRepository wear log contract', () => {
       itemId: 'item-pants',
       positionX: 0,
       positionY: -40,
+      itemScale: 1.1,
     })
 
     const data = await repository.load()
@@ -116,7 +117,7 @@ describe('DemoRepository wear log contract', () => {
     ).toMatchObject({
       positionX: 0,
       positionY: -40,
-      itemScale: null,
+      itemScale: 1.1,
       zIndex: null,
     })
   })

@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ImageAsset, Item, Outfit } from '../lib/types'
 import { OutfitPositionEditor } from './OutfitPositionEditor'
 
@@ -30,8 +30,12 @@ function item(id: string, name: string, category: string): Item {
   }
 }
 
+afterEach(() => {
+  cleanup()
+})
+
 describe('OutfitPositionEditor', () => {
-  it('moves the selected item by 4px, resets, and saves only its position', async () => {
+  it('moves and resizes the selected item, then resets both values', async () => {
     const user = userEvent.setup()
     const scarf = item('scarf', '스카프', 'Acc-Neck')
     const skirt = item('skirt', '스커트', 'Bottom-Skirts')
@@ -54,20 +58,78 @@ describe('OutfitPositionEditor', () => {
     await user.click(
       screen.getByRole('button', { name: '스커트 위로 4px 이동' }),
     )
-    expect(screen.getByText('좌우 0px · 상하 -4px')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '스커트 5% 확대' }))
+    expect(
+      screen.getByText('좌우 0px · 상하 -4px · 크기 105%'),
+    ).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: '이 위치 저장' }))
+    await user.click(screen.getByRole('button', { name: '이 조정 저장' }))
     expect(onSave).toHaveBeenCalledWith({
       outfitId: 'outfit',
       itemId: 'skirt',
       positionX: 0,
       positionY: -4,
+      itemScale: 1.05,
     })
     expect(await screen.findByRole('status')).toHaveTextContent(
-      '위치를 저장했습니다.',
+      '위치와 크기를 저장했습니다.',
     )
 
-    await user.click(screen.getByRole('button', { name: '스커트 원위치' }))
-    expect(screen.getByText('좌우 0px · 상하 0px')).toBeInTheDocument()
+    await user.click(
+      screen.getByRole('button', { name: '스커트 원위치와 원래 크기' }),
+    )
+    expect(
+      screen.getByText('좌우 0px · 상하 0px · 크기 100%'),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps unsaved edits when an equivalent outfit object is rendered again', async () => {
+    const user = userEvent.setup()
+    const skirt = item('skirt', '스커트', 'Bottom-Skirts')
+    const outfit: Outfit = {
+      id: 'outfit',
+      displayName: null,
+      rating: 'favorite',
+      itemIds: [skirt.id],
+      itemPlacements: [
+        {
+          itemId: skirt.id,
+          slot: null,
+          positionX: 0,
+          positionY: 0,
+          itemScale: 1,
+          zIndex: null,
+        },
+      ],
+    }
+    const onSave = vi.fn(async () => undefined)
+    const { rerender } = render(
+      <OutfitPositionEditor
+        outfit={outfit}
+        items={[skirt]}
+        onSave={onSave}
+      />,
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: '스커트 위로 4px 이동' }),
+    )
+    expect(screen.getByText(/상하 -4px/)).toBeInTheDocument()
+
+    rerender(
+      <OutfitPositionEditor
+        outfit={{
+          ...outfit,
+          itemIds: [...outfit.itemIds],
+          itemPlacements: outfit.itemPlacements?.map((placement) => ({
+            ...placement,
+          })),
+        }}
+        items={[skirt]}
+        onSave={onSave}
+      />,
+    )
+
+    expect(screen.getByText(/상하 -4px/)).toBeInTheDocument()
   })
 })

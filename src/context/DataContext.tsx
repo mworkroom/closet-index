@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 import type {
@@ -40,16 +41,25 @@ export function DataProvider({
   const [data, setData] = useState<AppData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const refreshSequence = useRef(0)
 
   const refresh = useCallback(async () => {
+    const sequence = ++refreshSequence.current
     setLoading(true)
     setError(null)
     try {
-      setData(await repository.load())
+      const nextData = await repository.load()
+      if (sequence === refreshSequence.current) {
+        setData(nextData)
+      }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '데이터를 불러오지 못했습니다.')
+      if (sequence === refreshSequence.current) {
+        setError(cause instanceof Error ? cause.message : '데이터를 불러오지 못했습니다.')
+      }
     } finally {
-      setLoading(false)
+      if (sequence === refreshSequence.current) {
+        setLoading(false)
+      }
     }
   }, [repository])
 
@@ -83,6 +93,59 @@ export function DataProvider({
     [refresh],
   )
 
+  const updateOutfitItemPosition = useCallback(
+    async (input: OutfitItemPositionInput) => {
+      setError(null)
+      try {
+        await repository.updateOutfitItemPosition(input)
+        setData((current) => {
+          if (!current) return current
+
+          return {
+            ...current,
+            outfits: current.outfits.map((outfit) => {
+              if (outfit.id !== input.outfitId) return outfit
+
+              const placements = outfit.itemPlacements ?? []
+              const hasPlacement = placements.some(
+                (placement) => placement.itemId === input.itemId,
+              )
+              const nextPlacement = {
+                itemId: input.itemId,
+                slot: null,
+                positionX: input.positionX,
+                positionY: input.positionY,
+                itemScale: input.itemScale,
+                zIndex: null,
+              }
+
+              return {
+                ...outfit,
+                itemPlacements: hasPlacement
+                  ? placements.map((placement) =>
+                      placement.itemId === input.itemId
+                        ? {
+                            ...placement,
+                            positionX: input.positionX,
+                            positionY: input.positionY,
+                            itemScale: input.itemScale,
+                          }
+                        : placement,
+                    )
+                  : [...placements, nextPlacement],
+              }
+            }),
+          }
+        })
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : '저장하지 못했습니다.'
+        setError(message)
+        throw cause
+      }
+    },
+    [repository],
+  )
+
   const value = useMemo<DataState>(
     () => ({
       data,
@@ -91,13 +154,12 @@ export function DataProvider({
       refresh,
       updateItemSuitability: (itemId, rainOk, longWalkOk) =>
         mutate(() => repository.updateItemSuitability(itemId, rainOk, longWalkOk)),
-      updateOutfitItemPosition: (input) =>
-        mutate(() => repository.updateOutfitItemPosition(input)),
+      updateOutfitItemPosition,
       createWearLog: (input) => mutate(() => repository.createWearLog(input)),
       updateWearLog: (id, input) => mutate(() => repository.updateWearLog(id, input)),
       deleteWearLog: (id) => mutate(() => repository.deleteWearLog(id)),
     }),
-    [data, error, loading, mutate, refresh, repository],
+    [data, error, loading, mutate, refresh, repository, updateOutfitItemPosition],
   )
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
