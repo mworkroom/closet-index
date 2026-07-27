@@ -234,6 +234,7 @@ describe('recommendOutfits', () => {
     )
 
     expect(result?.reasons[0]).toContain('OK 2회')
+    expect(result?.okObservationCount).toBe(2)
   })
 
   it('비 오는 날은 불가로 지정한 아이템만 경고한다', () => {

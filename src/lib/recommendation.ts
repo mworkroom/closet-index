@@ -352,6 +352,7 @@ function evaluateOutfit(
     reasons,
     warnings,
     okRange,
+    okObservationCount: okTemps.length,
     targetTemp,
     wearCount: logs.length,
     lastWornOn,

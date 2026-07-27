@@ -53,6 +53,10 @@ export function resolveCategoryDefaults(category, hasOuter, rules) {
     (hasOuter ? rule.visualScaleWhenOuter : rule.visualScaleWithoutOuter) ??
     rule.visualScale;
   if (visualScale !== undefined) resolved.visualScale = visualScale;
+  const visualHeight =
+    (hasOuter ? rule.visualHeightWhenOuter : rule.visualHeightWithoutOuter) ??
+    rule.visualHeight;
+  if (visualHeight !== undefined) resolved.visualHeight = visualHeight;
   return resolved;
 }
 
@@ -103,6 +107,7 @@ export function analyzeCompositionManifest(manifest, config) {
       slot,
       zIndex: item.zIndex ?? defaults?.zIndex ?? 0,
       visualScale: item.visualScale ?? defaults?.visualScale ?? 1,
+      visualHeight: item.visualHeight ?? defaults?.visualHeight,
     };
   });
 
@@ -201,7 +206,7 @@ async function normalizeItem({
     ? itemTemplate.width * visualScale * scale
     : slot.width * scale;
   const targetHeight = itemTemplate
-    ? itemTemplate.height * visualScale * scale
+    ? (item.visualHeight ?? itemTemplate.height * visualScale) * scale
     : slot.height * scale;
   const resized = await sharp(padded.data)
     .resize({
@@ -222,6 +227,7 @@ async function normalizeItem({
     input: resized.data,
     left: placement.left,
     top: placement.top,
+    positionY: Math.round(item.positionY ?? 0),
     zIndex: item.zIndex,
     sourceSha256: sha256(sourceBuffer),
     report: {
@@ -251,10 +257,43 @@ async function normalizeItem({
         top: placement.top,
         zIndex: item.zIndex,
         visualScale,
+        visualHeight: item.visualHeight ?? null,
         itemScale: scale,
       },
     },
   };
+}
+
+export function applyDefaultRelationships(items, relationships = {}) {
+  const gap = relationships.hemToShoesGap ?? 0;
+  if (gap <= 0) return items;
+
+  const shoes = items.find((item) => item.report.category === "Shoes");
+  if (!shoes) return items;
+
+  const shoesBaseTop = shoes.top - (shoes.positionY ?? 0);
+  const garmentPrefixes = ["Bottom", "Pants", "Skirt", "Dress"];
+
+  for (const item of items) {
+    if (
+      !garmentPrefixes.some((prefix) =>
+        item.report.category.startsWith(prefix),
+      )
+    ) {
+      continue;
+    }
+
+    const positionY = item.positionY ?? 0;
+    const baseTop = item.top - positionY;
+    const maximumBaseTop =
+      shoesBaseTop - gap - item.report.rendered.height;
+    if (baseTop > maximumBaseTop) {
+      item.top = maximumBaseTop + positionY;
+      item.report.rendered.top = item.top;
+    }
+  }
+
+  return items;
 }
 
 export async function composeOutfitPreview({
@@ -314,6 +353,7 @@ export async function composeOutfitPreview({
       }),
     ),
   );
+  applyDefaultRelationships(normalizedItems, config.relationships);
   normalizedItems.sort(
     (left, right) =>
       left.zIndex - right.zIndex ||
@@ -395,6 +435,7 @@ export async function composeOutfitPreview({
       compositionVersion: config.version,
       canvas,
       alphaThreshold,
+      relationships: config.relationships ?? {},
       slots: config.slots,
       items: normalizedItems.map((item) => ({
         uuid: item.report.uuid,
@@ -403,6 +444,7 @@ export async function composeOutfitPreview({
         compositionRole: item.report.compositionRole,
         zIndex: item.report.rendered.zIndex,
         visualScale: item.report.rendered.visualScale,
+        visualHeight: item.report.rendered.visualHeight,
         scale: item.report.rendered.itemScale,
         positionX:
           analysis.items.find((source) => source.uuid === item.report.uuid)

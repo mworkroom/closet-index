@@ -1,4 +1,4 @@
-import compositionConfig from '../data/outfit-composition.v2.json'
+import compositionConfig from '../data/outfit-composition.v3.json'
 import type { Item, Outfit, OutfitItemPlacement } from './types'
 
 type Slot = (typeof compositionConfig.slots)[keyof typeof compositionConfig.slots]
@@ -34,19 +34,15 @@ function matchesCategory(rule: CategoryRule, category: string) {
 
 function conditionalNumber(
   rule: CategoryRule,
-  key: 'zIndex' | 'visualScale',
+  key: 'zIndex' | 'visualScale' | 'visualHeight',
   hasOuter: boolean,
 ) {
-  const conditionalKey = `${key}${hasOuter ? 'WhenOuter' : 'WithoutOuter'}` as
-    | 'zIndexWhenOuter'
-    | 'zIndexWithoutOuter'
-    | 'visualScaleWhenOuter'
-    | 'visualScaleWithoutOuter'
-  return conditionalKey in rule
-    ? (rule[conditionalKey] as number | undefined)
-    : key in rule
-      ? (rule[key] as number | undefined)
-      : undefined
+  const values = rule as unknown as Record<string, unknown>
+  const conditionalKey = `${key}${hasOuter ? 'WhenOuter' : 'WithoutOuter'}`
+  const conditionalValue = values[conditionalKey]
+  if (typeof conditionalValue === 'number') return conditionalValue
+  const value = values[key]
+  return typeof value === 'number' ? value : undefined
 }
 
 function resolveRule(item: Item, hasOuter: boolean) {
@@ -67,6 +63,7 @@ function resolveRule(item: Item, hasOuter: boolean) {
     slot,
     zIndex: conditionalNumber(rule, 'zIndex', hasOuter) ?? 0,
     visualScale: conditionalNumber(rule, 'visualScale', hasOuter) ?? 1,
+    visualHeight: conditionalNumber(rule, 'visualHeight', hasOuter),
   }
 }
 
@@ -96,6 +93,57 @@ function positionForSlot(slot: Slot, width: number, height: number) {
   return { left, top: slot.y, objectPosition: 'center top' }
 }
 
+function fitInside(
+  sourceWidth: number | null,
+  sourceHeight: number | null,
+  targetWidth: number,
+  targetHeight: number,
+) {
+  if (
+    !sourceWidth ||
+    !sourceHeight ||
+    sourceWidth <= 0 ||
+    sourceHeight <= 0
+  ) {
+    return { width: targetWidth, height: targetHeight }
+  }
+
+  const scale = Math.min(
+    targetWidth / sourceWidth,
+    targetHeight / sourceHeight,
+  )
+  return {
+    width: sourceWidth * scale,
+    height: sourceHeight * scale,
+  }
+}
+
+interface ResolvedLayer extends OutfitCompositionLayer {
+  slotName: keyof typeof compositionConfig.slots
+  positionX: number
+  positionY: number
+}
+
+function applyHemToShoesGap(layers: ResolvedLayer[]) {
+  const gap = compositionConfig.relationships.hemToShoesGap
+  const shoes = layers.find((layer) => layer.slotName === 'main-shoes')
+  if (!shoes) return
+
+  const maximumHemBottom = shoes.top - gap
+  for (const layer of layers) {
+    if (
+      layer.slotName !== 'main-bottom' &&
+      layer.slotName !== 'main-dress'
+    ) {
+      continue
+    }
+    const hemBottom = layer.top + layer.height
+    if (hemBottom > maximumHemBottom) {
+      layer.top -= hemBottom - maximumHemBottom
+    }
+  }
+}
+
 export function composeOutfitLayers(
   outfit: Outfit,
   items: Item[],
@@ -107,7 +155,7 @@ export function composeOutfitLayers(
     item.category.startsWith('Outer'),
   )
 
-  return compositionItems
+  const layers = compositionItems
     .map((item) => {
       const rule = resolveRule(item, hasOuter)
       if (!rule) return null
@@ -118,23 +166,43 @@ export function composeOutfitLayers(
       ) as keyof typeof compositionConfig.slots
       const slot = compositionConfig.slots[slotName]
       const itemScale = placement?.itemScale ?? 1
-      const width =
+      const targetWidth =
         compositionConfig.itemTemplate.width * rule.visualScale * itemScale
-      const height =
-        compositionConfig.itemTemplate.height * rule.visualScale * itemScale
+      const targetHeight =
+        (rule.visualHeight ??
+          compositionConfig.itemTemplate.height * rule.visualScale) *
+        itemScale
+      const { width, height } = fitInside(
+        item.image?.widthPx ?? null,
+        item.image?.heightPx ?? null,
+        targetWidth,
+        targetHeight,
+      )
       const position = positionForSlot(slot, width, height)
 
       return {
         item,
-        left: position.left + (placement?.positionX ?? 0),
-        top: position.top + (placement?.positionY ?? 0),
+        left: position.left,
+        top: position.top,
         width,
         height,
         zIndex: placement?.zIndex ?? rule.zIndex,
         objectPosition: position.objectPosition,
+        slotName,
+        positionX: placement?.positionX ?? 0,
+        positionY: placement?.positionY ?? 0,
       }
     })
-    .filter((layer): layer is OutfitCompositionLayer => Boolean(layer))
+    .filter((layer): layer is ResolvedLayer => Boolean(layer))
+
+  applyHemToShoesGap(layers)
+
+  return layers
+    .map(({ slotName: _slotName, positionX, positionY, ...layer }) => ({
+      ...layer,
+      left: layer.left + positionX,
+      top: layer.top + positionY,
+    }))
     .sort(
       (left, right) =>
         left.zIndex - right.zIndex || left.item.id.localeCompare(right.item.id),

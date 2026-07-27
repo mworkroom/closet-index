@@ -1,7 +1,7 @@
 # Closet Index Phase 1B Image Preparation & Normalization Spec
 
 - 작성일: 2026-07-27
-- 상태: 입력 규칙·composition v1 원격 운영·composition v2 템플릿과 실시간 목록 합성 구현, ready cutout 19개와 Outfit preview v1 원격 운영
+- 상태: 입력 규칙·composition v1 원격 운영·composition v3 종횡비 정규화와 실시간 목록 합성 구현, ready cutout 19개와 Outfit preview v1 원격 운영
 - 관련 문서: [Phase 1B Plan](./phase-1b-plan.md), [Pilot Outfits](./phase-1b-pilot-outfits.md)
 
 ## 1. 목표
@@ -12,7 +12,7 @@ J가 Item마다 직접 확대·축소·중앙 정렬하지 않아도 같은 누�
 
 - J는 배경이 투명하고 Item 전체가 보이는 누끼만 준비한다.
 - 투명 여백 제거, 중심 계산, 카테고리별 크기 조정은 준비 도구가 자동으로 처리한다.
-- composition v2는 모든 Item을 620×760 기준 템플릿의 상대 배율로 계산해, 원본마다 다른 픽셀 크기 대신 동일한 시각 척도를 사용한다.
+- composition v3는 620×760 기준 템플릿에 카테고리별 최대 표시 높이를 함께 적용해, 같은 카테고리의 가로형·세로형 누끼가 비슷한 시각 척도로 보이게 한다.
 - 양말·신발·가방처럼 실제 크기와 카드에서 보여줄 크기가 다른 항목은 카테고리 기본 배율로 처리한다.
 - 자동 배치로 해결되지 않는 소수 Item만 개별 `scale`, `position_x`, `position_y` override를 사용한다.
 - 원본 누끼는 수정하지 않고, 정규화와 합성 결과를 언제든 다시 만들 수 있게 한다.
@@ -166,6 +166,17 @@ J가 만든 `lookbook1.png`, `lookbook2.png`, `lookbook3.png`의 체감 비율�
 
 `visualScale`은 카테고리의 공통 기준이고, 기존 `scale`은 같은 카테고리에서도 크기가 특별한 Item에만 곱하는 예외값으로 유지한다. Outfit마다 같은 Item 크기를 다시 맞추지 않는다.
 
+### 4.2 composition v3 종횡비 정규화와 하단 간격
+
+Batch 2에서 가로로 넓은 Batch 0 가디건과 세로형 후드 재킷·티셔츠에 같은 620×760 비례 상자를 적용하면, 세로형 Item의 실제 표시 높이가 지나치게 커지는 문제가 확인됐다. composition v3는 기존 `visualScale`을 유지하면서 다음 최대 표시 높이를 추가한다.
+
+- 아우터: 최대 500px
+- 아우터가 없는 일반 상의: 최대 440px
+
+브라우저와 로컬 Sharp 합성 도구는 cutout metadata의 실제 너비·높이를 사용해 카테고리 상자 안에 비율을 유지하며 맞춘다. 따라서 Batch 0 가디건처럼 가로로 넓은 Item은 승인된 기존 크기를 유지하고, 세로형 후드 재킷과 일반 상의만 높이 상한에 맞춰 함께 축소된다.
+
+하의·원피스의 끝과 신발 시작점에는 900×1200 canvas 기준 32px 기본 간격을 둔다. 기본 간격을 먼저 계산한 뒤 Outfit별 `position_x`·`position_y`를 적용하므로, 자동 배치 후 4px 화살표 미세 이동은 계속 유효하다. 양말이 있으면 이 구간에 양말이 보일 수 있지만 하의와 신발의 기본 경계는 동일하게 유지한다.
+
 ## 5. 예외 처리
 
 자동 규칙으로 대부분을 처리하고 다음 경우에만 Item별 override를 둔다.
@@ -203,7 +214,7 @@ z_index     레이어 순서
 
 Batch 0에서 slot 기본값을 한 번 확정한 뒤 Batch 1 누끼 12개를 합성한다. Batch 1에서 반복적으로 같은 보정이 필요하면 개별 Item 문제가 아니라 카테고리 기본값 문제로 보고 slot 설정을 수정한다.
 
-2026-07-28 Batch 1 12개(J 전달명 Batch 2)를 업로드한 뒤, ready cutout이 모두 있는 Outfit은 저장된 preview보다 composition v2 실시간 합성을 우선하도록 했다. 이로써 상세 화면에서 저장한 `position_x`·`position_y` 보정이 HOME·LOOKBOOK·FAVORITE thumbnail에도 같은 규칙으로 반영된다. cutout이 불완전한 Outfit은 기존 저장 preview 또는 스와치 fallback을 그대로 사용한다.
+2026-07-28 Batch 1 12개(J 전달명 Batch 2)를 업로드한 뒤, ready cutout이 모두 있는 Outfit은 저장된 preview보다 현재 composition 실시간 합성을 우선하도록 했다. 이로써 상세 화면에서 저장한 `position_x`·`position_y` 보정이 HOME·LOOKBOOK·FAVORITE thumbnail에도 같은 규칙으로 반영된다. cutout이 불완전한 Outfit은 기존 저장 preview 또는 스와치 fallback을 그대로 사용한다.
 
 ## 7. Batch 0 레이어와 미세 위치 조정
 

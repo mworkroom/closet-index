@@ -246,6 +246,7 @@ export function HomePage() {
                     data={data}
                     recommendation={recommendation}
                     purchaseHighlight
+                    layout="home"
                     state={{ recommendation, input: submitted }}
                   />
                 ))}
@@ -282,6 +283,7 @@ export function HomePage() {
                       outfit={recommendation.outfit}
                       data={data}
                       recommendation={recommendation}
+                      layout="home"
                       state={{ recommendation, input: submitted }}
                     />
                   ))}
@@ -330,6 +332,7 @@ export function HomePage() {
                       outfit={recommendation.outfit}
                       data={data}
                       recommendation={recommendation}
+                      layout="home"
                       state={{ recommendation, input: submitted }}
                     />
                   ))}
@@ -380,6 +383,7 @@ export function HomePage() {
                       outfit={recommendation.outfit}
                       data={data}
                       recommendation={recommendation}
+                      layout="home"
                       state={{ recommendation, input: submitted }}
                     />
                   ))}

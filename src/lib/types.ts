@@ -143,6 +143,7 @@ export interface RecommendationResult {
   reasons: string[]
   warnings: string[]
   okRange: { min: number; max: number } | null
+  okObservationCount: number
   targetTemp: number
   wearCount: number
   lastWornOn: string | null

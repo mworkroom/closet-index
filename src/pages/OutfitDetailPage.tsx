@@ -15,6 +15,7 @@ import { OutfitPositionEditor } from '../components/OutfitPositionEditor'
 import { OutfitVisual } from '../components/OutfitVisual'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
+import { formatMonthDayYear } from '../lib/date'
 import type { RecommendationNavigationState } from '../lib/navigation'
 import { getOutfitStats, outfitLabel } from '../lib/outfits'
 import { feelingLabels, ratingLabels, recommendationLabels } from '../lib/types'
@@ -178,10 +179,20 @@ export function OutfitDetailPage() {
                 maxSwatches={items.length}
               />
             )}
-            <div>
-              <p className="muted">품질 상태</p>
-              <h2>{outfit.rating ? ratingLabels[outfit.rating] : '미입력'}</h2>
-            </div>
+            <dl className="outfit-summary" aria-label="착장 요약">
+              <div className="outfit-summary__item">
+                <dt>선호도</dt>
+                <dd>{outfit.rating ? ratingLabels[outfit.rating] : '미입력'}</dd>
+              </div>
+              <div className="outfit-summary__item">
+                <dt>마지막 착용</dt>
+                <dd>{formatMonthDayYear(stats?.lastWornOn ?? null)}</dd>
+              </div>
+              <div className="outfit-summary__item">
+                <dt>착용 횟수</dt>
+                <dd>{stats?.wearCount ?? 0}회</dd>
+              </div>
+            </dl>
           </section>
 
           {canAdjustPositions && (
@@ -198,17 +209,6 @@ export function OutfitDetailPage() {
               연결된 아이템 일부를 찾을 수 없습니다.
             </p>
           )}
-
-          <section className="detail-grid">
-            <div>
-              <span>착용 횟수</span>
-              <strong>{stats?.wearCount ?? 0}회</strong>
-            </div>
-            <div>
-              <span>마지막 착용</span>
-              <strong>{stats?.lastWornOn ?? '기록 없음'}</strong>
-            </div>
-          </section>
 
           <section className="section">
             <div className="section-heading">

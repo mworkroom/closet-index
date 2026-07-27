@@ -30,3 +30,13 @@ export function formatShortDate(date: string | null): string {
     day: 'numeric',
   }).format(new Date(`${date}T12:00:00+09:00`))
 }
+
+export function formatMonthDayYear(date: string | null): string {
+  if (!date) return '기록 없음'
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: KOREA_TIME_ZONE,
+    year: '2-digit',
+    month: 'numeric',
+    day: 'numeric',
+  }).format(new Date(`${date}T12:00:00+09:00`))
+}

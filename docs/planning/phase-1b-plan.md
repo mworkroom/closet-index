@@ -1,7 +1,7 @@
 # Closet Index Phase 1B Implementation Plan
 
 - 작성일: 2026-07-27
-- 상태: B1~B6 공개 배포 완료, composition v2 실시간 목록 thumbnail 로컬 구현과 Batch 2 cutout 업로드 완료, 새 코드의 공개 배포·iPhone PWA 실사용 대기
+- 상태: B1~B6 공개 배포 완료, composition v3 종횡비 정규화·하의-신발 간격 로컬 구현과 Batch 2 cutout 업로드 완료, 새 코드의 공개 배포·iPhone PWA 실사용 대기
 - 목표 릴리스: Visual MVP / v1.0
 - 선행 상태: Phase 1A Technical Alpha와 원격 Wear Log CRUD 검증 완료
 - 관련 문서: [Phase 1 MVP Spec](./phase-1-mvp-spec.md), [Roadmap](./roadmap.md), [Data & Security](./phase-1-data-security-spec.md), [Acceptance Checklist](./phase-1-acceptance-checklist.md), [Pilot Outfits](./phase-1b-pilot-outfits.md), [Image Spec](./phase-1b-image-spec.md)
@@ -28,7 +28,7 @@ Phase 1B는 Phase 1A를 다시 설계하지 않는다.
 - 이미지가 없거나 로드에 실패해도 현재의 텍스트·HEX 스와치 fallback을 유지한다.
 - Item·Outfit 생성 및 일반 편집, 앱 안의 이미지 업로드·누끼 편집은 포함하지 않는다.
 - 자유 배치 캔버스, AI 배경 제거, AI 착장 생성은 포함하지 않는다.
-- composition v2 프로토타입은 J의 3개 기준 시안에서 도출한 공통 아이템 템플릿·카테고리 배율·조건부 레이어를 사용하며, v1 원격 preview를 덮어쓰지 않는다.
+- composition v3는 J의 3개 기준 시안에서 도출한 공통 아이템 템플릿·카테고리 배율·조건부 레이어에 종횡비별 최대 표시 높이와 하의-신발 32px 기본 간격을 추가하며, v1 원격 preview를 덮어쓰지 않는다.
 - 개인 원본 이미지, 누끼 작업 파일, 생성된 미리보기는 Git에 커밋하지 않는다.
 
 현재 원격 기준 데이터는 Item 451개, Outfit 507개, Wear Log 783개다. Phase 1B는 전체 항목의 이미지화를 기다리지 않고 대표 Outfit 20~30개로 시작한다.

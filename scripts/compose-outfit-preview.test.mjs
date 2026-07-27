@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyDefaultRelationships,
   analyzeCompositionManifest,
   resolveCategoryDefaults,
 } from "./compose-outfit-preview.mjs";
@@ -29,6 +30,7 @@ const config = {
       slot: "main-upper",
       zIndex: 60,
       visualScale: 1,
+      visualHeight: 500,
     },
     {
       match: "exact",
@@ -46,6 +48,7 @@ const config = {
       zIndexWithoutOuter: 50,
       visualScaleWhenOuter: 0.45,
       visualScaleWithoutOuter: 0.85,
+      visualHeightWithoutOuter: 440,
     },
     {
       match: "prefix",
@@ -78,7 +81,12 @@ describe("Outfit composition contract", () => {
     ).toEqual({ slot: "side-top", zIndex: 0, visualScale: 0.45 });
     expect(
       resolveCategoryDefaults("Top-T-shirts", false, config.categoryRules),
-    ).toEqual({ slot: "main-upper", zIndex: 50, visualScale: 0.85 });
+    ).toEqual({
+      slot: "main-upper",
+      zIndex: 50,
+      visualScale: 0.85,
+      visualHeight: 440,
+    });
   });
 
   it("keeps innerwear above bottoms and lets a back outer share the upper slot", () => {
@@ -133,5 +141,31 @@ describe("Outfit composition contract", () => {
         expect.stringContaining("slot 충돌"),
       ]),
     );
+  });
+
+  it("creates a default hem-to-shoes gap before saved position offsets", () => {
+    const items = [
+      {
+        top: 500,
+        positionY: -8,
+        report: {
+          category: "Bottom-Skirts",
+          rendered: { height: 486, top: 500 },
+        },
+      },
+      {
+        top: 922,
+        positionY: 0,
+        report: {
+          category: "Shoes",
+          rendered: { height: 213, top: 922 },
+        },
+      },
+    ];
+
+    applyDefaultRelationships(items, { hemToShoesGap: 32 });
+
+    expect(items[0].top).toBe(396);
+    expect(items[1].top - (items[0].top + 486)).toBe(40);
   });
 });
