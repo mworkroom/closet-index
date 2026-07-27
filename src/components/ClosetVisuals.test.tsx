@@ -22,7 +22,7 @@ describe('Phase 1B visual components', () => {
     expect(image.closest('.outfit-visual')).toBeInTheDocument()
   })
 
-  it('preview metadata가 없거나 로드에 실패하면 구성 색상 fallback을 표시한다', () => {
+  it('일부 cutout만 있으면 해당 이미지만 합성하고, 이미지가 전혀 없을 때만 색상 fallback을 표시한다', () => {
     const missing = demoData.outfits.find((entry) => entry.id === 'outfit-summer')!
     const broken = demoData.outfits.find((entry) => entry.id === 'outfit-skirt')!
     const { rerender } = render(
@@ -30,8 +30,13 @@ describe('Phase 1B visual components', () => {
     )
 
     expect(
-      screen.getByLabelText('가볍게 걷는 날 구성 아이템 색상'),
+      screen.getByRole('img', {
+        name: '가볍게 걷는 날 조정 가능한 착장 미리보기',
+      }),
     ).toBeInTheDocument()
+    expect(
+      screen.queryByLabelText('가볍게 걷는 날 구성 아이템 색상'),
+    ).not.toBeInTheDocument()
 
     rerender(<OutfitVisual outfit={broken} items={demoData.items} />)
     fireEvent.error(

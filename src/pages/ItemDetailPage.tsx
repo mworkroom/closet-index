@@ -7,7 +7,7 @@ import { OutfitCard } from '../components/OutfitCard'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
 import { formatMonthDayYear } from '../lib/date'
-import { getItemStats } from '../lib/outfits'
+import { getItemStats, getOutfitStats } from '../lib/outfits'
 
 export function ItemDetailPage() {
   const { itemId = '' } = useParams()
@@ -17,6 +17,7 @@ export function ItemDetailPage() {
   const [longWalkOk, setLongWalkOk] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [visibleOutfitCount, setVisibleOutfitCount] = useState(9)
 
   useEffect(() => {
     if (!item) return
@@ -24,10 +25,30 @@ export function ItemDetailPage() {
     setLongWalkOk(item.longWalkOk)
   }, [item])
 
+  useEffect(() => {
+    setVisibleOutfitCount(9)
+  }, [itemId])
+
   const includedOutfits = useMemo(
-    () => data?.outfits.filter((outfit) => outfit.itemIds.includes(itemId)) ?? [],
+    () =>
+      data
+        ? data.outfits
+            .filter((outfit) => outfit.itemIds.includes(itemId))
+            .sort((left, right) => {
+              const leftStats = getOutfitStats(left.id, data.wearLogs)
+              const rightStats = getOutfitStats(right.id, data.wearLogs)
+              return (
+                (rightStats.lastWornOn ?? '').localeCompare(
+                  leftStats.lastWornOn ?? '',
+                ) ||
+                rightStats.wearCount - leftStats.wearCount ||
+                left.id.localeCompare(right.id)
+              )
+            })
+        : [],
     [data, itemId],
   )
+  const visibleIncludedOutfits = includedOutfits.slice(0, visibleOutfitCount)
   const stats =
     data && item ? getItemStats(item.id, data.outfits, data.wearLogs) : null
   const isShoes = item?.category.toLowerCase().includes('shoe') ?? false
@@ -153,7 +174,7 @@ export function ItemDetailPage() {
               <EmptyState title="포함된 Outfit이 없어요" />
             ) : (
               <div className="outfit-grid">
-                {includedOutfits.map((outfit) => (
+                {visibleIncludedOutfits.map((outfit) => (
                   <OutfitCard
                     outfit={outfit}
                     data={data}
@@ -162,6 +183,19 @@ export function ItemDetailPage() {
                   />
                 ))}
               </div>
+            )}
+            {visibleOutfitCount < includedOutfits.length && (
+              <button
+                className="button button--secondary button--wide included-outfits-more"
+                type="button"
+                onClick={() =>
+                  setVisibleOutfitCount((current) =>
+                    Math.min(current + 9, includedOutfits.length),
+                  )
+                }
+              >
+                더보기 ({visibleOutfitCount}/{includedOutfits.length})
+              </button>
             )}
           </section>
         </>

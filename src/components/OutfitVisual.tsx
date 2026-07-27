@@ -25,6 +25,7 @@ export function OutfitVisual({
     .filter((item): item is Item => Boolean(item))
   const compositionItems = resolvedItems
     .slice(0, maxSwatches)
+  const hasAnyCutout = resolvedItems.some((item) => Boolean(item.image))
   const hasCompleteCutoutSet =
     outfit.itemIds.length > 0 &&
     resolvedItems.length === outfit.itemIds.length &&
@@ -44,19 +45,27 @@ export function OutfitVisual({
           alt={`${label} 착장 미리보기`}
           className="outfit-visual__image"
           fallback={
-            <div
-              className="outfit-visual__fallback"
-              aria-label={`${label} 구성 아이템 색상`}
-            >
-              {compositionItems.map((item) => (
-                <Swatch
-                  key={item.id}
-                  color={item.displayHex}
-                  label={item.semanticColor ?? item.name}
-                  size={swatchSize}
-                />
-              ))}
-            </div>
+            hasAnyCutout ? (
+              <LayeredOutfitPreview
+                outfit={outfit}
+                items={items}
+                className="outfit-visual__layered"
+              />
+            ) : (
+              <div
+                className="outfit-visual__fallback"
+                aria-label={`${label} 구성 아이템 색상`}
+              >
+                {compositionItems.map((item) => (
+                  <Swatch
+                    key={item.id}
+                    color={item.displayHex}
+                    label={item.semanticColor ?? item.name}
+                    size={swatchSize}
+                  />
+                ))}
+              </div>
+            )
           }
         />
       )}

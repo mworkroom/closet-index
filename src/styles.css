@@ -1203,6 +1203,10 @@ button:disabled {
   font-variant-numeric: tabular-nums;
 }
 
+.included-outfits-more {
+  margin-top: 12px;
+}
+
 .position-editor {
   display: grid;
   gap: 14px;

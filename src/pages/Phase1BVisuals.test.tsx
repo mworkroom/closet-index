@@ -1,4 +1,5 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { DataProvider } from '../context/DataContext'
@@ -69,7 +70,9 @@ describe('Phase 1B screen visuals', () => {
       }),
     ).toBeInTheDocument()
     expect(
-      within(grid!).getByLabelText('가볍게 걷는 날 구성 아이템 색상'),
+      within(grid!).getByRole('img', {
+        name: '가볍게 걷는 날 조정 가능한 착장 미리보기',
+      }),
     ).toBeInTheDocument()
   })
 
@@ -148,6 +151,57 @@ describe('Phase 1B screen visuals', () => {
         link.classList.contains('outfit-card--grid'),
       ),
     ).toBe(true)
+  })
+
+  it('Item 상세의 포함 Outfit을 최근 순으로 9개씩 더 보여준다', async () => {
+    const user = userEvent.setup()
+    const extraOutfits = Array.from({ length: 10 }, (_, index) => ({
+      id: `included-${index}`,
+      displayName: `추가 착장 ${index}`,
+      rating: null,
+      itemIds: ['item-cardigan', 'item-knit'],
+    }))
+    const extraLogs = extraOutfits.map((outfit, index) => ({
+      ...demoData.wearLogs[0],
+      id: `included-log-${index}`,
+      outfitId: outfit.id,
+      wornOn: `2026-07-${String(index + 1).padStart(2, '0')}`,
+      submissionToken: `included-token-${index}`,
+    }))
+    window.localStorage.setItem(
+      'closet-index-demo-data-v3',
+      JSON.stringify({
+        ...demoData,
+        outfits: [...demoData.outfits, ...extraOutfits],
+        wearLogs: [...demoData.wearLogs, ...extraLogs],
+      }),
+    )
+
+    renderRoute(
+      '/closet/item-cardigan',
+      '/closet/:itemId',
+      <ItemDetailPage />,
+    )
+
+    const includedHeading = await screen.findByRole('heading', {
+      name: '포함된 Outfit',
+    })
+    const includedSection =
+      includedHeading.closest<HTMLElement>('.section')
+    if (!includedSection) throw new Error('included Outfit section missing')
+
+    const initialLinks = within(includedSection).getAllByRole('link')
+    expect(initialLinks).toHaveLength(9)
+    expect(initialLinks[0]).toHaveAccessibleName('추가 착장 9 착장 상세 보기')
+    await user.click(
+      within(includedSection).getByRole('button', {
+        name: '더보기 (9/13)',
+      }),
+    )
+    expect(within(includedSection).getAllByRole('link')).toHaveLength(13)
+    expect(
+      within(includedSection).queryByRole('button', { name: /더보기/ }),
+    ).not.toBeInTheDocument()
   })
 
   it('Outfit 상세에서 preview hero와 구성 Item thumbnail을 표시한다', async () => {
