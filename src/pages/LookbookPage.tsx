@@ -3,9 +3,12 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { OutfitCard } from '../components/OutfitCard'
+import { SeasonScopeSummary } from '../components/SeasonScopeSummary'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
+import { useSeasonScope } from '../context/SeasonScopeContext'
 import { getOutfitStats, outfitLabel } from '../lib/outfits'
+import { outfitMatchesSeasonScope } from '../lib/seasons'
 
 function parseOptionalNumber(value: string) {
   return value.trim() === '' ? null : Number(value)
@@ -13,22 +16,14 @@ function parseOptionalNumber(value: string) {
 
 export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean }) {
   const { data, loading, error, refresh } = useClosetData()
+  const { activeSeasons } = useSeasonScope()
   const [query, setQuery] = useState('')
-  const [season, setSeason] = useState('')
   const [favorite, setFavorite] = useState(false)
   const [notWornRecently, setNotWornRecently] = useState(false)
   const [minimumTemp, setMinimumTemp] = useState('')
   const [maximumTemp, setMaximumTemp] = useState('')
   const [placeId, setPlaceId] = useState('')
   const [includeUnavailable, setIncludeUnavailable] = useState(false)
-
-  const seasons = useMemo(
-    () =>
-      [
-        ...new Set(data?.items.flatMap((item) => item.seasons) ?? []),
-      ].sort(),
-    [data],
-  )
 
   const outfits = useMemo(() => {
     if (!data) return []
@@ -49,6 +44,9 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
         items.some((item) => item.retired)
       if (!includeUnavailable && unavailable) return false
       if ((favoriteOnly || favorite) && outfit.rating !== 'favorite') return false
+      if (!outfitMatchesSeasonScope(outfit, data.items, activeSeasons)) {
+        return false
+      }
       if (
         normalized &&
         !`${outfitLabel(outfit, data.items)} ${items.map((item) => item.name).join(' ')}`
@@ -57,8 +55,6 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
       ) {
         return false
       }
-      if (season && !items.some((item) => item.seasons.includes(season))) return false
-
       const logs = data.wearLogs.filter((log) => log.outfitId === outfit.id)
       if (placeId && !logs.some((log) => log.placeId === placeId)) return false
       if (notWornRecently) {
@@ -80,6 +76,7 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
       return true
     })
   }, [
+    activeSeasons,
     data,
     favorite,
     favoriteOnly,
@@ -89,12 +86,10 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
     notWornRecently,
     placeId,
     query,
-    season,
   ])
 
   const reset = () => {
     setQuery('')
-    setSeason('')
     setFavorite(false)
     setNotWornRecently(false)
     setMinimumTemp('')
@@ -112,6 +107,7 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
         <p className="scope-note">Favorite로 평가한 착장만 보고 있습니다.</p>
       )}
       <section className="filter-panel">
+        <SeasonScopeSummary />
         <label className="search-field">
           <Search size={18} aria-hidden="true" />
           <span className="sr-only">착장 검색</span>
@@ -122,17 +118,7 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
             onChange={(event) => setQuery(event.target.value)}
           />
         </label>
-        <div className="filter-row">
-          <select
-            aria-label="계절"
-            value={season}
-            onChange={(event) => setSeason(event.target.value)}
-          >
-            <option value="">모든 계절</option>
-            {seasons.map((value) => (
-              <option key={value}>{value}</option>
-            ))}
-          </select>
+        <div className="filter-row filter-row--single">
           <select
             aria-label="장소"
             value={placeId}

@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { DataProvider } from './context/DataContext'
+import { SeasonScopeProvider } from './context/SeasonScopeContext'
 import { DemoRepository } from './data/demo-repository'
 import type { ClosetRepository } from './data/repository'
 import { SupabaseRepository } from './data/supabase-repository'
@@ -42,23 +43,25 @@ function AuthenticatedApp() {
   }
 
   return (
-    <DataProvider repository={repository}>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/closet" element={<ClosetPage />} />
-        <Route path="/closet/:itemId" element={<ItemDetailPage />} />
-        <Route path="/lookbook" element={<LookbookPage />} />
-        <Route path="/favorite" element={<LookbookPage favoriteOnly />} />
-        <Route path="/outfits/:outfitId" element={<OutfitDetailPage />} />
-        <Route path="/wear/:outfitId" element={<WearLogPage />} />
-        <Route path="/records/:logId/edit" element={<WearLogPage />} />
-        <Route path="/more" element={<MorePage />} />
-        <Route path="/calendar" element={<CalendarPage />} />
-        <Route path="/statistics" element={<StatisticsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </DataProvider>
+    <SeasonScopeProvider>
+      <DataProvider repository={repository}>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/closet" element={<ClosetPage />} />
+          <Route path="/closet/:itemId" element={<ItemDetailPage />} />
+          <Route path="/lookbook" element={<LookbookPage />} />
+          <Route path="/favorite" element={<LookbookPage favoriteOnly />} />
+          <Route path="/outfits/:outfitId" element={<OutfitDetailPage />} />
+          <Route path="/wear/:outfitId" element={<WearLogPage />} />
+          <Route path="/records/:logId/edit" element={<WearLogPage />} />
+          <Route path="/more" element={<MorePage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/statistics" element={<StatisticsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </DataProvider>
+    </SeasonScopeProvider>
   )
 }
 

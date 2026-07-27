@@ -2,17 +2,21 @@ import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
+import { SeasonScopeSummary } from '../components/SeasonScopeSummary'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { ItemVisual } from '../components/ItemVisual'
 import { useClosetData } from '../context/DataContext'
+import { useSeasonScope } from '../context/SeasonScopeContext'
 import { formatMonthDayYear } from '../lib/date'
 import { sortItems, type ItemSort } from '../lib/items'
 import { getItemStats } from '../lib/outfits'
+import { itemMatchesSeasonScope } from '../lib/seasons'
 
 const defaultSort: ItemSort = 'acquired-desc'
 
 export function ClosetPage() {
   const { data, loading, error, refresh } = useClosetData()
+  const { activeSeasons } = useSeasonScope()
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('')
   const [color, setColor] = useState('')
@@ -40,6 +44,7 @@ export function ClosetPage() {
     return sortItems(
       data.items.filter((item) => {
         if (!includeRetired && item.retired) return false
+        if (!itemMatchesSeasonScope(item, activeSeasons)) return false
         if (category && item.category !== category) return false
         if (color && item.semanticColor !== color) return false
         return (
@@ -50,7 +55,7 @@ export function ClosetPage() {
       }),
       sort,
     )
-  }, [category, color, data, includeRetired, query, sort])
+  }, [activeSeasons, category, color, data, includeRetired, query, sort])
 
   const reset = () => {
     setQuery('')
@@ -63,6 +68,7 @@ export function ClosetPage() {
   return (
     <AppShell title="Closet" eyebrow="ALL ITEMS">
       <section className="filter-panel">
+        <SeasonScopeSummary />
         <label className="search-field">
           <Search size={18} aria-hidden="true" />
           <span className="sr-only">아이템 검색</span>

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { DataProvider } from '../context/DataContext'
+import { SeasonScopeProvider } from '../context/SeasonScopeContext'
 import { demoData } from '../data/demo-data'
 import { DemoRepository } from '../data/demo-repository'
 import { formatMonthDayYear } from '../lib/date'
@@ -17,11 +18,13 @@ function renderRoute(path: string, routePath: string, element: React.ReactNode) 
   const repository = new DemoRepository()
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <DataProvider repository={repository}>
-        <Routes>
-          <Route path={routePath} element={element} />
-        </Routes>
-      </DataProvider>
+      <SeasonScopeProvider>
+        <DataProvider repository={repository}>
+          <Routes>
+            <Route path={routePath} element={element} />
+          </Routes>
+        </DataProvider>
+      </SeasonScopeProvider>
     </MemoryRouter>,
   )
 }

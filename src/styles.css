@@ -822,6 +822,35 @@ button:disabled {
   gap: 10px;
 }
 
+.filter-row--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.season-scope-summary {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 11px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.season-scope-summary strong {
+  color: var(--ink);
+}
+
+.season-scope-summary a {
+  flex: 0 0 auto;
+  color: var(--ink);
+  font-size: 0.74rem;
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .check-stack {
   display: flex;
   flex-wrap: wrap;
@@ -1750,6 +1779,55 @@ button:disabled {
   padding: 0 18px;
 }
 
+.season-settings {
+  margin-bottom: 20px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface-soft);
+  padding: 18px;
+}
+
+.season-settings__description {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.season-settings__options {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 16px;
+}
+
+.season-option {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.season-option[aria-pressed='true'] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: white;
+}
+
+.season-settings__status {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.season-settings__status strong {
+  color: var(--ink);
+}
+
 .settings-card > div {
   display: grid;
   gap: 5px;
@@ -1773,6 +1851,21 @@ button:disabled {
 
 .settings-card + .scope-note {
   margin-top: 16px;
+}
+
+@media (max-width: 480px) {
+  .season-settings {
+    padding: 15px 12px;
+  }
+
+  .season-settings__options {
+    gap: 5px;
+  }
+
+  .season-option {
+    padding: 0 4px;
+    font-size: 0.72rem;
+  }
 }
 
 .center-text {
