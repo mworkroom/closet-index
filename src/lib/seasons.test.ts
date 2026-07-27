@@ -65,17 +65,21 @@ describe('season scope', () => {
     expect(outfitMatchesSeasonScope(outfit, items, ['Winter'])).toBe(false)
   })
 
-  it('가방과 액세서리는 Outfit 계절 판정에서 제외한다', () => {
+  it('가방·액세서리·innerwear·양말은 Outfit 계절 판정에서 제외한다', () => {
     const items = [
       makeItem('padding', 'Outer-Jacket', ['Winter']),
       makeItem('pants', 'Bottom-Pants', ['Winter']),
       makeItem('bag', 'Bags-made', ['Summer']),
       makeItem('scarf', 'Acc-Neck-made', ['Summer']),
+      makeItem('innerwear', 'Top-T-shirts-Innerwear', ['Summer']),
+      makeItem('socks', 'Socks', ['Summer']),
     ]
     const outfit = makeOutfit(items.map((item) => item.id))
 
     expect(isSeasonDefiningItem(items[2])).toBe(false)
     expect(isSeasonDefiningItem(items[3])).toBe(false)
+    expect(isSeasonDefiningItem(items[4])).toBe(false)
+    expect(isSeasonDefiningItem(items[5])).toBe(false)
     expect(outfitMatchesSeasonScope(outfit, items, ['Summer'])).toBe(false)
     expect(outfitMatchesSeasonScope(outfit, items, ['Winter'])).toBe(true)
   })

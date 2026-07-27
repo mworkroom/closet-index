@@ -19,6 +19,11 @@ const accessoryCategoryPrefixes = [
   'bags',
 ]
 
+const nonSeasonDefiningCategories = new Set([
+  'socks',
+  'top-t-shirts-innerwear',
+])
+
 export function isSeason(value: string): value is Season {
   return SEASONS.includes(value as Season)
 }
@@ -47,8 +52,11 @@ export function itemMatchesSeasonScope(
 
 export function isSeasonDefiningItem(item: Item) {
   const category = item.category.trim().toLocaleLowerCase('en')
-  return !accessoryCategoryPrefixes.some((prefix) =>
-    category.startsWith(prefix),
+  return (
+    !nonSeasonDefiningCategories.has(category) &&
+    !accessoryCategoryPrefixes.some((prefix) =>
+      category.startsWith(prefix),
+    )
   )
 }
 
