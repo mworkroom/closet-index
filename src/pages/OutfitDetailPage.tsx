@@ -10,6 +10,8 @@ import {
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { ItemVisual } from '../components/ItemVisual'
+import { LayeredOutfitPreview } from '../components/LayeredOutfitPreview'
+import { OutfitPositionEditor } from '../components/OutfitPositionEditor'
 import { OutfitVisual } from '../components/OutfitVisual'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
@@ -21,7 +23,13 @@ export function OutfitDetailPage() {
   const { outfitId = '' } = useParams()
   const location = useLocation()
   const navigationState = (location.state ?? {}) as RecommendationNavigationState
-  const { data, loading, error, refresh } = useClosetData()
+  const {
+    data,
+    loading,
+    error,
+    refresh,
+    updateOutfitItemPosition,
+  } = useClosetData()
   const outfit = data?.outfits.find((entry) => entry.id === outfitId)
   const items =
     outfit && data
@@ -38,6 +46,10 @@ export function OutfitDetailPage() {
     data?.places.find((place) => place.id === id)?.name ?? null
   const transportName = (id: string | null) =>
     data?.transportModes.find((mode) => mode.id === id)?.name ?? null
+  const canAdjustPositions =
+    Boolean(outfit) &&
+    items.length === outfit?.itemIds.length &&
+    items.every((item) => Boolean(item.image))
 
   return (
     <AppShell
@@ -152,17 +164,33 @@ export function OutfitDetailPage() {
           )}
 
           <section className="identity-card identity-card--outfit">
-            <OutfitVisual
-              outfit={outfit}
-              items={data.items}
-              className="outfit-visual--hero"
-              maxSwatches={items.length}
-            />
+            {canAdjustPositions ? (
+              <LayeredOutfitPreview
+                outfit={outfit}
+                items={data.items}
+                className="layered-outfit-preview--hero"
+              />
+            ) : (
+              <OutfitVisual
+                outfit={outfit}
+                items={data.items}
+                className="outfit-visual--hero"
+                maxSwatches={items.length}
+              />
+            )}
             <div>
               <p className="muted">품질 상태</p>
               <h2>{outfit.rating ? ratingLabels[outfit.rating] : '미입력'}</h2>
             </div>
           </section>
+
+          {canAdjustPositions && (
+            <OutfitPositionEditor
+              outfit={outfit}
+              items={data.items}
+              onSave={updateOutfitItemPosition}
+            />
+          )}
 
           {items.length !== outfit.itemIds.length && (
             <p className="relation-warning" role="alert">
@@ -251,7 +279,13 @@ export function OutfitDetailPage() {
             )}
           </section>
 
-          <div className="sticky-action">
+          <div
+            className={
+              canAdjustPositions
+                ? 'sticky-action sticky-action--after-position-editor'
+                : 'sticky-action'
+            }
+          >
             <Link
               className="button button--primary button--wide"
               to={`/wear/${outfit.id}`}

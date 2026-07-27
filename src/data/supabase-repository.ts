@@ -3,6 +3,7 @@ import type {
   AppData,
   Item,
   Outfit,
+  OutfitItemPositionInput,
   ThermalFeeling,
   WearLog,
   WearLogInput,
@@ -42,6 +43,11 @@ interface OutfitItemRow {
   outfit_id: string
   item_id: string
   sort_order: number
+  slot: string | null
+  position_x: number | string | null
+  position_y: number | string | null
+  scale: number | string | null
+  z_index: number | null
 }
 
 interface WearLogRow {
@@ -108,6 +114,12 @@ function toWearLog(row: WearLogRow): WearLog {
   }
 }
 
+function numericValue(value: number | string | null, fallback = 0) {
+  if (value === null) return fallback
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
 export class SupabaseRepository implements ClosetRepository {
   private readonly imageUrlCache = new SignedImageUrlCache()
 
@@ -126,7 +138,9 @@ export class SupabaseRepository implements ClosetRepository {
       async (from, to) => {
         const result = await this.client
           .from('closet_outfit_items')
-          .select('outfit_id,item_id,sort_order')
+          .select(
+            'outfit_id,item_id,sort_order,slot,position_x,position_y,scale,z_index',
+          )
           .eq('workspace_id', this.workspaceId)
           .order('outfit_id')
           .order('sort_order')
@@ -222,6 +236,17 @@ export class SupabaseRepository implements ClosetRepository {
         .filter((link) => link.outfit_id === row.id)
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((link) => link.item_id),
+      itemPlacements: links
+        .filter((link) => link.outfit_id === row.id)
+        .map((link) => ({
+          itemId: link.item_id,
+          slot: link.slot,
+          positionX: numericValue(link.position_x),
+          positionY: numericValue(link.position_y),
+          itemScale:
+            link.scale === null ? null : numericValue(link.scale, 1),
+          zIndex: link.z_index,
+        })),
       preview: imageAssets.outfitPreviews.get(row.id) ?? null,
     }))
 
@@ -253,6 +278,23 @@ export class SupabaseRepository implements ClosetRepository {
       .eq('workspace_id', this.workspaceId)
 
     if (error) throw error
+  }
+
+  async updateOutfitItemPosition(input: OutfitItemPositionInput) {
+    const { data, error } = await this.client
+      .from('closet_outfit_items')
+      .update({
+        position_x: input.positionX,
+        position_y: input.positionY,
+      })
+      .eq('workspace_id', this.workspaceId)
+      .eq('outfit_id', input.outfitId)
+      .eq('item_id', input.itemId)
+      .select('outfit_id,item_id,position_x,position_y')
+      .maybeSingle()
+
+    if (error) throw error
+    if (!data) throw new Error('Outfit 구성 아이템을 찾을 수 없습니다.')
   }
 
   async createWearLog(input: WearLogInput) {

@@ -1,7 +1,7 @@
 # Closet Index Phase 1B Image Preparation & Normalization Spec
 
 - 작성일: 2026-07-27
-- 상태: 입력 규칙·Batch 0 슬롯·composition v1·인지 가능성 중심 품질 정책 확정, Item 14개와 Outfit preview 원격 업로드 완료
+- 상태: 입력 규칙·composition v1 원격 운영·composition v2 기준 템플릿 프로토타입 구현, Item 14개와 Outfit preview v1 원격 업로드 완료
 - 관련 문서: [Phase 1B Plan](./phase-1b-plan.md), [Pilot Outfits](./phase-1b-pilot-outfits.md)
 
 ## 1. 목표
@@ -12,6 +12,7 @@ J가 Item마다 직접 확대·축소·중앙 정렬하지 않아도 같은 누�
 
 - J는 배경이 투명하고 Item 전체가 보이는 누끼만 준비한다.
 - 투명 여백 제거, 중심 계산, 카테고리별 크기 조정은 준비 도구가 자동으로 처리한다.
+- composition v2는 모든 Item을 620×760 기준 템플릿의 상대 배율로 계산해, 원본마다 다른 픽셀 크기 대신 동일한 시각 척도를 사용한다.
 - 양말·신발·가방처럼 실제 크기와 카드에서 보여줄 크기가 다른 항목은 카테고리 기본 배율로 처리한다.
 - 자동 배치로 해결되지 않는 소수 Item만 개별 `scale`, `position_x`, `position_y` override를 사용한다.
 - 원본 누끼는 수정하지 않고, 정규화와 합성 결과를 언제든 다시 만들 수 있게 한다.
@@ -74,7 +75,8 @@ J의 투명 누끼
 → alpha 영역으로 실제 Item 경계 계산
 → 불필요한 투명 여백 제거
 → 2~3% 안전 여백 추가
-→ 카테고리별 slot 크기에 비율 유지 fit
+→ 620×760 기준 템플릿에 카테고리별 상대 배율 적용
+→ 카테고리별 slot 안에 비율 유지 fit
 → 카테고리별 anchor에 정렬
 → 필요한 경우 Item별 override 적용
 → Outfit preview 합성
@@ -143,6 +145,27 @@ scale = min(slot 최대 너비 / Item 실제 너비,
 
 이 값은 J가 누끼를 만들 때 맞출 규격이 아니다. 합성 도구의 자동 배율 초기값이며 첫 시안에서만 조정한다.
 
+### 4.1 composition v2 기준 템플릿 프로토타입
+
+J가 만든 `lookbook1.png`, `lookbook2.png`, `lookbook3.png`의 체감 비율을 기준으로, 원본 경계 상자를 각 slot에 최대한 채우는 v1 방식과 별도로 공통 기준 템플릿을 도입한다. 세 기준 이미지는 로컬 시각 참고 자료이며 Git이나 Supabase에 저장하지 않는다.
+
+기준 템플릿은 620×760이고, 실제 렌더링 최대 크기는 이 템플릿에 다음 배율을 곱한 뒤 Item 비율을 유지해 계산한다.
+
+| 종류 | v2 기준 배율 |
+|---|---:|
+| 앞·뒤 아우터 | 100% |
+| 원피스 | 95% |
+| 아우터가 없는 일반 상의 | 85% |
+| 하의 | 64% |
+| 아우터와 함께 우측에 놓는 `Top-T-shirts` | 45% |
+| `Top-T-shirts-innerwear` | 40% |
+| 가방 | 34% |
+| 신발 | 28% |
+| 목 액세서리 | 27% |
+| 양말 | 20% |
+
+`visualScale`은 카테고리의 공통 기준이고, 기존 `scale`은 같은 카테고리에서도 크기가 특별한 Item에만 곱하는 예외값으로 유지한다. Outfit마다 같은 Item 크기를 다시 맞추지 않는다.
+
 ## 5. 예외 처리
 
 자동 규칙으로 대부분을 처리하고 다음 경우에만 Item별 override를 둔다.
@@ -182,21 +205,26 @@ Batch 0에서 slot 기본값을 한 번 확정한 뒤 Batch 1 누끼 12개를 �
 
 ## 7. Batch 0 레이어와 미세 위치 조정
 
-Batch 0 2차 시안에서 가장 위에 보이는 레이어부터 다음 순서로 고정했다.
+J의 3개 기준 시안과 정정 내용을 반영해 composition v2에서 가장 위에 보이는 레이어부터 다음 순서로 고정한다.
 
 ```text
+가방
 목 액세서리
-아우터
-이너웨어
-하의
+앞쪽 아우터
+일반 상의·뒤쪽 아우터
+Top-T-shirts-innerwear
+하의·원피스
 신발
 양말
 ```
 
-- `Top-T-shirts-innerwear`처럼 이너웨어 역할인 Item은 오른쪽 `side-top`이 아니라 왼쪽 `main-innerwear`에 배치한다.
+- `Top-T-shirts-innerwear`는 왼쪽 `main-innerwear`에 배치하고, 하의·원피스보다 위이면서 앞·뒤 아우터보다 아래에 둔다.
 - 이너웨어는 아우터 뒤에 깔고, 하의가 시작되기 전 좁은 구간에서만 하단이 보이게 한다.
-- 일반 상의는 기존처럼 오른쪽 `side-top`을 사용한다.
-- 가방은 오른쪽 보조열을 유지하되 왼쪽 주열과 가까운 기본 위치를 사용한다.
+- `Top-T-shirts`는 아우터와 함께 등장할 때만 오른쪽 `side-top`으로 보내고 전체 합성의 최하위 레이어로 내린다. 아우터가 없으면 왼쪽 `main-upper`의 일반 상의 크기와 레이어를 사용한다.
+- 다른 일반 상의는 기본적으로 `main-upper`를 사용한다.
+- 여러 상체 Item이 앞뒤로 겹치면 `outer-front`, `outer-back`, `main-top` composition role로 같은 `main-upper` slot을 공유한다.
+- 원피스는 하의 slot이 아니라 상체부터 하단까지 이어지는 `main-dress`를 사용한다.
+- 가방은 오른쪽 보조열을 유지하면서 전체 합성의 최상위 레이어로 둔다.
 
 자동 배치 뒤 예외적인 위치 보정이 필요하면 자유 드래그보다 네 방향 화살표를 사용한다.
 

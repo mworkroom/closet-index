@@ -7,7 +7,11 @@ import {
   useMemo,
   useState,
 } from 'react'
-import type { AppData, WearLogInput } from '../lib/types'
+import type {
+  AppData,
+  OutfitItemPositionInput,
+  WearLogInput,
+} from '../lib/types'
 import type { ClosetRepository } from '../data/repository'
 import { getImageRefreshDelay } from '../data/image-assets'
 
@@ -21,6 +25,7 @@ interface DataState {
     rainOk: boolean,
     longWalkOk: boolean,
   ) => Promise<void>
+  updateOutfitItemPosition: (input: OutfitItemPositionInput) => Promise<void>
   createWearLog: (input: WearLogInput) => Promise<void>
   updateWearLog: (id: string, input: WearLogInput) => Promise<void>
   deleteWearLog: (id: string) => Promise<void>
@@ -86,6 +91,8 @@ export function DataProvider({
       refresh,
       updateItemSuitability: (itemId, rainOk, longWalkOk) =>
         mutate(() => repository.updateItemSuitability(itemId, rainOk, longWalkOk)),
+      updateOutfitItemPosition: (input) =>
+        mutate(() => repository.updateOutfitItemPosition(input)),
       createWearLog: (input) => mutate(() => repository.createWearLog(input)),
       updateWearLog: (id, input) => mutate(() => repository.updateWearLog(id, input)),
       deleteWearLog: (id) => mutate(() => repository.deleteWearLog(id)),

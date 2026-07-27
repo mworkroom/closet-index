@@ -40,12 +40,19 @@ export function resolveCategoryDefaults(category, hasOuter, rules) {
     return false;
   });
   if (!rule) return null;
-  return {
+  const resolved = {
     slot:
       rule.slot ??
       (hasOuter ? rule.slotWhenOuter : rule.slotWithoutOuter),
-    zIndex: rule.zIndex,
+    zIndex:
+      (hasOuter ? rule.zIndexWhenOuter : rule.zIndexWithoutOuter) ??
+      rule.zIndex,
   };
+  const visualScale =
+    (hasOuter ? rule.visualScaleWhenOuter : rule.visualScaleWithoutOuter) ??
+    rule.visualScale;
+  if (visualScale !== undefined) resolved.visualScale = visualScale;
+  return resolved;
 }
 
 export function analyzeCompositionManifest(manifest, config) {
@@ -55,14 +62,26 @@ export function analyzeCompositionManifest(manifest, config) {
     item.category?.startsWith("Outer"),
   );
   const resolvedItems = manifest.items.map((item) => {
-    const defaults = resolveCategoryDefaults(
+    const categoryDefaults = resolveCategoryDefaults(
       item.category ?? "",
       hasOuter,
       config.categoryRules,
     );
-    if (!defaults) {
+    if (!categoryDefaults) {
       blockers.push(`${item.name}: 알 수 없는 category ${item.category}`);
     }
+    const roleDefaults = item.compositionRole
+      ? config.compositionRoles?.[item.compositionRole]
+      : null;
+    if (item.compositionRole && !roleDefaults) {
+      blockers.push(
+        `${item.name}: 알 수 없는 compositionRole ${item.compositionRole}`,
+      );
+    }
+    const defaults = {
+      ...categoryDefaults,
+      ...roleDefaults,
+    };
     const slot = item.slot ?? defaults?.slot;
     if (!slot || !config.slots[slot]) {
       blockers.push(`${item.name}: 알 수 없는 slot ${slot ?? "없음"}`);
@@ -82,6 +101,7 @@ export function analyzeCompositionManifest(manifest, config) {
       ...item,
       slot,
       zIndex: item.zIndex ?? defaults?.zIndex ?? 0,
+      visualScale: item.visualScale ?? defaults?.visualScale ?? 1,
     };
   });
 
@@ -93,8 +113,12 @@ export function analyzeCompositionManifest(manifest, config) {
     itemsBySlot.set(item.slot, slotItems);
   }
   for (const [slot, items] of itemsBySlot) {
+    const allowsRoleCollisions =
+      config.slots[slot]?.allowRoleCollisions &&
+      items.every((item) => item.compositionRole);
     if (
       items.length > 1 &&
+      !allowsRoleCollisions &&
       !items.every((item) => item.allowSlotCollision)
     ) {
       blockers.push(
@@ -129,6 +153,7 @@ async function normalizeItem({
   item,
   inputDirectory,
   slots,
+  itemTemplate,
   alphaThreshold,
 }) {
   const inputPath = path.resolve(inputDirectory, item.filename);
@@ -170,10 +195,17 @@ async function normalizeItem({
     ...item.slotOverride,
   };
   const scale = item.scale ?? 1;
+  const visualScale = item.visualScale ?? 1;
+  const targetWidth = itemTemplate
+    ? itemTemplate.width * visualScale * scale
+    : slot.width * scale;
+  const targetHeight = itemTemplate
+    ? itemTemplate.height * visualScale * scale
+    : slot.height * scale;
   const resized = await sharp(padded.data)
     .resize({
-      width: Math.max(1, Math.round(slot.width * scale)),
-      height: Math.max(1, Math.round(slot.height * scale)),
+      width: Math.max(1, Math.round(targetWidth)),
+      height: Math.max(1, Math.round(targetHeight)),
       fit: "inside",
       withoutEnlargement: false,
     })
@@ -196,6 +228,7 @@ async function normalizeItem({
       name: item.name,
       category: item.category,
       slot: item.slot,
+      compositionRole: item.compositionRole ?? null,
       sourceSha256: sha256(sourceBuffer),
       source: {
         width: metadata.width,
@@ -216,6 +249,8 @@ async function normalizeItem({
         left: placement.left,
         top: placement.top,
         zIndex: item.zIndex,
+        visualScale,
+        itemScale: scale,
       },
     },
   };
@@ -273,6 +308,7 @@ export async function composeOutfitPreview({
           ...config.slots,
           ...manifest.slots,
         },
+        itemTemplate: config.itemTemplate,
         alphaThreshold,
       }),
     ),
@@ -353,10 +389,10 @@ export async function composeOutfitPreview({
         uuid: item.report.uuid,
         category: item.report.category,
         slot: item.report.slot,
+        compositionRole: item.report.compositionRole,
         zIndex: item.report.rendered.zIndex,
-        scale:
-          analysis.items.find((source) => source.uuid === item.report.uuid)
-            ?.scale ?? 1,
+        visualScale: item.report.rendered.visualScale,
+        scale: item.report.rendered.itemScale,
         positionX:
           analysis.items.find((source) => source.uuid === item.report.uuid)
             ?.positionX ?? 0,
@@ -417,12 +453,13 @@ export async function run(argv = process.argv) {
   const manifestArgument = argv[2];
   if (!manifestArgument) {
     throw new Error(
-      "Usage: npm run outfit:preview -- <manifest.json> [output-directory]",
+      "Usage: npm run outfit:preview -- <manifest.json> [output-directory] [config.json]",
     );
   }
   const result = await composeOutfitPreview({
     manifestPath: manifestArgument,
     outputDirectory: argv[3],
+    configPath: argv[4] ?? DEFAULT_CONFIG_PATH,
   });
   console.log(
     JSON.stringify(

@@ -6,36 +6,53 @@ import {
 
 const config = {
   slots: {
-    "main-outer": {},
+    "main-upper": { allowRoleCollisions: true },
     "main-innerwear": {},
     "main-bottom": {},
+    "main-dress": {},
     "side-top": {},
+  },
+  compositionRoles: {
+    "outer-front": {
+      slot: "main-upper",
+      zIndex: 60,
+    },
+    "outer-back": {
+      slot: "main-upper",
+      zIndex: 50,
+    },
   },
   categoryRules: [
     {
       match: "prefix",
       value: "Outer",
-      slot: "main-outer",
-      zIndex: 50,
+      slot: "main-upper",
+      zIndex: 60,
+      visualScale: 1,
     },
     {
       match: "exact",
       value: "Top-T-shirts-innerwear",
       slot: "main-innerwear",
       zIndex: 40,
+      visualScale: 0.4,
     },
     {
       match: "prefix",
-      value: "Top",
+      value: "Top-T-shirts",
       slotWhenOuter: "side-top",
-      slotWithoutOuter: "main-outer",
-      zIndex: 40,
+      slotWithoutOuter: "main-upper",
+      zIndexWhenOuter: 0,
+      zIndexWithoutOuter: 50,
+      visualScaleWhenOuter: 0.45,
+      visualScaleWithoutOuter: 0.85,
     },
     {
       match: "prefix",
       value: "Bottom",
       slot: "main-bottom",
       zIndex: 30,
+      visualScale: 0.64,
     },
   ],
 };
@@ -48,16 +65,55 @@ describe("Outfit composition contract", () => {
         true,
         config.categoryRules,
       ),
-    ).toEqual({ slot: "main-innerwear", zIndex: 40 });
+    ).toEqual({
+      slot: "main-innerwear",
+      zIndex: 40,
+      visualScale: 0.4,
+    });
   });
 
-  it("places a general top beside an outer and in the main column otherwise", () => {
+  it("places Top-T-shirts at the bottom of the side column only with an outer", () => {
     expect(
       resolveCategoryDefaults("Top-T-shirts", true, config.categoryRules),
-    ).toEqual({ slot: "side-top", zIndex: 40 });
+    ).toEqual({ slot: "side-top", zIndex: 0, visualScale: 0.45 });
     expect(
       resolveCategoryDefaults("Top-T-shirts", false, config.categoryRules),
-    ).toEqual({ slot: "main-outer", zIndex: 40 });
+    ).toEqual({ slot: "main-upper", zIndex: 50, visualScale: 0.85 });
+  });
+
+  it("keeps innerwear above bottoms and lets a back outer share the upper slot", () => {
+    const result = analyzeCompositionManifest(
+      {
+        items: [
+          {
+            name: "앞 아우터",
+            category: "Outer-Vest",
+            compositionRole: "outer-front",
+          },
+          {
+            name: "뒤 아우터",
+            category: "Outer-Knit",
+            compositionRole: "outer-back",
+          },
+          {
+            name: "이너웨어",
+            category: "Top-T-shirts-innerwear",
+          },
+          {
+            name: "하의",
+            category: "Bottom-Skirts",
+          },
+        ],
+      },
+      config,
+    );
+    expect(result.blockers).toEqual([]);
+    expect(result.items.map(({ name, zIndex }) => [name, zIndex])).toEqual([
+      ["앞 아우터", 60],
+      ["뒤 아우터", 50],
+      ["이너웨어", 40],
+      ["하의", 30],
+    ]);
   });
 
   it("reports unknown categories and same-slot collisions", () => {

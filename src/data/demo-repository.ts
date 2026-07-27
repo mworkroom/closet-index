@@ -1,4 +1,8 @@
-import type { WearLog, WearLogInput } from '../lib/types'
+import type {
+  OutfitItemPositionInput,
+  WearLog,
+  WearLogInput,
+} from '../lib/types'
 import { demoData } from './demo-data'
 import type { ClosetRepository } from './repository'
 
@@ -38,6 +42,33 @@ export class DemoRepository implements ClosetRepository {
     if (!item) throw new Error('아이템을 찾을 수 없습니다.')
     item.rainOk = rainOk
     item.longWalkOk = longWalkOk
+    writeData(data)
+  }
+
+  async updateOutfitItemPosition(input: OutfitItemPositionInput) {
+    const data = readData()
+    const outfit = data.outfits.find((entry) => entry.id === input.outfitId)
+    if (!outfit || !outfit.itemIds.includes(input.itemId)) {
+      throw new Error('Outfit 구성 아이템을 찾을 수 없습니다.')
+    }
+
+    outfit.itemPlacements ??= []
+    const existing = outfit.itemPlacements.find(
+      (placement) => placement.itemId === input.itemId,
+    )
+    if (existing) {
+      existing.positionX = input.positionX
+      existing.positionY = input.positionY
+    } else {
+      outfit.itemPlacements.push({
+        itemId: input.itemId,
+        slot: null,
+        positionX: input.positionX,
+        positionY: input.positionY,
+        itemScale: null,
+        zIndex: null,
+      })
+    }
     writeData(data)
   }
 

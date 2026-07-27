@@ -1,6 +1,6 @@
 begin;
 
-select plan(31);
+select plan(35);
 
 select is(
   (
@@ -228,6 +228,62 @@ select ok(
 select ok(
   has_column_privilege(
     'authenticated',
+    'public.closet_outfit_items',
+    'position_x',
+    'update'
+  )
+  and has_column_privilege(
+    'authenticated',
+    'public.closet_outfit_items',
+    'position_y',
+    'update'
+  ),
+  'authenticated users can update outfit item positions'
+);
+
+select ok(
+  not has_column_privilege(
+    'authenticated',
+    'public.closet_outfit_items',
+    'scale',
+    'update'
+  )
+  and not has_column_privilege(
+    'authenticated',
+    'public.closet_outfit_items',
+    'z_index',
+    'update'
+  ),
+  'position editing does not grant scale or layer updates'
+);
+
+select ok(
+  not has_column_privilege(
+    'anon',
+    'public.closet_outfit_items',
+    'position_x',
+    'update'
+  ),
+  'anonymous users cannot update outfit item positions'
+);
+
+select ok(
+  exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'closet_outfit_items'
+      and policyname = 'closet_outfit_items_update_position_member'
+      and cmd = 'UPDATE'
+      and qual is not null
+      and with_check is not null
+  ),
+  'outfit item position updates require workspace membership before and after'
+);
+
+select ok(
+  has_column_privilege(
+    'authenticated',
     'public.closet_wear_logs',
     'outfit_id',
     'insert'
@@ -265,7 +321,7 @@ select is(
         'closet_import_runs'
       ])
   ),
-  16,
+  17,
   'expected workspace member policies are installed'
 );
 

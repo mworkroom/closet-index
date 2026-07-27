@@ -17,6 +17,22 @@ export interface OutfitPreview extends ImageAsset {
   compositionVersion: number
 }
 
+export interface OutfitItemPlacement {
+  itemId: string
+  slot: string | null
+  positionX: number
+  positionY: number
+  itemScale: number | null
+  zIndex: number | null
+}
+
+export interface OutfitItemPositionInput {
+  outfitId: string
+  itemId: string
+  positionX: number
+  positionY: number
+}
+
 export interface Item {
   id: string
   name: string
@@ -37,6 +53,7 @@ export interface Outfit {
   displayName: string | null
   rating: OutfitRating
   itemIds: string[]
+  itemPlacements?: OutfitItemPlacement[]
   preview?: OutfitPreview | null
 }
 

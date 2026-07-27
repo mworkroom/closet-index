@@ -97,4 +97,27 @@ describe('DemoRepository wear log contract', () => {
     data = await repository.load()
     expect(data.wearLogs.some((log) => log.id === created.id)).toBe(false)
   })
+
+  it('Outfit 구성 아이템의 위치만 저장한다', async () => {
+    const repository = new DemoRepository()
+
+    await repository.updateOutfitItemPosition({
+      outfitId: 'outfit-favorite',
+      itemId: 'item-pants',
+      positionX: 0,
+      positionY: -40,
+    })
+
+    const data = await repository.load()
+    expect(
+      data.outfits
+        .find((outfit) => outfit.id === 'outfit-favorite')
+        ?.itemPlacements?.find((placement) => placement.itemId === 'item-pants'),
+    ).toMatchObject({
+      positionX: 0,
+      positionY: -40,
+      itemScale: null,
+      zIndex: null,
+    })
+  })
 })
