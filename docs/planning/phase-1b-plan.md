@@ -1,7 +1,7 @@
 # Closet Index Phase 1B Implementation Plan
 
 - 작성일: 2026-07-27
-- 상태: B1~B6 공개 배포 완료, iPhone PWA 실사용과 composition v2 기준 템플릿 프로토타입 시각 확정 대기
+- 상태: B1~B6 공개 배포 완료, composition v2 실시간 목록 thumbnail 로컬 구현과 Batch 2 cutout 업로드 완료, 새 코드의 공개 배포·iPhone PWA 실사용 대기
 - 목표 릴리스: Visual MVP / v1.0
 - 선행 상태: Phase 1A Technical Alpha와 원격 Wear Log CRUD 검증 완료
 - 관련 문서: [Phase 1 MVP Spec](./phase-1-mvp-spec.md), [Roadmap](./roadmap.md), [Data & Security](./phase-1-data-security-spec.md), [Acceptance Checklist](./phase-1-acceptance-checklist.md), [Pilot Outfits](./phase-1b-pilot-outfits.md), [Image Spec](./phase-1b-image-spec.md)
@@ -64,8 +64,8 @@ J가 직접 캔버스 중심과 Item 크기를 맞추지 않는다. 상세한 �
 |---|---|---|---|
 | 입력 원본 | JPEG, PNG, HEIC 입력 허용 | 해상도 강제 없음, 가능하면 긴 변 1200px 이상 | 누끼 검증·재가공 중 로컬 임시 보관, 기본 원격 업로드 안 함 |
 | Item 누끼 | 투명 WebP | 긴 변 1200~1600px | Item 상세·합성 |
-| Outfit preview | 투명 WebP | 900 × 1200px, 3:4 | HOME·LOOKBOOK·상세 |
-| 목록 thumbnail | preview 재사용 + 브라우저 축소 | 별도 생성은 성능 측정 후 결정 | CLOSET·Calendar |
+| Outfit preview | 투명 WebP | 900 × 1200px, 3:4 | 내보내기·저장 fallback·합성 버전 보존 |
+| 목록 thumbnail | ready cutout이 모두 있으면 composition v2 실시간 합성, 아니면 저장 preview 또는 스와치 fallback | 3:4 | HOME·LOOKBOOK·FAVORITE |
 
 초기 품질 목표:
 
@@ -98,7 +98,7 @@ Batch 0 누끼 7개는 서로 다른 출처와 해상도가 섞여 있었지만 
 
 ## 4. 고정 슬롯 합성 원칙
 
-합성은 브라우저에서 매번 계산하지 않고 로컬 도구로 미리 생성해 Storage에 저장한다. 앱은 완성된 preview를 표시한다.
+로컬 도구는 재실행 가능한 900×1200 preview를 생성·보존한다. 앱 목록과 상세는 Outfit의 모든 Item에 ready cutout이 있으면 같은 composition v2 규칙과 저장된 `position_x`·`position_y`를 브라우저에서 합성해, 위치 보정이 구형 저장 preview보다 먼저 반영되게 한다. cutout이 하나라도 없으면 저장 preview를 사용하고, 그것도 없거나 로드에 실패하면 기존 스와치 fallback을 유지한다.
 
 J가 과거 앱에서 반복 사용한 배열을 기본 슬롯으로 확정한다. 이 구조는 자유 배치가 아니라 정해진 좌표와 레이어를 사용하는 결정적 합성이다.
 
@@ -340,7 +340,9 @@ Notion 추가 입력 중단
 - [x] 로컬 이미지 준비·업로드 도구의 dry-run·apply 검증
 - [ ] pilot Item 누끼와 Outfit preview 업로드 완료
 - [x] Batch 0 Item original·cutout 14개와 Outfit preview v1 업로드·재실행 검증
-- [ ] 준비·업로드 도구에서 고해상도 original 기본 업로드 제거
+- [x] 준비·업로드 도구에서 고해상도 original 기본 업로드 제거
+- [x] Item cutout 500KB·Outfit preview 350KB 목표의 적응형 WebP 인코딩과 초과 차단
+- [x] J 전달명 Batch 2의 Item cutout 12개 업로드와 18개 Outfit 실시간 합성 thumbnail 검증
 - [ ] Batch 0 original 7개는 새 정책 검증 후 안전하게 정리할지 결정
 - [x] B4 ready metadata 조회·signed URL 캐시·만료/오류 fallback 계약 검증
 - [x] HOME·CLOSET·LOOKBOOK·FAVORITE·상세·Calendar 이미지 적용
@@ -364,4 +366,4 @@ Notion 추가 입력 중단
 7. iPhone 촬영본, 과거 앱 캡처, 쇼핑몰 이미지가 섞여도 같은 정규화 과정으로 사용한다.
 8. Supabase에는 Item cutout과 Outfit preview만 기본 보관하고 고해상도 원본은 올리지 않는다.
 
-다음 구현 단위에서는 먼저 B2 준비·업로드 도구를 원본 미보관 정책에 맞춘 뒤 B6 통합 검증으로 진행한다. 실제 로그인 세션에서 Batch 0 signed URL 표시를 확인하고, iPhone Safari·홈 화면 PWA의 핵심 흐름과 공개 GitHub Pages 통합은 J의 배포 요청 이후 검증한다. 이미지가 없거나 URL 로드가 실패하는 기존 항목은 현재 텍스트·스와치 fallback을 계속 유지한다.
+다음 구현 단위에서는 Batch 2의 18개 실시간 합성 thumbnail을 iPhone Safari·홈 화면 PWA에서 확인하고, 필요한 Outfit별 `position_x`·`position_y`를 조정한다. 공개 GitHub Pages 통합은 J의 커밋·푸시 요청 이후 검증한다. 이미지가 없거나 URL 로드가 실패하는 기존 항목은 현재 텍스트·스와치 fallback을 계속 유지한다.

@@ -1,7 +1,7 @@
 # Closet Index Phase 1B Pilot Outfits
 
 - 선정일: 2026-07-27
-- 상태: 24개 후보 확정, Batch 0 누끼 7개·합성 preview v1 원격 업로드와 재실행 검증 완료
+- 상태: 24개 후보 확정, Batch 0 cutout 7개와 J 전달명 Batch 2 cutout 12개 원격 업로드 완료, 18개 Outfit 실시간 합성 thumbnail 검증 완료
 - 기준 데이터: Supabase workspace `00000000-0000-0000-0000-000000000003`
 - 관련 계획: [Phase 1B Plan](./phase-1b-plan.md), [Image Spec](./phase-1b-image-spec.md)
 
@@ -62,9 +62,11 @@
 6. 봉긋 크로스백 블랙
 7. 르무통 메리제인 블랙
 
-### Batch 1 — 재사용이 많은 12개
+### Batch 1 — 재사용이 많은 12개 (J 전달명: Batch 2)
 
 아래 12개를 추가하면 pilot #7, #8, #9, #10, #12, #13의 완성 preview를 만들 수 있다.
+
+2026-07-28에 12개를 모두 cutout WebP로 업로드했다. 지정한 pilot 6개뿐 아니라 같은 Item 조합을 재사용하는 기존 Outfit까지 포함해 총 18개 Outfit이 모든 ready cutout을 갖추었고, LOOKBOOK에서 composition v2 실시간 thumbnail로 표시되는 것을 확인했다.
 
 1. 크록스 크록스 클래식
 2. 봉긋 와니백

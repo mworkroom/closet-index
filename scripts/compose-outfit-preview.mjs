@@ -4,6 +4,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import sharp from "sharp";
+import { encodeWebpToTarget } from "./encode-webp-to-target.mjs";
 
 const SCRIPT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_CONFIG_PATH = path.join(
@@ -347,13 +348,30 @@ export async function composeOutfitPreview({
     )
     .png()
     .toBuffer();
-  const preview = await sharp(transparentBuffer)
-    .webp({
-      quality: config.preview.quality,
-      alphaQuality: config.preview.alphaQuality,
-      effort: config.preview.effort,
-    })
-    .toBuffer({ resolveWithObject: true });
+  const previewQualities = [
+    config.preview.quality,
+    82,
+    74,
+    66,
+    58,
+    50,
+    42,
+  ].filter(
+    (quality, index, values) =>
+      quality <= config.preview.quality && values.indexOf(quality) === index,
+  );
+  const preview = await encodeWebpToTarget(transparentBuffer, {
+    targetMaxBytes: config.preview.targetMaxBytes,
+    candidates: previewQualities.map((quality) => ({ quality })),
+    alphaQuality: config.preview.alphaQuality,
+    effort: config.preview.effort,
+  });
+  invariant(
+    preview.targetMet,
+    `preview가 자동 압축 후에도 ${Math.round(
+      config.preview.targetMaxBytes / 1024,
+    )}KB를 초과합니다: ${Math.round(preview.data.byteLength / 1024)}KB`,
+  );
 
   const transparentOutput = path.join(
     outputDirectory,
@@ -372,13 +390,6 @@ export async function composeOutfitPreview({
     `${outputStem}-report.json`,
   );
   const warnings = [...analysis.warnings];
-  if (preview.data.byteLength > config.preview.targetMaxBytes) {
-    warnings.push(
-      `preview가 초기 ${Math.round(
-        config.preview.targetMaxBytes / 1024,
-      )}KB 목표를 초과함: ${Math.round(preview.data.byteLength / 1024)}KB`,
-    );
-  }
   const inputFingerprint = sha256(
     stableJson({
       compositionVersion: config.version,
@@ -417,6 +428,7 @@ export async function composeOutfitPreview({
       height: preview.info.height,
       bytes: preview.data.byteLength,
       sha256: sha256(preview.data),
+      encoding: preview.encoding,
     },
     validation: {
       blockers: [],

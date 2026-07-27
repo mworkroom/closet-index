@@ -47,6 +47,21 @@ describe('Phase 1B visual components', () => {
     ).toBeInTheDocument()
   })
 
+  it('모든 Item cutout이 있으면 저장 preview보다 현재 배치 규칙을 우선한다', () => {
+    const outfit = demoData.outfits.find((entry) => entry.id === 'outfit-favorite')!
+    const fallbackImage = demoData.items.find(
+      (entry) => entry.id === 'item-cardigan',
+    )!.image
+    const items = demoData.items.map((item) =>
+      outfit.itemIds.includes(item.id) ? { ...item, image: fallbackImage } : item,
+    )
+
+    render(<OutfitVisual outfit={outfit} items={items} />)
+
+    expect(document.querySelector('.outfit-visual__layered')).toBeInTheDocument()
+    expect(document.querySelector('.outfit-visual__image')).not.toBeInTheDocument()
+  })
+
   it('Item cutout과 기존 색상 fallback을 같은 visual wrapper에 표시한다', () => {
     const imageItem = demoData.items.find((entry) => entry.id === 'item-cardigan')!
     const missingItem = demoData.items.find((entry) => entry.id === 'item-knit')!

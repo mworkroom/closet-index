@@ -1,7 +1,7 @@
 # Closet Index Phase 1B Image Preparation & Normalization Spec
 
 - 작성일: 2026-07-27
-- 상태: 입력 규칙·composition v1 원격 운영·composition v2 기준 템플릿 프로토타입 구현, Item 14개와 Outfit preview v1 원격 업로드 완료
+- 상태: 입력 규칙·composition v1 원격 운영·composition v2 템플릿과 실시간 목록 합성 구현, ready cutout 19개와 Outfit preview v1 원격 운영
 - 관련 문서: [Phase 1B Plan](./phase-1b-plan.md), [Pilot Outfits](./phase-1b-pilot-outfits.md)
 
 ## 1. 목표
@@ -203,6 +203,8 @@ z_index     레이어 순서
 
 Batch 0에서 slot 기본값을 한 번 확정한 뒤 Batch 1 누끼 12개를 합성한다. Batch 1에서 반복적으로 같은 보정이 필요하면 개별 Item 문제가 아니라 카테고리 기본값 문제로 보고 slot 설정을 수정한다.
 
+2026-07-28 Batch 1 12개(J 전달명 Batch 2)를 업로드한 뒤, ready cutout이 모두 있는 Outfit은 저장된 preview보다 composition v2 실시간 합성을 우선하도록 했다. 이로써 상세 화면에서 저장한 `position_x`·`position_y` 보정이 HOME·LOOKBOOK·FAVORITE thumbnail에도 같은 규칙으로 반영된다. cutout이 불완전한 Outfit은 기존 저장 preview 또는 스와치 fallback을 그대로 사용한다.
+
 ## 7. Batch 0 레이어와 미세 위치 조정
 
 J의 3개 기준 시안과 정정 내용을 반영해 composition v2에서 가장 위에 보이는 레이어부터 다음 순서로 고정한다.
@@ -241,18 +243,20 @@ Supabase에는 앱 운영에 필요한 최적화 결과만 기본 저장한다.
 | 종류 | 원격 저장 | 기준 |
 |---|---|---|
 | 입력 원본·고해상도 PNG | 기본 저장 안 함 | 누끼 검증과 재처리 동안 로컬에만 임시 보관 |
-| Item 누끼 | 저장 | 투명 WebP, 긴 변 최대 약 1600px, quality 90 |
-| Outfit preview | 저장 | 투명 WebP, 900 × 1200px, quality 90 |
+| Item 누끼 | 저장 | 투명 WebP, 긴 변 최대 1600px에서 시작해 목표 용량까지 적응형 압축 |
+| Outfit preview | 저장 | 투명 WebP, 900 × 1200px 고정, quality 90에서 시작해 적응형 압축 |
 
 용량 목표:
 
-- Item 누끼는 보통 50~500KB 범위를 기대하고 700KB 초과 시 경고한다.
-- Outfit preview는 350KB 이하를 목표로 한다.
+- Item 누끼는 500KB 이하를 목표로 한다. 1600px·quality 90부터 시작해 품질과 긴 변을 순서대로 낮추며, 최종 결과가 700KB를 넘으면 업로드 준비를 차단한다.
+- Outfit preview는 900 × 1200px를 유지하면서 quality 90부터 단계적으로 낮춰 350KB 이하로 만든다. 최저 후보에서도 목표를 넘으면 업로드 준비를 차단한다.
 - 입력 파일 용량은 합격 기준으로 사용하지 않고 준비 도구가 정규화한 결과를 검사한다.
+
+아이폰 앱 캡처처럼 같은 정사각형 프레임에서 만든 누끼가 100~1000KB로 다양해도 입력 자체는 허용한다. alpha trim과 2.5% 안전 여백 뒤에 위 후보를 적용하므로 사람이 파일마다 해상도나 quality를 미리 맞추지 않는다. 원본 캡처와 로컬 누끼 입력은 원격 asset plan과 metadata에서 제외한다.
 
 Batch 0 실측에서 Item 누끼 7개는 총 약 1.15MB, 평균 약 164KB였고 Outfit preview 1개는 약 132KB였다. 이 평균을 현재 Item 451개와 Outfit 507개 전체에 단순 적용하면 앱 표시용 이미지 예상치는 약 141MB다. 고해상도 원본을 제외하면 Supabase Free Plan의 1GB Storage 안에서 충분한 여유가 있다.
 
-정책 변경 전에 업로드된 Batch 0 original PNG 7개 약 12.78MB는 즉시 삭제하지 않는다. 준비·업로드 도구와 metadata 계약을 새 정책에 맞춘 뒤, cutout과 preview의 원격 읽기 및 재생성이 확인된 별도 정리 단계에서만 삭제 여부를 결정한다.
+정책 변경 전에 업로드된 Batch 0 original PNG 7개 약 12.78MB는 즉시 삭제하지 않는다. 새 준비·업로드 도구는 cutout만 원격 asset plan과 metadata에 포함하며, 기존 original은 cutout과 preview의 원격 읽기 및 재생성이 확인된 별도 정리 단계에서만 삭제 여부를 결정한다.
 
 ## 9. 결론
 

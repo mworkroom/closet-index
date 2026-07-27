@@ -5,6 +5,7 @@ import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 import sharp from "sharp";
+import { encodeWebpToTarget } from "./encode-webp-to-target.mjs";
 
 const EXPECTED_PROJECT_REF = "ddlwainwollvpaeccpty";
 const DEFAULT_WORKSPACE_ID = "00000000-0000-0000-0000-000000000003";
@@ -12,6 +13,16 @@ const DEFAULT_BUCKET = "closet-images";
 const DEFAULT_MANIFEST =
   "assets/private/phase-1b/batch-0-manifest.json";
 const ALLOWED_INPUT_FORMATS = new Set(["png", "jpeg", "webp", "heif"]);
+const CUTOUT_TARGET_MAX_BYTES = 500 * 1024;
+const CUTOUT_HARD_MAX_BYTES = 700 * 1024;
+const CUTOUT_ENCODING_CANDIDATES = [
+  { maxDimension: 1600, quality: 90 },
+  { maxDimension: 1600, quality: 80 },
+  { maxDimension: 1400, quality: 74 },
+  { maxDimension: 1200, quality: 68 },
+  { maxDimension: 1000, quality: 60 },
+  { maxDimension: 900, quality: 52 },
+];
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -55,25 +66,11 @@ export function resolveManifestInput(inputDirectory, filename) {
   return resolved;
 }
 
-export function createAssetPlan({
-  workspaceId,
-  itemId,
-  originalExtension = "png",
-}) {
-  const originalId = stableUuid(
-    `closet-index:${workspaceId}:item:${itemId}:original`,
-  );
+export function createAssetPlan({ workspaceId, itemId }) {
   const cutoutId = stableUuid(
     `closet-index:${workspaceId}:item:${itemId}:cutout`,
   );
   return {
-    original: {
-      id: originalId,
-      variant: "original",
-      storagePath:
-        `${workspaceId}/items/${itemId}/original/` +
-        `${originalId}.${originalExtension}`,
-    },
     cutout: {
       id: cutoutId,
       variant: "cutout",
@@ -83,16 +80,33 @@ export function createAssetPlan({
   };
 }
 
-function validateManifest(manifest, workspaceId) {
+export function manifestOutfitIds(manifest) {
+  const legacyOutfitIds = manifest.outfit?.uuid
+    ? [manifest.outfit.uuid]
+    : [];
+  const batchOutfitIds = Array.isArray(manifest.outfits)
+    ? manifest.outfits.map((outfit) => outfit.uuid)
+    : [];
+  return [...new Set([...legacyOutfitIds, ...batchOutfitIds])];
+}
+
+export function validateManifest(manifest, workspaceId) {
   invariant(manifest.version === 1, "지원하지 않는 manifest version입니다.");
   invariant(
     UUID_PATTERN.test(workspaceId),
     `workspace UUID 형식이 잘못되었습니다: ${workspaceId}`,
   );
+  const outfitIds = manifestOutfitIds(manifest);
   invariant(
-    UUID_PATTERN.test(manifest.outfit?.uuid ?? ""),
-    "manifest outfit UUID가 필요합니다.",
+    outfitIds.length > 0,
+    "manifest outfit 또는 outfits UUID가 필요합니다.",
   );
+  for (const outfitId of outfitIds) {
+    invariant(
+      UUID_PATTERN.test(outfitId),
+      `Outfit UUID 형식이 잘못되었습니다: ${outfitId}`,
+    );
+  }
   invariant(
     Array.isArray(manifest.items) && manifest.items.length > 0,
     "manifest items가 비어 있습니다.",
@@ -124,7 +138,7 @@ function validateManifest(manifest, workspaceId) {
   }
 }
 
-async function prepareItem({
+export async function prepareItem({
   item,
   inputDirectory,
   preparedDirectory,
@@ -156,17 +170,6 @@ async function prepareItem({
     `${item.name}: 투명 배경이 없는 이미지입니다.`,
   );
 
-  const original = await source
-    .clone()
-    .resize({
-      width: 4096,
-      height: 4096,
-      fit: "inside",
-      withoutEnlargement: true,
-    })
-    .png({ compressionLevel: 9, adaptiveFiltering: true })
-    .toBuffer({ resolveWithObject: true });
-
   const trimmed = await source
     .clone()
     .trim({
@@ -179,7 +182,7 @@ async function prepareItem({
     2,
     Math.round(Math.max(trimmed.info.width, trimmed.info.height) * 0.025),
   );
-  const cutout = await sharp(trimmed.data)
+  const padded = await sharp(trimmed.data)
     .extend({
       top: safetyMargin,
       right: safetyMargin,
@@ -187,36 +190,34 @@ async function prepareItem({
       left: safetyMargin,
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     })
-    .resize({
-      width: 1600,
-      height: 1600,
-      fit: "inside",
-      withoutEnlargement: true,
-    })
-    .webp({ quality: 90, alphaQuality: 100, effort: 6 })
-    .toBuffer({ resolveWithObject: true });
+    .png()
+    .toBuffer();
+  const cutout = await encodeWebpToTarget(padded, {
+    targetMaxBytes: CUTOUT_TARGET_MAX_BYTES,
+    candidates: CUTOUT_ENCODING_CANDIDATES,
+    alphaQuality: 100,
+    effort: 6,
+  });
+  invariant(
+    cutout.data.byteLength <= CUTOUT_HARD_MAX_BYTES,
+    `${item.name}: cutout이 자동 압축 후에도 700KB를 초과합니다: ` +
+      `${Math.round(cutout.data.byteLength / 1024)}KB`,
+  );
 
   const assets = createAssetPlan({
     workspaceId,
     itemId: item.uuid,
   });
-  const originalFile = path.join(
-    preparedDirectory,
-    `${item.uuid}__original.png`,
-  );
   const cutoutFile = path.join(
     preparedDirectory,
     `${item.uuid}__cutout.webp`,
   );
-  await Promise.all([
-    writeFile(originalFile, original.data),
-    writeFile(cutoutFile, cutout.data),
-  ]);
+  await writeFile(cutoutFile, cutout.data);
 
   const warnings = [];
-  if (cutout.data.byteLength > 700 * 1024) {
+  if (!cutout.targetMet) {
     warnings.push(
-      `cutout이 초기 700KB 목표를 초과합니다: ` +
+      `cutout이 500KB 목표를 초과하지만 700KB 제한 이내입니다: ` +
         `${Math.round(cutout.data.byteLength / 1024)}KB`,
     );
   }
@@ -234,20 +235,13 @@ async function prepareItem({
     },
     assets: [
       {
-        ...assets.original,
-        localPath: originalFile,
-        contentType: "image/png",
-        width: original.info.width,
-        height: original.info.height,
-        bytes: original.data.byteLength,
-      },
-      {
         ...assets.cutout,
         localPath: cutoutFile,
         contentType: "image/webp",
         width: cutout.info.width,
         height: cutout.info.height,
         bytes: cutout.data.byteLength,
+        encoding: cutout.encoding,
       },
     ],
     warnings,
@@ -275,6 +269,7 @@ async function verifyRemoteRelations({
   workspaceId,
   manifest,
 }) {
+  const outfitIds = manifestOutfitIds(manifest);
   const itemIds = manifest.items.map((item) => item.uuid).join(",");
   const itemResponse = await fetch(
     `${supabaseUrl}/rest/v1/closet_items` +
@@ -306,7 +301,7 @@ async function verifyRemoteRelations({
   const relationResponse = await fetch(
     `${supabaseUrl}/rest/v1/closet_outfit_items` +
       `?workspace_id=eq.${workspaceId}` +
-      `&outfit_id=eq.${manifest.outfit.uuid}&select=item_id`,
+      `&outfit_id=in.(${outfitIds.join(",")})&select=outfit_id,item_id`,
     { headers: adminHeaders(adminKey) },
   );
   if (!relationResponse.ok) {
@@ -403,6 +398,7 @@ export async function run(argv = process.argv) {
   const manifestDirectory = path.dirname(manifestPath);
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   validateManifest(manifest, workspaceId);
+  const outfitIds = manifestOutfitIds(manifest);
 
   const inputDirectory = path.resolve(
     manifestDirectory,
@@ -433,10 +429,14 @@ export async function run(argv = process.argv) {
     workspaceId,
     bucket,
     manifest: path.basename(manifestPath),
-    outfitId: manifest.outfit.uuid,
+    outfitId: outfitIds.length === 1 ? outfitIds[0] : null,
+    outfitIds,
     counts: {
       items: preparedItems.length,
-      assets: preparedItems.length * 2,
+      assets: preparedItems.reduce(
+        (count, item) => count + item.assets.length,
+        0,
+      ),
       warnings: preparedItems.reduce(
         (count, item) => count + item.warnings.length,
         0,
@@ -448,6 +448,7 @@ export async function run(argv = process.argv) {
       upsertSamePaths: true,
       metadataReadyAfterAllUploads: true,
       sourceFilesTrackedByGit: false,
+      remoteOriginalUpload: false,
     },
     items: preparedItems,
   };
