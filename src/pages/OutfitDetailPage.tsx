@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   CheckCircle2,
+  ChevronDown,
   CloudRain,
   Footprints,
   MapPin,
@@ -54,9 +55,10 @@ export function OutfitDetailPage() {
 
   return (
     <AppShell
-      title={outfit && data ? outfitLabel(outfit, data.items) : 'Outfit'}
+      title="착장 상세"
       eyebrow="OUTFIT DETAIL"
       back
+      hideTitle
     >
       {loading && <LoadingState />}
       {error && <ErrorState message={error} onRetry={() => void refresh()} />}
@@ -195,14 +197,6 @@ export function OutfitDetailPage() {
             </dl>
           </section>
 
-          {canAdjustPositions && (
-            <OutfitPositionEditor
-              outfit={outfit}
-              items={data.items}
-              onSave={updateOutfitItemPosition}
-            />
-          )}
-
           {items.length !== outfit.itemIds.length && (
             <p className="relation-warning" role="alert">
               <AlertTriangle size={17} />
@@ -230,7 +224,7 @@ export function OutfitDetailPage() {
 
           <section className="section">
             <div className="section-heading">
-              <h2>착용 근거</h2>
+              <h2>착용 기록</h2>
               <span className="count">{logs.length}개 기록</span>
             </div>
             {logs.length === 0 ? (
@@ -266,11 +260,11 @@ export function OutfitDetailPage() {
                       )}
                       <span>
                         <CloudRain size={15} />
-                        비 {log.rainCondition === 'yes' ? '해당' : '해당 없음/미지정'}
+                        비 {log.rainCondition === 'yes' ? '해당' : '해당 없음'}
                       </span>
                       <span>
                         <Footprints size={15} />
-                        걷기 {log.longWalkCondition === 'yes' ? '해당' : '해당 없음/미지정'}
+                        걷기 {log.longWalkCondition === 'yes' ? '해당' : '해당 없음'}
                       </span>
                     </div>
                   </article>
@@ -294,6 +288,23 @@ export function OutfitDetailPage() {
               오늘 입기
             </Link>
           </div>
+
+          {canAdjustPositions && (
+            <details className="position-editor-disclosure">
+              <summary>
+                <span>
+                  <small>OUTFIT IMAGE</small>
+                  <strong>착장 이미지 수정</strong>
+                </span>
+                <ChevronDown size={22} aria-hidden="true" />
+              </summary>
+              <OutfitPositionEditor
+                outfit={outfit}
+                items={data.items}
+                onSave={updateOutfitItemPosition}
+              />
+            </details>
+          )}
         </>
       )}
     </AppShell>

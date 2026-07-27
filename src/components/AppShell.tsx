@@ -24,12 +24,14 @@ export function AppShell({
   back = false,
   action,
   hideNavigation = false,
+  hideTitle = false,
 }: PropsWithChildren<{
   title: string
   eyebrow?: string
   back?: boolean
   action?: ReactNode
   hideNavigation?: boolean
+  hideTitle?: boolean
 }>) {
   const navigate = useNavigate()
 
@@ -49,7 +51,7 @@ export function AppShell({
           )}
           <div>
             {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-            <h1>{title}</h1>
+            <h1 className={hideTitle ? 'sr-only' : undefined}>{title}</h1>
           </div>
         </div>
         {action && <div className="topbar__action">{action}</div>}

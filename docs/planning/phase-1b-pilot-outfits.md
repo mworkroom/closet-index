@@ -1,7 +1,7 @@
 # Closet Index Phase 1B Pilot Outfits
 
 - 선정일: 2026-07-27
-- 상태: 24개 후보 확정, Batch 0 cutout 7개와 J 전달명 Batch 2 cutout 12개 원격 업로드 완료, 18개 Outfit 실시간 합성 thumbnail 검증 완료
+- 상태: 24개 후보 확정, Batch 0 cutout 7개·J 전달명 Batch 2 cutout 12개·J 전달명 Batch 3 cutout 30개 원격 업로드 완료. Pilot Item 50개 중 49개 ready, 24개 Outfit 중 23개 완성
 - 기준 데이터: Supabase workspace `00000000-0000-0000-0000-000000000003`
 - 관련 계획: [Phase 1B Plan](./phase-1b-plan.md), [Image Spec](./phase-1b-image-spec.md)
 
@@ -81,9 +81,15 @@
 11. 르꼬르망 골지스커트 썸머 블루
 12. 육육걸즈 슬리브리스 블랙
 
-### Batch 2 — 나머지 31개
+### Batch 2 — 나머지 31개 (J 전달명: Batch 3)
 
 Batch 0과 Batch 1 합성 결과를 확인한 뒤 남은 후보를 순서대로 준비한다. 이 단계 전에는 나머지 누끼를 한꺼번에 만들지 않는다. 슬롯 크기나 여백이 바뀌면 다시 작업할 수 있기 때문이다.
+
+2026-07-28에 J가 1번 `달뮤트 페이크숄 블랙`을 제외한 30개를 준비했다. 30개 모두 투명 여백 제거·2.5% 안전 여백·cutout WebP 최적화를 거쳐 private Storage에 업로드했고 metadata를 `ready`로 기록했다. Pilot의 서로 다른 Item 50개 중 49개가 ready이며, 24개 Pilot Outfit 중 23개가 모든 ready cutout을 갖춘 상태다.
+
+남은 1개:
+
+1. 달뮤트 페이크숄 블랙 — Pilot #2 (`397f66af-29b2-80f3-8f71-d7c61daacda9`)
 
 ## 4. 파일 전달 방식
 

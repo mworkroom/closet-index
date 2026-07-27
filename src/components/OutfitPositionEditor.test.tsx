@@ -54,6 +54,20 @@ describe('OutfitPositionEditor', () => {
       />,
     )
 
+    const preview = screen.getByRole('img', {
+      name: /조정 가능한 착장 미리보기/,
+    })
+    const controls = screen.getByText(/좌우 0px/)
+    const itemSelector = screen.getByLabelText('조정할 아이템 선택')
+    expect(
+      preview.compareDocumentPosition(controls) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(
+      controls.compareDocumentPosition(itemSelector) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+
     await user.click(screen.getByRole('button', { name: /스커트/ }))
     await user.click(
       screen.getByRole('button', { name: '스커트 위로 4px 이동' }),

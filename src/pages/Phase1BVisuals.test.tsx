@@ -139,6 +139,14 @@ describe('Phase 1B screen visuals', () => {
     const preview = await screen.findByRole('img', {
       name: '블루 가디건 + 아이보리 니트 + 블랙 팬츠 외 1개 착장 미리보기',
     })
+    expect(
+      screen.getByRole('heading', { name: '착장 상세' }),
+    ).toHaveClass('sr-only')
+    expect(
+      screen.queryByRole('heading', {
+        name: '블루 가디건 + 아이보리 니트 + 블랙 팬츠 외 1개',
+      }),
+    ).not.toBeInTheDocument()
     expect(preview.closest('.outfit-visual--hero')).toBeInTheDocument()
     expect(
       screen.getByRole('img', { name: '블루 가디건 아이템 이미지' }),
@@ -148,6 +156,16 @@ describe('Phase 1B screen visuals', () => {
     expect(
       within(knitLink).getByRole('img', { name: 'Ivory 색상' }),
     ).toBeInTheDocument()
+    expect(screen.getAllByText('비 해당 없음')).toHaveLength(2)
+    expect(screen.getByText('걷기 해당 없음')).toBeInTheDocument()
+    expect(screen.getByText('걷기 해당')).toBeInTheDocument()
+    expect(screen.queryByText(/미지정/)).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: '착용 기록' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: '착용 근거' }),
+    ).not.toBeInTheDocument()
   })
 
   it('Calendar는 preview metadata가 있는 Outfit에만 thumbnail을 추가한다', async () => {

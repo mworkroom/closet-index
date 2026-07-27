@@ -211,25 +211,6 @@ export function OutfitPositionEditor({
         className="position-editor__preview"
       />
 
-      <div className="position-editor__items" aria-label="조정할 아이템 선택">
-        {editableItems.map((item) => (
-          <button
-            type="button"
-            className="position-editor__item"
-            aria-pressed={item.id === selectedId}
-            onClick={() => {
-              setSelectedId(item.id)
-              setSaved(false)
-              setSaveError(null)
-            }}
-            key={item.id}
-          >
-            <ItemVisual item={item} className="item-visual--position" />
-            <span>{item.name}</span>
-          </button>
-        ))}
-      </div>
-
       {selectedItem && (
         <div className="position-editor__controls">
           <strong>{selectedItem.name}</strong>
@@ -319,6 +300,25 @@ export function OutfitPositionEditor({
           )}
         </div>
       )}
+
+      <div className="position-editor__items" aria-label="조정할 아이템 선택">
+        {editableItems.map((item) => (
+          <button
+            type="button"
+            className="position-editor__item"
+            aria-pressed={item.id === selectedId}
+            onClick={() => {
+              setSelectedId(item.id)
+              setSaved(false)
+              setSaveError(null)
+            }}
+            key={item.id}
+          >
+            <ItemVisual item={item} className="item-visual--position" />
+            <span>{item.name}</span>
+          </button>
+        ))}
+      </div>
     </section>
   )
 }
