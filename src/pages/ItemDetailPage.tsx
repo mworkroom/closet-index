@@ -1,11 +1,13 @@
 import { CloudRain, Footprints } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { ItemVisual } from '../components/ItemVisual'
+import { OutfitCard } from '../components/OutfitCard'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
-import { getItemStats, outfitLabel } from '../lib/outfits'
+import { formatMonthDayYear } from '../lib/date'
+import { getItemStats } from '../lib/outfits'
 
 export function ItemDetailPage() {
   const { itemId = '' } = useParams()
@@ -55,28 +57,33 @@ export function ItemDetailPage() {
         <>
           <section className="identity-card identity-card--item">
             <ItemVisual item={item} className="item-visual--detail" />
-            <div>
-              <h2>{item.name}</h2>
-              <p className="muted">
-                {item.semanticColor ?? '색상 미입력'} · {item.displayHex}
-              </p>
-            </div>
+            <dl className="item-attribute-summary" aria-label="아이템 기본 정보">
+              <div>
+                <dt>카테고리</dt>
+                <dd>{item.category}</dd>
+              </div>
+              <div>
+                <dt>색상 카테고리</dt>
+                <dd>{item.semanticColor ?? '미입력'}</dd>
+              </div>
+              <div>
+                <dt>상태</dt>
+                <dd>{item.retired ? 'Retired' : '사용 중'}</dd>
+              </div>
+            </dl>
           </section>
 
-          <section className="detail-grid">
-            <div>
-              <span>카테고리</span>
-              <strong>{item.category}</strong>
-            </div>
-            <div>
-              <span>상태</span>
-              <strong>{item.retired ? 'Retired' : '사용 중'}</strong>
-            </div>
+          <section
+            className="detail-grid detail-grid--item-stats"
+            aria-label="아이템 사용 정보"
+          >
             <div>
               <span>구매일</span>
               <strong>
                 {item.acquiredOn ? (
-                  <time dateTime={item.acquiredOn}>{item.acquiredOn}</time>
+                  <time dateTime={item.acquiredOn}>
+                    {formatMonthDayYear(item.acquiredOn)}
+                  </time>
                 ) : (
                   '미입력'
                 )}
@@ -88,7 +95,7 @@ export function ItemDetailPage() {
             </div>
             <div>
               <span>마지막 착용</span>
-              <strong>{stats?.lastWornOn ?? '기록 없음'}</strong>
+              <strong>{formatMonthDayYear(stats?.lastWornOn ?? null)}</strong>
             </div>
           </section>
 
@@ -145,12 +152,14 @@ export function ItemDetailPage() {
             {includedOutfits.length === 0 ? (
               <EmptyState title="포함된 Outfit이 없어요" />
             ) : (
-              <div className="simple-list">
+              <div className="outfit-grid">
                 {includedOutfits.map((outfit) => (
-                  <Link to={`/outfits/${outfit.id}`} key={outfit.id}>
-                    <span>{outfitLabel(outfit, data.items)}</span>
-                    <span className="muted">보기</span>
-                  </Link>
+                  <OutfitCard
+                    outfit={outfit}
+                    data={data}
+                    layout="grid"
+                    key={outfit.id}
+                  />
                 ))}
               </div>
             )}

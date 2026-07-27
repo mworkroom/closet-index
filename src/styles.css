@@ -1064,8 +1064,55 @@ button:disabled {
   overflow: hidden;
 }
 
-.identity-card--item > div:last-child {
+.identity-card--item {
+  align-items: stretch;
+  gap: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.identity-card--item > .item-visual {
+  width: 66.6667%;
+  flex: none;
+  aspect-ratio: 4 / 5;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.item-attribute-summary {
+  display: grid;
   min-width: 0;
+  flex: 1;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.item-attribute-summary > div {
+  display: flex;
+  min-width: 0;
+  justify-content: center;
+  flex-direction: column;
+  gap: 3px;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 12px;
+}
+
+.item-attribute-summary > div:last-child {
+  border-bottom: 0;
+}
+
+.item-attribute-summary dt {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.item-attribute-summary dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: clamp(0.78rem, 3.2vw, 0.96rem);
+  font-weight: 750;
+  line-height: 1.25;
 }
 
 .identity-card--outfit > .outfit-visual,
@@ -1142,6 +1189,18 @@ button:disabled {
 .detail-grid strong {
   overflow-wrap: anywhere;
   font-size: 0.86rem;
+}
+
+.detail-grid--item-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.detail-grid--item-stats > div {
+  padding: 13px 10px;
+}
+
+.detail-grid--item-stats strong {
+  font-variant-numeric: tabular-nums;
 }
 
 .position-editor {
@@ -1773,6 +1832,50 @@ button:disabled {
 }
 
 @media (max-width: 480px) {
+  .position-editor-disclosure[open] {
+    margin-inline: -20px;
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+  }
+
+  .position-editor-disclosure[open] > summary {
+    padding-inline: 20px;
+  }
+
+  .position-editor {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .position-editor__controls {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .position-editor__control-pad {
+    grid-template-columns: 44px auto 44px;
+    gap: 8px;
+  }
+
+  .position-editor__resize {
+    width: 44px;
+    height: 44px;
+  }
+
+  .position-editor__arrows {
+    grid-template-columns: repeat(3, 44px);
+    gap: 4px;
+  }
+
+  .position-editor__items {
+    gap: 6px;
+  }
+
+  .position-editor__item {
+    padding: 6px;
+  }
+
   .field-grid--two {
     grid-template-columns: 1fr;
   }

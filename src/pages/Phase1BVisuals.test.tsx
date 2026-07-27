@@ -125,8 +125,29 @@ describe('Phase 1B screen visuals', () => {
       name: '블루 가디건 아이템 이미지',
     })
     expect(image.closest('.item-visual--detail')).toBeInTheDocument()
-    expect(screen.getByText('Outer-Cardigan')).toBeInTheDocument()
-    expect(screen.getByText('2026-07-01')).toBeInTheDocument()
+    const basicInfo = screen.getByLabelText('아이템 기본 정보')
+    expect(within(basicInfo).getByText('Outer-Cardigan')).toBeInTheDocument()
+    expect(within(basicInfo).getByText('Blue')).toBeInTheDocument()
+    expect(within(basicInfo).getByText('사용 중')).toBeInTheDocument()
+    expect(screen.queryByText('#6F8FAF')).not.toBeInTheDocument()
+
+    const usageInfo = screen.getByLabelText('아이템 사용 정보')
+    expect(within(usageInfo).getByText('7/1/26')).toBeInTheDocument()
+    expect(within(usageInfo).getByText('착용 횟수')).toBeInTheDocument()
+    expect(within(usageInfo).getByText('마지막 착용')).toBeInTheDocument()
+
+    const includedSection = screen
+      .getByRole('heading', { name: '포함된 Outfit' })
+      .closest('.section')
+    expect(includedSection).not.toBeNull()
+    const includedGrid =
+      includedSection?.querySelector<HTMLElement>('.outfit-grid')
+    expect(includedGrid).toBeInTheDocument()
+    expect(
+      within(includedGrid!).getAllByRole('link').every((link) =>
+        link.classList.contains('outfit-card--grid'),
+      ),
+    ).toBe(true)
   })
 
   it('Outfit 상세에서 preview hero와 구성 Item thumbnail을 표시한다', async () => {
