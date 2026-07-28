@@ -7,6 +7,7 @@ import { useClosetData } from '../context/DataContext'
 import { todayInKorea } from '../lib/date'
 import type { RecommendationNavigationState } from '../lib/navigation'
 import { outfitLabel } from '../lib/outfits'
+import { sortPlacesForSelection } from '../lib/place-options'
 import type {
   ConditionChoice,
   ThermalFeeling,
@@ -352,7 +353,7 @@ export function WearLogPage() {
               <span>장소</span>
               <select value={placeId} onChange={(event) => setPlaceId(event.target.value)}>
                 <option value="">미지정</option>
-                {data?.places.map((place) => (
+                {sortPlacesForSelection(data?.places ?? []).map((place) => (
                   <option value={place.id} key={place.id}>
                     {place.name}
                   </option>

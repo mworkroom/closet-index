@@ -8,6 +8,7 @@ import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
 import { useSeasonScope } from '../context/SeasonScopeContext'
 import { getOutfitStats, outfitLabel } from '../lib/outfits'
+import { sortPlacesForSelection } from '../lib/place-options'
 import { outfitMatchesSeasonScope } from '../lib/seasons'
 
 function parseOptionalNumber(value: string) {
@@ -125,7 +126,7 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
             onChange={(event) => setPlaceId(event.target.value)}
           >
             <option value="">모든 장소</option>
-            {data?.places.map((place) => (
+            {sortPlacesForSelection(data?.places ?? []).map((place) => (
               <option key={place.id} value={place.id}>
                 {place.name}
               </option>

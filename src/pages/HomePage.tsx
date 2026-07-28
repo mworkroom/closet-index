@@ -14,6 +14,7 @@ import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { OutfitCard } from '../components/OutfitCard'
 import { useClosetData } from '../context/DataContext'
 import type { WeatherRecommendationProvenance } from '../lib/navigation'
+import { sortPlacesForSelection } from '../lib/place-options'
 import {
   partitionRecommendations,
   recommendOutfits,
@@ -814,7 +815,7 @@ export function HomePage() {
             <span>장소</span>
             <select value={placeId} onChange={(event) => setPlaceId(event.target.value)}>
               <option value="">미지정</option>
-              {data?.places.map((place) => (
+              {sortPlacesForSelection(data?.places ?? []).map((place) => (
                 <option key={place.id} value={place.id}>
                   {place.name}
                 </option>
