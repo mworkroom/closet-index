@@ -9,7 +9,7 @@
   --muted: #73736f;
   --line: #deded9;
   --surface: #ffffff;
-  --surface-soft: #f5f5f2;
+  --surface-soft: #f0f0f0;
   --warning: #8a5312;
   --warning-soft: #fff6e8;
   --danger: #a23732;
@@ -272,7 +272,7 @@ button:disabled {
   gap: 3px;
   border: 1px solid var(--line);
   border-radius: 14px;
-  background: var(--soft);
+  background: var(--surface-soft);
   padding: 12px 14px;
 }
 
@@ -505,7 +505,7 @@ button:disabled {
   isolation: isolate;
   overflow: hidden;
   aspect-ratio: 3 / 4;
-  background: #eceae5;
+  background: var(--surface-soft);
 }
 
 .layered-outfit-preview img {

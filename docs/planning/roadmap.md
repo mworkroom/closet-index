@@ -1,8 +1,8 @@
 # Closet Index Roadmap
 
-- 최종 수정일: 2026-07-26
+- 최종 수정일: 2026-07-29
 - 문서 상태: 기준 문서
-- 현재 위치: Phase 1A 로컬 구현 완료, Supabase 시험 이전과 Technical Alpha 대기
+- 현재 위치: Phase 2 공개 배포와 첫 실제 weather Wear Log provenance 검증 완료, 5회 실사용 비교 1/5 진행 중
 - 관련 문서: [Product Plan](./product-plan.md), [Phase 1 MVP Spec](./phase-1-mvp-spec.md), [Implementation Status](./phase-1-implementation-status.md), [Phase 2 Weather Plan](./phase-2-weather-plan.md)
 
 ## 이 문서의 목적
@@ -198,7 +198,7 @@ Phase 4 기능은 실제 v1.0 사용에서 필요성이 확인된 항목부터 �
 
 ## 지금 다음으로 할 일
 
-1. `phase-1-mvp-spec.md`의 데이터·보안·이전·추천·테스트 섹션 완성
-2. Notion 아이콘 ID와 HEX 팔레트 매핑 방식 확정
-3. Notion 이전 dry run과 검증 기준 작성
-4. 구현 시작
+1. [완료] 날씨 추천으로 실제 착용한 첫 Wear Log를 저장하고 weather provenance를 원격에서 읽기 전용으로 확인
+2. PC·모바일 실사용을 4회 더 반복해 수동 계산과 납득 가능한 수준으로 일치하는지 비교
+3. 두 조건이 충족되면 Phase 2 완료를 선언
+4. Phase 2 실사용 검증과 병행 가능한 Phase 3 시각 옷장 확장 범위를 별도 계획으로 구체화
