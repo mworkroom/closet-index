@@ -1,7 +1,7 @@
 # Closet Index Phase 2 Weather Automation Plan
 
 - 작성일: 2026-07-28
-- 상태: W0~W6 구현 및 W7 자동 통합 검증 완료, 공개 배포·iPhone 실사용 검증 대기
+- 상태: W0~W6 구현, W7 공개 KMA 통합 검증 완료, iPhone 실사용 검증 대기
 - 목표 릴리스: Phase 2 Weather Automation
 - Supabase project ref: `ddlwainwollvpaeccpty`
 - Closet workspace: `00000000-0000-0000-0000-000000000003`
@@ -580,8 +580,10 @@ closet_weather_locations
 - 같은 흐름에서 다시 착장 상세로 이동해 `오늘 입기`를 누르고, Wear Log 저장 입력에 `weather` 출처·위치·발표시각·수정 여부가 전달되는 것을 검증했다.
 - 날씨 API가 실패해도 오류 안내 뒤 기존 수동 입력으로 추천을 계속할 수 있는 UI 회귀 테스트를 추가했다.
 - 전체 Vitest 27개 파일 130개 테스트, typecheck, production build, Pages artifact 검증이 통과했다.
-- 원격 migration은 `20260728160018_phase2_wear_log_weather_provenance`까지 일치하고, `closet-weather-forecast` v2는 `ACTIVE`, `verify_jwt = true` 상태다.
-- 현재 공개 Pages는 아직 날씨 UI가 없는 이전 bundle이다. 따라서 로그인 회원의 실제 KMA 성공 응답, 공개 PWA Wear Log 저장, iPhone Safari·홈 화면 PWA 검증은 커밋·푸시·배포 뒤 진행한다.
+- 원격 migration은 `20260728160018_phase2_wear_log_weather_provenance`까지 일치하고, `closet-weather-forecast` v3는 `ACTIVE`, `verify_jwt = true` 상태다.
+- GitHub Pages 공개 배포와 로그인 회원의 실제 KMA 호출을 확인했다. 창4동 07/28 23:00 발표 예보가 출발 28°C, 귀가 30°C, 평균 29°C로 표시됐고 기존 추천 엔진에 적용되어 추천 목록을 만들었다.
+- 최초 공개 호출에서는 기존 Closet workspace UUID의 version/variant가 0인 특성을 함수가 잘못 거부했다. PostgreSQL UUID 문법으로 검증 범위를 바로잡고 실제 workspace ID를 정상 경로 테스트에 넣은 뒤 원격 함수 v3에서 성공을 재확인했다.
+- 공개 PWA에서 실제 Wear Log 저장과 iPhone Safari·홈 화면 PWA 검증은 J의 실제 사용 흐름에서 진행한다.
 
 ## 10. 테스트 기준
 

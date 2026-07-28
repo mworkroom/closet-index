@@ -5,7 +5,7 @@ import {
 } from '../../supabase/functions/closet-weather-forecast/forecast-handler'
 
 const USER_ID = '00000000-0000-4000-8000-000000000001'
-const WORKSPACE_ID = '00000000-0000-4000-8000-000000000003'
+const WORKSPACE_ID = '00000000-0000-0000-0000-000000000003'
 const LOCATION_ID = '00000000-0000-4000-8000-000000000004'
 const NOW = new Date('2026-07-28T12:00:00.000Z')
 
