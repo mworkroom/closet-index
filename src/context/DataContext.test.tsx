@@ -67,6 +67,8 @@ describe('DataProvider outfit placement updates', () => {
       load: vi.fn(async () => structuredClone(appData)),
       updateItemSuitability: vi.fn(async () => undefined),
       updateOutfitItemPosition: vi.fn(async () => undefined),
+      saveDefaultWeatherLocation: vi.fn(),
+      fetchWeatherForecast: vi.fn(),
       createWearLog: vi.fn(),
       updateWearLog: vi.fn(),
       deleteWearLog: vi.fn(async () => undefined),

@@ -16,6 +16,10 @@ function input(submissionToken: string, placeId = 'place-library'): WearLogInput
     placeId,
     transportModeId: 'transport-subway',
     memo: null,
+    temperatureSource: 'manual',
+    weatherLocationId: null,
+    weatherIssuedAt: null,
+    weatherOverridden: false,
     submissionToken,
   }
 }
@@ -98,6 +102,24 @@ describe('DemoRepository wear log contract', () => {
     expect(data.wearLogs.some((log) => log.id === created.id)).toBe(false)
   })
 
+  it('기상 예보 출처와 직접 수정 여부를 함께 저장한다', async () => {
+    const repository = new DemoRepository()
+    const created = await repository.createWearLog({
+      ...input('weather-token'),
+      temperatureSource: 'weather',
+      weatherLocationId: 'weather-location-chang-4-dong',
+      weatherIssuedAt: '2026-07-29T05:00:00+09:00',
+      weatherOverridden: true,
+    })
+
+    expect(created).toMatchObject({
+      temperatureSource: 'weather',
+      weatherLocationId: 'weather-location-chang-4-dong',
+      weatherIssuedAt: '2026-07-29T05:00:00+09:00',
+      weatherOverridden: true,
+    })
+  })
+
   it('Outfit 구성 아이템의 위치와 크기를 저장한다', async () => {
     const repository = new DemoRepository()
 
@@ -119,6 +141,35 @@ describe('DemoRepository wear log contract', () => {
       positionY: -40,
       itemScale: 1.1,
       zIndex: null,
+    })
+  })
+
+  it('기본 기상 위치를 저장하고 다시 불러온다', async () => {
+    const repository = new DemoRepository()
+    const current = (await repository.load()).weatherLocations?.find(
+      (location) => location.isDefault,
+    )
+
+    await repository.saveDefaultWeatherLocation({
+      id: current?.id,
+      label: '창5동',
+      officialName: '서울특별시 도봉구 창제5동',
+      adminCode: '1132051500',
+      nx: 61,
+      ny: 129,
+    })
+
+    const saved = (await repository.load()).weatherLocations?.find(
+      (location) => location.isDefault,
+    )
+    expect(saved).toMatchObject({
+      id: current?.id,
+      label: '창5동',
+      officialName: '서울특별시 도봉구 창제5동',
+      adminCode: '1132051500',
+      nx: 61,
+      ny: 129,
+      isDefault: true,
     })
   })
 })

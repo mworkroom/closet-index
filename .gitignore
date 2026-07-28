@@ -26,6 +26,7 @@ coverage/
 .supabase/
 supabase/.branches/
 supabase/.temp/
+supabase/functions/fixtures/live/
 .env
 .env.*
 !.env.example

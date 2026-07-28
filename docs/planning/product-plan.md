@@ -3,7 +3,7 @@
 - 최종 수정일: 2026-07-26
 - 문서 상태: 제품 기준선
 - 대상 릴리스: v1.0 및 이후 Roadmap
-- 관련 문서: [Roadmap](./roadmap.md), [Phase 1 MVP Spec](./phase-1-mvp-spec.md)
+- 관련 문서: [Roadmap](./roadmap.md), [Phase 1 MVP Spec](./phase-1-mvp-spec.md), [Phase 2 Weather Plan](./phase-2-weather-plan.md)
 
 ## 1. 문서의 역할
 
@@ -871,7 +871,7 @@ Notion 입력을 장시간 중단할 필요는 없다. 다만 전환 직전의 �
 
 - 추천 단계 내부의 정확한 수치 가중치
 - 상충하는 OK·추움·더움 관측의 신뢰도 계산
-- 기상청 API의 구체적인 endpoint와 위치 기준
+- 기본 예보 위치의 실제 기상청 격자와 다중 위치 확장 시점
 - 습도·눈·실내 냉방의 추천 반영 방식
 - 누끼 제작 도구와 이미지 파일 규격
 - 합성 이미지 생성 위치: 클라이언트, 서버 또는 혼합

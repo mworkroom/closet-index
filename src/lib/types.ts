@@ -1,6 +1,7 @@
 export type ConditionChoice = 'no' | 'yes' | 'unknown'
 export type OutfitRating = 'favorite' | 'ok' | 'error' | null
 export type ThermalFeeling = 'cold' | 'ok' | 'hot' | null
+export type TemperatureSource = 'notion' | 'manual' | 'weather'
 export type RecommendationLevel = 'high' | 'possible' | 'caution'
 export type RecommendationEvidence = 'observed' | 'untried'
 
@@ -63,6 +64,89 @@ export interface SelectOption {
   name: string
 }
 
+export interface WeatherLocation {
+  id: string
+  label: string
+  officialName: string | null
+  adminCode: string | null
+  nx: number
+  ny: number
+  isDefault: boolean
+}
+
+export interface WeatherLocationInput {
+  id?: string
+  label: string
+  officialName: string | null
+  adminCode: string | null
+  nx: number
+  ny: number
+}
+
+export type WeatherPrecipitationType =
+  | 'none'
+  | 'rain'
+  | 'rain-snow'
+  | 'snow'
+  | 'shower'
+  | 'unknown'
+
+export type WeatherSkyCondition =
+  | 'clear'
+  | 'mostly-cloudy'
+  | 'cloudy'
+  | 'unknown'
+
+export interface WeatherAmount {
+  value: number | null
+  label: string | null
+  hasAmount: boolean
+}
+
+export interface WeatherForecastPoint {
+  at: string
+  temperature: number | null
+  humidity: number | null
+  precipitationProbability: number | null
+  precipitationType: WeatherPrecipitationType
+  precipitationAmount: WeatherAmount
+  snowAmount: WeatherAmount
+  sky: WeatherSkyCondition
+  windSpeed: number | null
+  hasPrecipitation: boolean
+  missingCategories: string[]
+}
+
+export interface WeatherForecastRequest {
+  locationId: string
+  forecastDate: string
+  departureTime: string
+  returnTime: string
+}
+
+export interface WeatherForecastResponse {
+  source: 'kma-vilage-fcst'
+  issuedAt: string
+  fetchedAt: string
+  nx: number
+  ny: number
+  location: {
+    id: string
+    label: string
+  }
+  departure: WeatherForecastPoint
+  return: WeatherForecastPoint
+  period: {
+    hasPrecipitation: boolean
+    precipitationTypes: WeatherPrecipitationType[]
+    maxPrecipitationProbability: number | null
+    minHumidity: number | null
+    maxHumidity: number | null
+  }
+  stale: false
+  warnings: string[]
+}
+
 export interface WearLog {
   id: string
   outfitId: string
@@ -77,6 +161,10 @@ export interface WearLog {
   placeId: string | null
   transportModeId: string | null
   memo: string | null
+  temperatureSource: TemperatureSource
+  weatherLocationId: string | null
+  weatherIssuedAt: string | null
+  weatherOverridden: boolean
   submissionToken: string
   createdAt: string
 }
@@ -94,6 +182,10 @@ export interface WearLogInput {
   placeId: string | null
   transportModeId: string | null
   memo: string | null
+  temperatureSource: TemperatureSource
+  weatherLocationId: string | null
+  weatherIssuedAt: string | null
+  weatherOverridden: boolean
   submissionToken: string
 }
 
@@ -103,6 +195,7 @@ export interface AppData {
   wearLogs: WearLog[]
   places: SelectOption[]
   transportModes: SelectOption[]
+  weatherLocations?: WeatherLocation[]
 }
 
 export interface RecommendationInput {

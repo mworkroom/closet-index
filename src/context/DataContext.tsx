@@ -11,6 +11,9 @@ import {
 import type {
   AppData,
   OutfitItemPositionInput,
+  WeatherForecastRequest,
+  WeatherForecastResponse,
+  WeatherLocationInput,
   WearLogInput,
 } from '../lib/types'
 import type { ClosetRepository } from '../data/repository'
@@ -27,6 +30,10 @@ interface DataState {
     longWalkOk: boolean,
   ) => Promise<void>
   updateOutfitItemPosition: (input: OutfitItemPositionInput) => Promise<void>
+  saveDefaultWeatherLocation: (input: WeatherLocationInput) => Promise<void>
+  fetchWeatherForecast: (
+    input: WeatherForecastRequest,
+  ) => Promise<WeatherForecastResponse>
   createWearLog: (input: WearLogInput) => Promise<void>
   updateWearLog: (id: string, input: WearLogInput) => Promise<void>
   deleteWearLog: (id: string) => Promise<void>
@@ -155,6 +162,9 @@ export function DataProvider({
       updateItemSuitability: (itemId, rainOk, longWalkOk) =>
         mutate(() => repository.updateItemSuitability(itemId, rainOk, longWalkOk)),
       updateOutfitItemPosition,
+      saveDefaultWeatherLocation: (input) =>
+        mutate(() => repository.saveDefaultWeatherLocation(input)),
+      fetchWeatherForecast: (input) => repository.fetchWeatherForecast(input),
       createWearLog: (input) => mutate(() => repository.createWearLog(input)),
       updateWearLog: (id, input) => mutate(() => repository.updateWearLog(id, input)),
       deleteWearLog: (id) => mutate(() => repository.deleteWearLog(id)),

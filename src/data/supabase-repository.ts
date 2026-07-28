@@ -1,10 +1,19 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import {
+  FunctionsFetchError,
+  FunctionsHttpError,
+  FunctionsRelayError,
+  type SupabaseClient,
+} from '@supabase/supabase-js'
 import type {
   AppData,
   Item,
   Outfit,
   OutfitItemPositionInput,
   ThermalFeeling,
+  WeatherForecastRequest,
+  WeatherForecastResponse,
+  WeatherLocation,
+  WeatherLocationInput,
   WearLog,
   WearLogInput,
 } from '../lib/types'
@@ -64,13 +73,111 @@ interface WearLogRow {
   place_id: string | null
   transport_mode_id: string | null
   memo: string | null
+  temperature_source: WearLog['temperatureSource']
+  weather_location_id: string | null
+  weather_issued_at: string | null
+  weather_overridden: boolean
   submission_token: string
   created_at: string
+}
+
+interface WeatherLocationRow {
+  id: string
+  label: string
+  official_name: string | null
+  admin_code: string | null
+  nx: number
+  ny: number
+  is_default: boolean
 }
 
 interface PageResult<T> {
   data: T[] | null
   error: unknown
+}
+
+type WeatherFunctionErrorCode =
+  | 'invalid-request'
+  | 'workspace-forbidden'
+  | 'location-not-found'
+  | 'weather-upstream-timeout'
+  | 'weather-upstream-error'
+  | 'weather-invalid-response'
+  | 'weather-no-data'
+  | 'weather-time-unavailable'
+  | 'server-misconfigured'
+  | 'internal-error'
+
+export class WeatherForecastRequestError extends Error {
+  constructor(
+    readonly code: WeatherFunctionErrorCode | 'network-error',
+    message: string,
+  ) {
+    super(message)
+    this.name = 'WeatherForecastRequestError'
+  }
+}
+
+const weatherErrorMessages: Record<WeatherFunctionErrorCode, string> = {
+  'invalid-request': '날짜와 출발·귀가 시각을 다시 확인해 주세요.',
+  'workspace-forbidden': '이 옷장의 날씨를 조회할 권한이 없습니다.',
+  'location-not-found': '기본 날씨 위치를 찾을 수 없습니다.',
+  'weather-upstream-timeout': '기상청 응답이 늦어지고 있습니다. 잠시 후 다시 시도해 주세요.',
+  'weather-upstream-error': '기상청 예보를 불러오지 못했습니다.',
+  'weather-invalid-response': '기상청 예보 형식을 확인하지 못했습니다.',
+  'weather-no-data': '선택한 날짜의 예보가 아직 없습니다.',
+  'weather-time-unavailable': '선택한 시각의 실제 예보가 없습니다. 다른 시각을 골라 주세요.',
+  'server-misconfigured': '날씨 서버 설정을 확인해야 합니다.',
+  'internal-error': '날씨를 불러오는 중 오류가 발생했습니다.',
+}
+
+function isWeatherFunctionErrorCode(
+  value: unknown,
+): value is WeatherFunctionErrorCode {
+  return (
+    typeof value === 'string' &&
+    Object.prototype.hasOwnProperty.call(weatherErrorMessages, value)
+  )
+}
+
+async function toWeatherForecastError(cause: unknown) {
+  if (cause instanceof FunctionsHttpError) {
+    try {
+      const payload = (await cause.context.json()) as {
+        error?: { code?: unknown; message?: unknown }
+      }
+      const code = payload.error?.code
+      if (isWeatherFunctionErrorCode(code)) {
+        return new WeatherForecastRequestError(
+          code,
+          weatherErrorMessages[code],
+        )
+      }
+    } catch {
+      // 안정된 앱 메시지로 대체한다.
+    }
+    return new WeatherForecastRequestError(
+      'internal-error',
+      weatherErrorMessages['internal-error'],
+    )
+  }
+
+  if (
+    cause instanceof FunctionsFetchError ||
+    cause instanceof FunctionsRelayError
+  ) {
+    return new WeatherForecastRequestError(
+      'network-error',
+      '날씨 서버에 연결하지 못했습니다. 직접 입력으로 계속할 수 있습니다.',
+    )
+  }
+
+  return cause instanceof Error
+    ? cause
+    : new WeatherForecastRequestError(
+        'network-error',
+        '날씨를 불러오지 못했습니다.',
+      )
 }
 
 export async function collectAllPages<T>(
@@ -109,8 +216,24 @@ function toWearLog(row: WearLogRow): WearLog {
     placeId: row.place_id,
     transportModeId: row.transport_mode_id,
     memo: row.memo,
+    temperatureSource: row.temperature_source,
+    weatherLocationId: row.weather_location_id,
+    weatherIssuedAt: row.weather_issued_at,
+    weatherOverridden: row.weather_overridden,
     submissionToken: row.submission_token,
     createdAt: row.created_at,
+  }
+}
+
+function toWeatherLocation(row: WeatherLocationRow): WeatherLocation {
+  return {
+    id: row.id,
+    label: row.label,
+    officialName: row.official_name,
+    adminCode: row.admin_code,
+    nx: row.nx,
+    ny: row.ny,
+    isDefault: row.is_default,
   }
 }
 
@@ -167,6 +290,7 @@ export class SupabaseRepository implements ClosetRepository {
       logsResult,
       placesResult,
       transportsResult,
+      weatherLocationsResult,
       imageAssets,
     ] = await Promise.all([
       this.client
@@ -186,7 +310,7 @@ export class SupabaseRepository implements ClosetRepository {
       this.client
         .from('closet_wear_logs')
         .select(
-          'id,outfit_id,worn_on,temp_out,temp_back,temp_back_inferred,feeling_out,feeling_back,rain_condition,long_walk_condition,place_id,transport_mode_id,memo,submission_token,created_at',
+          'id,outfit_id,worn_on,temp_out,temp_back,temp_back_inferred,feeling_out,feeling_back,rain_condition,long_walk_condition,place_id,transport_mode_id,memo,temperature_source,weather_location_id,weather_issued_at,weather_overridden,submission_token,created_at',
         )
         .eq('workspace_id', this.workspaceId)
         .order('worn_on', { ascending: false }),
@@ -202,6 +326,12 @@ export class SupabaseRepository implements ClosetRepository {
         .eq('workspace_id', this.workspaceId)
         .eq('active', true)
         .order('name'),
+      this.client
+        .from('closet_weather_locations')
+        .select('id,label,official_name,admin_code,nx,ny,is_default')
+        .eq('workspace_id', this.workspaceId)
+        .order('is_default', { ascending: false })
+        .order('label'),
       imageAssetsPromise,
     ])
 
@@ -212,6 +342,7 @@ export class SupabaseRepository implements ClosetRepository {
       logsResult,
       placesResult,
       transportsResult,
+      weatherLocationsResult,
     ].find((result) => result.error)
     if (failure?.error) throw failure.error
 
@@ -264,6 +395,9 @@ export class SupabaseRepository implements ClosetRepository {
         id: row.id,
         name: row.name,
       })),
+      weatherLocations: (
+        (weatherLocationsResult.data ?? []) as WeatherLocationRow[]
+      ).map(toWeatherLocation),
     }
   }
 
@@ -303,6 +437,66 @@ export class SupabaseRepository implements ClosetRepository {
     if (!data) throw new Error('Outfit 구성 아이템을 찾을 수 없습니다.')
   }
 
+  async saveDefaultWeatherLocation(input: WeatherLocationInput) {
+    const mutableRow = {
+      label: input.label.trim(),
+      official_name: input.officialName?.trim() || null,
+      admin_code: input.adminCode?.trim() || null,
+      nx: input.nx,
+      ny: input.ny,
+      is_default: true,
+      updated_at: new Date().toISOString(),
+    }
+    const selection = 'id,label,official_name,admin_code,nx,ny,is_default'
+
+    if (input.id) {
+      const { data, error } = await this.client
+        .from('closet_weather_locations')
+        .update(mutableRow)
+        .eq('id', input.id)
+        .eq('workspace_id', this.workspaceId)
+        .select(selection)
+        .maybeSingle()
+
+      if (error) throw error
+      if (!data) throw new Error('기본 날씨 위치를 찾을 수 없습니다.')
+      return toWeatherLocation(data as WeatherLocationRow)
+    }
+
+    const { data, error } = await this.client
+      .from('closet_weather_locations')
+      .insert({
+        ...mutableRow,
+        id: crypto.randomUUID(),
+        workspace_id: this.workspaceId,
+      })
+      .select(selection)
+      .single()
+
+    if (error) throw error
+    return toWeatherLocation(data as WeatherLocationRow)
+  }
+
+  async fetchWeatherForecast(
+    input: WeatherForecastRequest,
+  ): Promise<WeatherForecastResponse> {
+    const { data, error } = await this.client.functions.invoke(
+      'closet-weather-forecast',
+      {
+        body: {
+          workspaceId: this.workspaceId,
+          locationId: input.locationId,
+          forecastDate: input.forecastDate,
+          departureTime: input.departureTime,
+          returnTime: input.returnTime,
+        },
+      },
+    )
+
+    if (error) throw await toWeatherForecastError(error)
+    return data as WeatherForecastResponse
+  }
+
   async createWearLog(input: WearLogInput) {
     const { data, error } = await this.client
       .from('closet_wear_logs')
@@ -313,7 +507,7 @@ export class SupabaseRepository implements ClosetRepository {
         submission_token: input.submissionToken,
       })
       .select(
-        'id,outfit_id,worn_on,temp_out,temp_back,temp_back_inferred,feeling_out,feeling_back,rain_condition,long_walk_condition,place_id,transport_mode_id,memo,submission_token,created_at',
+        'id,outfit_id,worn_on,temp_out,temp_back,temp_back_inferred,feeling_out,feeling_back,rain_condition,long_walk_condition,place_id,transport_mode_id,memo,temperature_source,weather_location_id,weather_issued_at,weather_overridden,submission_token,created_at',
       )
       .single()
 
@@ -321,7 +515,7 @@ export class SupabaseRepository implements ClosetRepository {
       const existing = await this.client
         .from('closet_wear_logs')
         .select(
-          'id,outfit_id,worn_on,temp_out,temp_back,temp_back_inferred,feeling_out,feeling_back,rain_condition,long_walk_condition,place_id,transport_mode_id,memo,submission_token,created_at',
+          'id,outfit_id,worn_on,temp_out,temp_back,temp_back_inferred,feeling_out,feeling_back,rain_condition,long_walk_condition,place_id,transport_mode_id,memo,temperature_source,weather_location_id,weather_issued_at,weather_overridden,submission_token,created_at',
         )
         .eq('workspace_id', this.workspaceId)
         .eq('submission_token', input.submissionToken)
@@ -344,7 +538,7 @@ export class SupabaseRepository implements ClosetRepository {
       .eq('id', id)
       .eq('workspace_id', this.workspaceId)
       .select(
-        'id,outfit_id,worn_on,temp_out,temp_back,temp_back_inferred,feeling_out,feeling_back,rain_condition,long_walk_condition,place_id,transport_mode_id,memo,submission_token,created_at',
+        'id,outfit_id,worn_on,temp_out,temp_back,temp_back_inferred,feeling_out,feeling_back,rain_condition,long_walk_condition,place_id,transport_mode_id,memo,temperature_source,weather_location_id,weather_issued_at,weather_overridden,submission_token,created_at',
       )
       .single()
 
@@ -376,7 +570,10 @@ export class SupabaseRepository implements ClosetRepository {
       place_id: input.placeId,
       transport_mode_id: input.transportModeId,
       memo: input.memo,
-      temperature_source: 'manual',
+      temperature_source: input.temperatureSource,
+      weather_location_id: input.weatherLocationId,
+      weather_issued_at: input.weatherIssuedAt,
+      weather_overridden: input.weatherOverridden,
     }
   }
 }

@@ -266,6 +266,16 @@ export function OutfitDetailPage() {
                         <Footprints size={15} />
                         걷기 {log.longWalkCondition === 'yes' ? '해당' : '해당 없음'}
                       </span>
+                      <span>
+                        입력 출처{' '}
+                        {log.temperatureSource === 'weather'
+                          ? log.weatherOverridden
+                            ? '기상청 예보에서 직접 수정'
+                            : '기상청 예보'
+                          : log.temperatureSource === 'notion'
+                            ? '기존 Notion 기록'
+                            : '직접 입력'}
+                      </span>
                     </div>
                   </article>
                 ))}
@@ -283,7 +293,10 @@ export function OutfitDetailPage() {
             <Link
               className="button button--primary button--wide"
               to={`/wear/${outfit.id}`}
-              state={{ input: navigationState.input }}
+              state={{
+                input: navigationState.input,
+                weather: navigationState.weather,
+              }}
             >
               오늘 입기
             </Link>

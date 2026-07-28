@@ -1,5 +1,9 @@
 import type {
   OutfitItemPositionInput,
+  WeatherForecastRequest,
+  WeatherForecastResponse,
+  WeatherLocation,
+  WeatherLocationInput,
   WearLog,
   WearLogInput,
 } from '../lib/types'
@@ -17,7 +21,17 @@ function readData() {
   if (!stored) return cloneDemoData()
 
   try {
-    return JSON.parse(stored) as typeof demoData
+    const data = JSON.parse(stored) as typeof demoData
+    data.weatherLocations ??= structuredClone(demoData.weatherLocations)
+    data.wearLogs = data.wearLogs.map((log) => {
+      const normalized = { ...log }
+      normalized.temperatureSource ??= 'notion'
+      normalized.weatherLocationId ??= null
+      normalized.weatherIssuedAt ??= null
+      normalized.weatherOverridden ??= false
+      return normalized
+    })
+    return data
   } catch {
     return cloneDemoData()
   }
@@ -71,6 +85,75 @@ export class DemoRepository implements ClosetRepository {
       })
     }
     writeData(data)
+  }
+
+  async saveDefaultWeatherLocation(input: WeatherLocationInput) {
+    const data = readData()
+    const current = input.id
+      ? data.weatherLocations?.find((location) => location.id === input.id)
+      : data.weatherLocations?.find((location) => location.isDefault)
+    const location: WeatherLocation = {
+      ...input,
+      id: current?.id ?? crypto.randomUUID(),
+      isDefault: true,
+    }
+
+    data.weatherLocations = [
+      ...(data.weatherLocations ?? [])
+        .filter((entry) => entry.id !== location.id)
+        .map((entry) => ({ ...entry, isDefault: false })),
+      location,
+    ]
+    writeData(data)
+    return location
+  }
+
+  async fetchWeatherForecast(
+    input: WeatherForecastRequest,
+  ): Promise<WeatherForecastResponse> {
+    const data = readData()
+    const location = data.weatherLocations?.find(
+      (entry) => entry.id === input.locationId,
+    )
+    if (!location) throw new Error('기본 날씨 위치를 찾을 수 없습니다.')
+
+    const point = (
+      time: string,
+      temperature: number,
+      humidity: number,
+    ): WeatherForecastResponse['departure'] => ({
+      at: `${input.forecastDate}T${time}:00+09:00`,
+      temperature,
+      humidity,
+      precipitationProbability: 20,
+      precipitationType: 'none',
+      precipitationAmount: { value: null, label: null, hasAmount: false },
+      snowAmount: { value: null, label: null, hasAmount: false },
+      sky: 'mostly-cloudy',
+      windSpeed: 1.8,
+      hasPrecipitation: false,
+      missingCategories: [],
+    })
+
+    return {
+      source: 'kma-vilage-fcst',
+      issuedAt: `${input.forecastDate}T05:00:00+09:00`,
+      fetchedAt: new Date().toISOString(),
+      nx: location.nx,
+      ny: location.ny,
+      location: { id: location.id, label: location.label },
+      departure: point(input.departureTime, 24, 62),
+      return: point(input.returnTime, 20, 78),
+      period: {
+        hasPrecipitation: false,
+        precipitationTypes: [],
+        maxPrecipitationProbability: 30,
+        minHumidity: 62,
+        maxHumidity: 78,
+      },
+      stale: false,
+      warnings: [],
+    }
   }
 
   async createWearLog(input: WearLogInput) {

@@ -16,7 +16,8 @@
     "notion:import": "node scripts/import-supabase.mjs",
     "outfit:preview": "node scripts/compose-outfit-preview.mjs",
     "outfit:upload": "node scripts/upload-outfit-preview.mjs",
-    "images:prepare": "node scripts/prepare-image-upload.mjs"
+    "images:prepare": "node scripts/prepare-image-upload.mjs",
+    "weather:capture": "node scripts/capture-kma-forecast.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.110.8",

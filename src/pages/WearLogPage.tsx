@@ -22,6 +22,17 @@ function optionalInteger(value: string) {
     : NaN
 }
 
+function formatIssuedAt(value: string | null) {
+  if (!value) return null
+  return new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value))
+}
+
 export function WearLogPage() {
   const { outfitId: routeOutfitId, logId } = useParams()
   const editing = Boolean(logId)
@@ -31,6 +42,7 @@ export function WearLogPage() {
   const existing = data?.wearLogs.find((log) => log.id === logId)
   const outfitId = existing?.outfitId ?? routeOutfitId ?? ''
   const outfit = data?.outfits.find((entry) => entry.id === outfitId)
+  const initializationKey = existing ? `edit:${existing.id}` : `new:${outfitId}`
   const navigationState = (location.state ?? {}) as RecommendationNavigationState
   const [initializedKey, setInitializedKey] = useState<string | null>(null)
   const [wornOn, setWornOn] = useState(todayInKorea())
@@ -49,10 +61,53 @@ export function WearLogPage() {
   const [saving, setSaving] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
 
+  const temperatureSource =
+    existing?.temperatureSource ??
+    (navigationState.weather ? 'weather' : 'manual')
+  const weatherLocationId =
+    existing?.weatherLocationId ?? navigationState.weather?.locationId ?? null
+  const weatherIssuedAt =
+    existing?.weatherIssuedAt ?? navigationState.weather?.issuedAt ?? null
+  const weatherBaseline = existing?.temperatureSource === 'weather'
+    ? {
+        tempOut: existing.tempOut,
+        tempBack: existing.tempBack,
+        rainCondition: existing.rainCondition,
+      }
+    : navigationState.weather ?? null
+  const weatherValuesChanged = Boolean(
+    initializedKey === initializationKey &&
+      weatherBaseline &&
+      (tempOut !==
+        (weatherBaseline.tempOut === null
+          ? ''
+          : String(weatherBaseline.tempOut)) ||
+        tempBack !==
+          (weatherBaseline.tempBack === null
+            ? ''
+            : String(weatherBaseline.tempBack)) ||
+        rainCondition !== weatherBaseline.rainCondition),
+  )
+  const weatherOverridden =
+    temperatureSource === 'weather' &&
+    (existing?.weatherOverridden === true ||
+      navigationState.weather?.overridden === true ||
+      weatherValuesChanged)
+  const sourceLabel =
+    temperatureSource === 'weather'
+      ? weatherOverridden
+        ? '기상청 예보에서 직접 수정'
+        : '기상청 예보'
+      : temperatureSource === 'notion'
+        ? '기존 Notion 기록'
+        : '직접 입력'
+  const weatherLocationLabel =
+    data?.weatherLocations?.find((entry) => entry.id === weatherLocationId)
+      ?.label ?? null
+
   useEffect(() => {
     if (!data) return
-    const key = existing ? `edit:${existing.id}` : `new:${outfitId}`
-    if (!outfit || initializedKey === key) return
+    if (!outfit || initializedKey === initializationKey) return
 
     if (existing) {
       setWornOn(existing.wornOn)
@@ -77,8 +132,15 @@ export function WearLogPage() {
       setPlaceId(navigationState.input.placeId ?? '')
       setTransportModeId(navigationState.input.transportModeId ?? '')
     }
-    setInitializedKey(key)
-  }, [data, existing, initializedKey, navigationState.input, outfit, outfitId])
+    setInitializedKey(initializationKey)
+  }, [
+    data,
+    existing,
+    initializationKey,
+    initializedKey,
+    navigationState.input,
+    outfit,
+  ])
 
   const title = useMemo(
     () => (outfit && data ? outfitLabel(outfit, data.items) : '착용 기록'),
@@ -115,6 +177,14 @@ export function WearLogPage() {
       placeId: placeId || null,
       transportModeId: transportModeId || null,
       memo: memo.trim() || null,
+      temperatureSource:
+        temperatureSource === 'weather' ? 'weather' : 'manual',
+      weatherLocationId:
+        temperatureSource === 'weather' ? weatherLocationId : null,
+      weatherIssuedAt:
+        temperatureSource === 'weather' ? weatherIssuedAt : null,
+      weatherOverridden:
+        temperatureSource === 'weather' ? weatherOverridden : false,
       submissionToken: existing?.submissionToken ?? submissionToken,
     }
 
@@ -148,6 +218,20 @@ export function WearLogPage() {
       )}
       {outfit && (
         <form className="panel wear-form" onSubmit={submit}>
+          <div
+            className={`wear-form__source wear-form__source--${temperatureSource}`}
+            aria-live="polite"
+          >
+            <span>입력 출처</span>
+            <strong>{sourceLabel}</strong>
+            {temperatureSource === 'weather' && (
+              <small>
+                {[weatherLocationLabel, formatIssuedAt(weatherIssuedAt) && `${formatIssuedAt(weatherIssuedAt)} 발표`]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </small>
+            )}
+          </div>
           <label className="field">
             <span>날짜 <strong aria-label="필수">*</strong></span>
             <input

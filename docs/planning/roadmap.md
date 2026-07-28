@@ -3,7 +3,7 @@
 - 최종 수정일: 2026-07-26
 - 문서 상태: 기준 문서
 - 현재 위치: Phase 1A 로컬 구현 완료, Supabase 시험 이전과 Technical Alpha 대기
-- 관련 문서: [Product Plan](./product-plan.md), [Phase 1 MVP Spec](./phase-1-mvp-spec.md), [Implementation Status](./phase-1-implementation-status.md)
+- 관련 문서: [Product Plan](./product-plan.md), [Phase 1 MVP Spec](./phase-1-mvp-spec.md), [Implementation Status](./phase-1-implementation-status.md), [Phase 2 Weather Plan](./phase-2-weather-plan.md)
 
 ## 이 문서의 목적
 
@@ -135,6 +135,8 @@ Phase 1 구현자가 추가 제품 결정을 내리지 않고 명세에 따라 �
 - 이전 검증과 실사용 검증이 끝난 뒤 Supabase를 원본으로 전환한다.
 
 ## Phase 2 — Weather Automation
+
+- 상세 실행 계획: [Phase 2 Weather Automation Plan](./phase-2-weather-plan.md)
 
 ### 목표
 
