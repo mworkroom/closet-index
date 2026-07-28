@@ -64,7 +64,8 @@ interface HomeSessionState {
   submittedWeather: WeatherRecommendationProvenance | null
 }
 
-const HOME_SESSION_KEY = 'closet-index:home-weather:v1'
+const HOME_SESSION_KEY = 'closet-index:home-weather:v2'
+const HOME_LOCAL_STORAGE_KEY = 'closet-index:home-weather:v3'
 
 function kstDate(daysFromToday = 0) {
   const now = Date.now() + 9 * 60 * 60 * 1000
@@ -82,8 +83,8 @@ function defaultSessionState(): HomeSessionState {
     transportModeId: '',
     submitted: null,
     forecastDate: kstDate(),
-    departureTime: '09:00',
-    returnTime: '18:00',
+    departureTime: '20:00',
+    returnTime: '00:00',
     forecast: null,
     inputSource: 'manual',
     weatherBaseline: null,
@@ -91,13 +92,105 @@ function defaultSessionState(): HomeSessionState {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function normalizeHomeState(
+  value: unknown,
+  fallback: HomeSessionState,
+): HomeSessionState {
+  if (!isRecord(value)) return fallback
+
+  const condition = (candidate: unknown, defaultValue: HomeConditionChoice) =>
+    candidate === 'yes' || candidate === 'no' ? candidate : defaultValue
+  const source = (candidate: unknown): InputSource =>
+    candidate === 'weather' || candidate === 'weather-edited'
+      ? candidate
+      : 'manual'
+
+  return {
+    tempOut:
+      typeof value.tempOut === 'string' ? value.tempOut : fallback.tempOut,
+    tempBack:
+      typeof value.tempBack === 'string' ? value.tempBack : fallback.tempBack,
+    rainCondition: condition(value.rainCondition, fallback.rainCondition),
+    longWalkCondition: condition(
+      value.longWalkCondition,
+      fallback.longWalkCondition,
+    ),
+    placeId:
+      typeof value.placeId === 'string' ? value.placeId : fallback.placeId,
+    transportModeId:
+      typeof value.transportModeId === 'string'
+        ? value.transportModeId
+        : fallback.transportModeId,
+    submitted:
+      value.submitted === null || isRecord(value.submitted)
+        ? (value.submitted as RecommendationInput | null)
+        : fallback.submitted,
+    forecastDate:
+      typeof value.forecastDate === 'string'
+        ? value.forecastDate
+        : fallback.forecastDate,
+    departureTime:
+      typeof value.departureTime === 'string'
+        ? value.departureTime
+        : fallback.departureTime,
+    returnTime:
+      typeof value.returnTime === 'string'
+        ? value.returnTime
+        : fallback.returnTime,
+    forecast:
+      value.forecast === null || isRecord(value.forecast)
+        ? (value.forecast as unknown as StoredForecast | null)
+        : fallback.forecast,
+    inputSource: source(value.inputSource),
+    weatherBaseline:
+      value.weatherBaseline === null || isRecord(value.weatherBaseline)
+        ? (value.weatherBaseline as WeatherRecommendationProvenance | null)
+        : fallback.weatherBaseline,
+    submittedWeather:
+      value.submittedWeather === null || isRecord(value.submittedWeather)
+        ? (value.submittedWeather as WeatherRecommendationProvenance | null)
+        : fallback.submittedWeather,
+  }
+}
+
 function readHomeSessionState(): HomeSessionState {
   const fallback = defaultSessionState()
+
+  try {
+    const stored = window.localStorage.getItem(HOME_LOCAL_STORAGE_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored) as unknown
+      if (
+        isRecord(parsed) &&
+        parsed.savedOn === kstDate() &&
+        isRecord(parsed.state)
+      ) {
+        return normalizeHomeState(parsed.state, fallback)
+      }
+    }
+  } catch {
+    // Fall through to the same-tab session copy.
+  }
+
   try {
     const stored = window.sessionStorage.getItem(HOME_SESSION_KEY)
     if (!stored) return fallback
-    const parsed = JSON.parse(stored) as Partial<HomeSessionState>
-    return { ...fallback, ...parsed }
+    const parsed = JSON.parse(stored) as unknown
+    if (
+      isRecord(parsed) &&
+      parsed.savedOn === kstDate() &&
+      isRecord(parsed.state)
+    ) {
+      return normalizeHomeState(parsed.state, fallback)
+    }
+    if (isRecord(parsed) && parsed.forecastDate === kstDate()) {
+      return normalizeHomeState(parsed, fallback)
+    }
+    return fallback
   } catch {
     return fallback
   }
@@ -260,7 +353,13 @@ export function HomePage() {
       weatherBaseline,
       submittedWeather,
     }
-    window.sessionStorage.setItem(HOME_SESSION_KEY, JSON.stringify(state))
+    try {
+      const storedState = JSON.stringify({ savedOn: kstDate(), state })
+      window.sessionStorage.setItem(HOME_SESSION_KEY, storedState)
+      window.localStorage.setItem(HOME_LOCAL_STORAGE_KEY, storedState)
+    } catch {
+      // Storage can be unavailable in private browsing; HOME still works in memory.
+    }
   }, [
     departureTime,
     forecastDate,
@@ -426,15 +525,16 @@ export function HomePage() {
             <p className="eyebrow">KMA FORECAST</p>
             <h2 id="weather-panel-title">날씨 불러오기</h2>
           </div>
-          <CloudSun size={24} aria-hidden="true" />
+          <div className="weather-panel__location-badge">
+            {defaultWeatherLocation && (
+              <strong>{defaultWeatherLocation.label}</strong>
+            )}
+            <CloudSun size={24} aria-hidden="true" />
+          </div>
         </div>
 
         {defaultWeatherLocation ? (
           <>
-            <p className="weather-panel__location">
-              <strong>{defaultWeatherLocation.label}</strong>
-              <span>기본 예보 위치</span>
-            </p>
             <div className="weather-query-grid">
               <label className="field weather-query-grid__date">
                 <span>
@@ -471,7 +571,9 @@ export function HomePage() {
                 </select>
               </label>
               <label className="field">
-                <span>귀가</span>
+                <span>
+                  {returnTime < departureTime ? '귀가 (다음 날)' : '귀가'}
+                </span>
                 <select
                   value={returnTime}
                   onChange={(event) => {

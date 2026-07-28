@@ -1,5 +1,5 @@
 import { Search } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { SeasonScopeSummary } from '../components/SeasonScopeSummary'
@@ -13,15 +13,72 @@ import { getItemStats } from '../lib/outfits'
 import { itemMatchesSeasonScope } from '../lib/seasons'
 
 const defaultSort: ItemSort = 'acquired-desc'
+const CLOSET_FILTER_STORAGE_KEY = 'closet-index:closet-filters:v1'
+
+interface StoredClosetFilters {
+  category: string
+  color: string
+  includeRetired: boolean
+  sort: ItemSort
+}
+
+const defaultFilters: StoredClosetFilters = {
+  category: '',
+  color: '',
+  includeRetired: false,
+  sort: defaultSort,
+}
+
+function readStoredFilters(): StoredClosetFilters {
+  try {
+    const raw = window.localStorage.getItem(CLOSET_FILTER_STORAGE_KEY)
+    if (!raw) return defaultFilters
+    const parsed = JSON.parse(raw) as Partial<StoredClosetFilters>
+    const validSorts: ItemSort[] = ['acquired-desc', 'acquired-asc', 'name']
+    return {
+      category: typeof parsed.category === 'string' ? parsed.category : '',
+      color: typeof parsed.color === 'string' ? parsed.color : '',
+      includeRetired:
+        typeof parsed.includeRetired === 'boolean'
+          ? parsed.includeRetired
+          : false,
+      sort: validSorts.includes(parsed.sort as ItemSort)
+        ? (parsed.sort as ItemSort)
+        : defaultSort,
+    }
+  } catch {
+    return defaultFilters
+  }
+}
 
 export function ClosetPage() {
   const { data, loading, error, refresh } = useClosetData()
   const { activeSeasons } = useSeasonScope()
+  const [initialFilters] = useState(readStoredFilters)
   const [query, setQuery] = useState('')
-  const [category, setCategory] = useState('')
-  const [color, setColor] = useState('')
-  const [includeRetired, setIncludeRetired] = useState(false)
-  const [sort, setSort] = useState<ItemSort>(defaultSort)
+  const [category, setCategory] = useState(initialFilters.category)
+  const [color, setColor] = useState(initialFilters.color)
+  const [includeRetired, setIncludeRetired] = useState(
+    initialFilters.includeRetired,
+  )
+  const [sort, setSort] = useState<ItemSort>(initialFilters.sort)
+
+  useEffect(() => {
+    const filters: StoredClosetFilters = {
+      category,
+      color,
+      includeRetired,
+      sort,
+    }
+    try {
+      window.localStorage.setItem(
+        CLOSET_FILTER_STORAGE_KEY,
+        JSON.stringify(filters),
+      )
+    } catch {
+      // Storage can be unavailable in private browsing; filters still work in memory.
+    }
+  }, [category, color, includeRetired, sort])
 
   const categories = useMemo(
     () => [...new Set(data?.items.map((item) => item.category) ?? [])].sort(),

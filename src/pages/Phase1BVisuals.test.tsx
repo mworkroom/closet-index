@@ -246,6 +246,65 @@ describe('Phase 1B screen visuals', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('착용 기록에서 입력 출처를 숨기고 교통수단별 아이콘을 표시한다', async () => {
+    const baseLog = demoData.wearLogs[0]
+    window.localStorage.setItem(
+      'closet-index-demo-data-v3',
+      JSON.stringify({
+        ...demoData,
+        wearLogs: [
+          ...demoData.wearLogs,
+          {
+            ...baseLog,
+            id: 'transport-walk-log',
+            wornOn: '2026-07-01',
+            transportModeId: 'transport-walk',
+            submissionToken: 'transport-walk-token',
+          },
+          {
+            ...baseLog,
+            id: 'transport-car-log',
+            wornOn: '2026-07-02',
+            transportModeId: 'transport-car',
+            submissionToken: 'transport-car-token',
+          },
+          {
+            ...baseLog,
+            id: 'transport-bus-log',
+            wornOn: '2026-07-03',
+            transportModeId: 'transport-bus',
+            submissionToken: 'transport-bus-token',
+          },
+        ],
+      }),
+    )
+
+    renderRoute(
+      '/outfits/outfit-favorite',
+      '/outfits/:outfitId',
+      <OutfitDetailPage />,
+    )
+
+    await screen.findByRole('heading', { name: '착용 기록' })
+    expect(screen.queryByText(/입력 출처/)).not.toBeInTheDocument()
+
+    const expectedIcons = [
+      ['도보', '.lucide-footprints'],
+      ['차', '.lucide-car-front'],
+      ['버스', '.lucide-bus-front'],
+      ['지하철', '.lucide-train-front'],
+    ] as const
+
+    for (const [transport, iconSelector] of expectedIcons) {
+      const transportLabels = screen.getAllByText(transport)
+      expect(
+        transportLabels.every((label) =>
+          label.closest('span')?.querySelector(iconSelector),
+        ),
+      ).toBe(true)
+    }
+  })
+
   it('Calendar는 preview metadata가 있는 Outfit에만 thumbnail을 추가한다', async () => {
     const { unmount } = renderRoute(
       '/calendar?date=2026-05-03',

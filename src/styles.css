@@ -1131,17 +1131,19 @@ button:disabled {
   color: var(--muted);
 }
 
-.weather-panel__location {
+.weather-panel__location-badge {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
 }
 
-.weather-panel__location strong {
-  font-size: 1rem;
+.weather-panel__location-badge strong {
+  color: var(--ink);
+  font-size: 0.86rem;
+  white-space: nowrap;
 }
 
-.weather-panel__location span,
 .weather-result__issued {
   color: var(--muted);
   font-size: 0.74rem;

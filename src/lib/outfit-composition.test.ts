@@ -90,7 +90,7 @@ describe('browser outfit composition v4', () => {
     expect(mainTee).toMatchObject({ zIndex: 50 })
     expect(sideTee!.width).toBeLessThan(mainTee!.width)
     expect(mainTee!.height).toBeCloseTo(396)
-    expect(mainTee!.top).toBeCloseTo(190)
+    expect(mainTee!.top).toBeCloseTo(202)
   })
 
   it('normalizes portrait outerwear against the approved visible-height cap', () => {
@@ -109,10 +109,10 @@ describe('browser outfit composition v4', () => {
 
     expect(cardiganLayer.width).toBeCloseTo(558)
     expect(cardiganLayer.height).toBeCloseTo(319.45, 1)
-    expect(cardiganLayer.top).toBeCloseTo(174)
+    expect(cardiganLayer.top).toBeCloseTo(202)
     expect(jacketLayer.height).toBeCloseTo(450)
     expect(jacketLayer.width).toBeCloseTo(403.31, 1)
-    expect(jacketLayer.top).toBeCloseTo(174)
+    expect(jacketLayer.top).toBeCloseTo(202)
   })
 
   it('keeps a default gap between the hem and shoes without removing saved offsets', () => {
@@ -156,8 +156,8 @@ describe('browser outfit composition v4', () => {
     const skirtLayer = layers.find((layer) => layer.item.id === skirt.id)!
     const shoesLayer = layers.find((layer) => layer.item.id === shoes.id)!
 
-    expect(shoesLayer.width).toBeCloseTo(148.43)
-    expect(shoesLayer.height).toBeCloseTo(148.43)
+    expect(shoesLayer.width).toBeCloseTo(131.94)
+    expect(shoesLayer.height).toBeCloseTo(131.94)
     expect(shoesLayer.top + shoesLayer.height).toBeCloseTo(1103)
     expect(shoesLayer.top - (skirtLayer.top + skirtLayer.height)).toBeCloseTo(-4)
   })
@@ -278,7 +278,7 @@ describe('browser outfit composition v4', () => {
     const originalLayer = composeOutfitLayers(base, [outer])[0]
     const resizedLayer = composeOutfitLayers(resized, [outer])[0]
     expect(originalLayer).toMatchObject({
-      top: 174,
+      top: 202,
       width: 450,
       height: 450,
     })

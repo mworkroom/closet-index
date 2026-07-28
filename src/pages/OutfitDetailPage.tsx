@@ -1,7 +1,10 @@
 import {
   AlertTriangle,
+  BusFront,
+  CarFront,
   CheckCircle2,
   ChevronDown,
+  CircleHelp,
   CloudRain,
   Footprints,
   MapPin,
@@ -20,6 +23,23 @@ import { formatMonthDayYear } from '../lib/date'
 import type { RecommendationNavigationState } from '../lib/navigation'
 import { getOutfitStats, outfitLabel } from '../lib/outfits'
 import { feelingLabels, ratingLabels, recommendationLabels } from '../lib/types'
+
+function TransportIcon({ name }: { name: string }) {
+  const iconProps = { size: 15, 'aria-hidden': true as const }
+
+  switch (name.trim()) {
+    case '도보':
+      return <Footprints {...iconProps} />
+    case '차':
+      return <CarFront {...iconProps} />
+    case '버스':
+      return <BusFront {...iconProps} />
+    case '지하철':
+      return <TrainFront {...iconProps} />
+    default:
+      return <CircleHelp {...iconProps} />
+  }
+}
 
 export function OutfitDetailPage() {
   const { outfitId = '' } = useParams()
@@ -254,7 +274,9 @@ export function OutfitDetailPage() {
                       )}
                       {transportName(log.transportModeId) && (
                         <span>
-                          <TrainFront size={15} />
+                          <TransportIcon
+                            name={transportName(log.transportModeId)!}
+                          />
                           {transportName(log.transportModeId)}
                         </span>
                       )}
@@ -265,16 +287,6 @@ export function OutfitDetailPage() {
                       <span>
                         <Footprints size={15} />
                         걷기 {log.longWalkCondition === 'yes' ? '해당' : '해당 없음'}
-                      </span>
-                      <span>
-                        입력 출처{' '}
-                        {log.temperatureSource === 'weather'
-                          ? log.weatherOverridden
-                            ? '기상청 예보에서 직접 수정'
-                            : '기상청 예보'
-                          : log.temperatureSource === 'notion'
-                            ? '기존 Notion 기록'
-                            : '직접 입력'}
                       </span>
                     </div>
                   </article>

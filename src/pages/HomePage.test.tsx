@@ -38,6 +38,33 @@ describe('HomePage condition choices', () => {
     }
   })
 
+  it('위치를 날씨 아이콘 옆에 표시하고 저녁 외출 시각을 기본 선택한다', async () => {
+    render(
+      <MemoryRouter>
+        <DataProvider repository={new DemoRepository()}>
+          <HomePage />
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    const heading = await screen.findByRole('heading', { name: '날씨 불러오기' })
+    const weatherPanel = heading.closest('section')
+
+    expect(weatherPanel).not.toBeNull()
+    expect(within(weatherPanel!).getByText('창4동')).toBeVisible()
+    expect(
+      within(weatherPanel!).queryByText('기본 예보 위치'),
+    ).not.toBeInTheDocument()
+    expect(
+      within(weatherPanel!).getByRole('combobox', { name: '출발' }),
+    ).toHaveValue('20:00')
+    expect(
+      within(weatherPanel!).getByRole('combobox', {
+        name: '귀가 (다음 날)',
+      }),
+    ).toHaveValue('00:00')
+  })
+
   it('예보를 명시적으로 적용하고 같은 탭에서 추천 입력을 복원한다', async () => {
     const user = userEvent.setup()
     const renderPage = () =>
@@ -71,6 +98,7 @@ describe('HomePage condition choices', () => {
     expect(await screen.findByRole('heading', { name: '추천 착장' })).toBeVisible()
 
     first.unmount()
+    window.sessionStorage.clear()
     renderPage()
 
     expect(
