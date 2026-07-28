@@ -139,7 +139,7 @@ describe('browser outfit composition v4', () => {
     expect(shoesLayer.top - (skirtLayer.top + skirtLayer.height)).toBeCloseTo(24)
   })
 
-  it('uses the tighter default hem gap and a 95% shoe baseline', () => {
+  it('uses the tighter default hem gap and the reduced shoe baseline', () => {
     const skirt = item('skirt', 'Bottom-Skirts', 621, 1219)
     const shoes = item('shoes', 'Shoes')
     const outfit: Outfit = {
@@ -153,8 +153,8 @@ describe('browser outfit composition v4', () => {
     const skirtLayer = layers.find((layer) => layer.item.id === skirt.id)!
     const shoesLayer = layers.find((layer) => layer.item.id === shoes.id)!
 
-    expect(shoesLayer.width).toBeCloseTo(164.92)
-    expect(shoesLayer.height).toBeCloseTo(164.92)
+    expect(shoesLayer.width).toBeCloseTo(148.43)
+    expect(shoesLayer.height).toBeCloseTo(148.43)
     expect(shoesLayer.top + shoesLayer.height).toBeCloseTo(1123)
     expect(shoesLayer.top - (skirtLayer.top + skirtLayer.height)).toBeCloseTo(16)
   })

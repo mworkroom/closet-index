@@ -20,6 +20,7 @@ const accessoryCategoryPrefixes = [
 ]
 
 const nonSeasonDefiningCategories = new Set([
+  'shoes',
   'socks',
   'top-t-shirts-innerwear',
 ])

@@ -189,7 +189,7 @@
       "value": "Shoes",
       "slot": "main-shoes",
       "zIndex": 20,
-      "visualScale": 0.266
+      "visualScale": 0.2394
     },
     {
       "match": "exact",
