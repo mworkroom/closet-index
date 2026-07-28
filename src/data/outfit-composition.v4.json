@@ -113,7 +113,9 @@
       "value": "Bags",
       "slot": "side-bag",
       "zIndex": 80,
-      "visualScale": 0.34
+      "visualScale": 0.34,
+      "defaultPositionX": -28,
+      "defaultScale": 1.2
     },
     {
       "match": "prefix",
@@ -128,7 +130,9 @@
       "slot": "main-upper",
       "zIndex": 60,
       "visualScale": 1,
-      "visualHeight": 500
+      "visualHeight": 500,
+      "defaultPositionY": 24,
+      "defaultScale": 0.9
     },
     {
       "match": "exact",
@@ -146,7 +150,9 @@
       "zIndexWithoutOuter": 50,
       "visualScaleWhenOuter": 0.45,
       "visualScaleWithoutOuter": 0.85,
-      "visualHeightWithoutOuter": 440
+      "visualHeightWithoutOuter": 440,
+      "defaultPositionYWithoutOuter": 40,
+      "defaultScaleWithoutOuter": 0.9
     },
     {
       "match": "prefix",
@@ -154,7 +160,9 @@
       "slot": "main-upper",
       "zIndex": 50,
       "visualScale": 0.85,
-      "visualHeight": 440
+      "visualHeight": 440,
+      "defaultPositionY": 40,
+      "defaultScale": 0.9
     },
     {
       "match": "prefix",
@@ -189,7 +197,8 @@
       "value": "Shoes",
       "slot": "main-shoes",
       "zIndex": 20,
-      "visualScale": 0.2394
+      "visualScale": 0.2394,
+      "defaultPositionY": -20
     },
     {
       "match": "exact",

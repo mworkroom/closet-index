@@ -13,6 +13,7 @@ import type {
   Outfit,
   OutfitItemPositionInput,
 } from '../lib/types'
+import { getOutfitItemPlacementDefaults } from '../lib/outfit-composition'
 import { ItemVisual } from './ItemVisual'
 import { LayeredOutfitPreview } from './LayeredOutfitPreview'
 
@@ -33,19 +34,38 @@ interface OutfitPositionEditorProps {
   onSave: (input: OutfitItemPositionInput) => Promise<void>
 }
 
-function positionsFrom(outfit: Outfit) {
+function hasVisibleOuter(items: Item[]) {
+  return items.some(
+    (item) => Boolean(item.image) && item.category.startsWith('Outer'),
+  )
+}
+
+function positionFrom(
+  outfit: Outfit,
+  item: Item,
+  hasOuter: boolean,
+): Position {
+  const placement = outfit.itemPlacements?.find(
+    (entry) => entry.itemId === item.id,
+  )
+  const defaults = getOutfitItemPlacementDefaults(item, hasOuter)
+  return {
+    x: placement?.positionX ?? defaults.positionX,
+    y: placement?.positionY ?? defaults.positionY,
+    scale: placement?.itemScale ?? defaults.itemScale,
+  }
+}
+
+function positionsFrom(outfit: Outfit, items: Item[]) {
+  const hasOuter = hasVisibleOuter(items)
   return new Map(
     outfit.itemIds.map((itemId) => {
-      const placement = outfit.itemPlacements?.find(
-        (entry) => entry.itemId === itemId,
-      )
+      const item = items.find((entry) => entry.id === itemId)
       return [
         itemId,
-        {
-          x: placement?.positionX ?? 0,
-          y: placement?.positionY ?? 0,
-          scale: placement?.itemScale ?? 1,
-        },
+        item
+          ? positionFrom(outfit, item, hasOuter)
+          : { x: 0, y: 0, scale: 1 },
       ] as const
     }),
   )
@@ -59,9 +79,9 @@ function placementRevision(outfit: Outfit) {
       )
       return [
         itemId,
-        placement?.positionX ?? 0,
-        placement?.positionY ?? 0,
-        placement?.itemScale ?? 1,
+        placement?.positionX ?? 'null',
+        placement?.positionY ?? 'null',
+        placement?.itemScale ?? 'null',
       ].join(':')
     })
     .join('|')
@@ -79,15 +99,18 @@ export function OutfitPositionEditor({
         .filter((item): item is Item => Boolean(item?.image)),
     [items, outfit.itemIds],
   )
+  const hasOuter = hasVisibleOuter(editableItems)
   const [selectedId, setSelectedId] = useState(editableItems[0]?.id ?? '')
-  const [positions, setPositions] = useState(() => positionsFrom(outfit))
+  const [positions, setPositions] = useState(() =>
+    positionsFrom(outfit, items),
+  )
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const savedPlacementRevision = placementRevision(outfit)
 
   useEffect(() => {
-    setPositions(positionsFrom(outfit))
+    setPositions(positionsFrom(outfit, items))
   }, [outfit.id, savedPlacementRevision])
 
   useEffect(() => {
@@ -97,14 +120,14 @@ export function OutfitPositionEditor({
   }, [editableItems, selectedId])
 
   const selectedItem = editableItems.find((item) => item.id === selectedId)
-  const position = positions.get(selectedId) ?? { x: 0, y: 0, scale: 1 }
-  const savedPosition = outfit.itemPlacements?.find(
-    (entry) => entry.itemId === selectedId,
-  )
+  const selectedDefaults = selectedItem
+    ? positionFrom(outfit, selectedItem, hasOuter)
+    : { x: 0, y: 0, scale: 1 }
+  const position = positions.get(selectedId) ?? selectedDefaults
   const dirty =
-    position.x !== (savedPosition?.positionX ?? 0) ||
-    position.y !== (savedPosition?.positionY ?? 0) ||
-    position.scale !== (savedPosition?.itemScale ?? 1)
+    position.x !== selectedDefaults.x ||
+    position.y !== selectedDefaults.y ||
+    position.scale !== selectedDefaults.scale
   const previewOutfit: Outfit = {
     ...outfit,
     itemPlacements: outfit.itemIds.map((itemId) => {
@@ -156,12 +179,17 @@ export function OutfitPositionEditor({
   }
 
   const reset = () => {
-    if (!selectedId) return
+    if (!selectedId || !selectedItem) return
     setSaved(false)
     setSaveError(null)
     setPositions((current) => {
       const next = new Map(current)
-      next.set(selectedId, { x: 0, y: 0, scale: 1 })
+      const defaults = getOutfitItemPlacementDefaults(selectedItem, hasOuter)
+      next.set(selectedId, {
+        x: defaults.positionX,
+        y: defaults.positionY,
+        scale: defaults.itemScale,
+      })
       return next
     })
   }

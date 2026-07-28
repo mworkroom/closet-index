@@ -20,8 +20,8 @@ export interface OutfitPreview extends ImageAsset {
 export interface OutfitItemPlacement {
   itemId: string
   slot: string | null
-  positionX: number
-  positionY: number
+  positionX: number | null
+  positionY: number | null
   itemScale: number | null
   zIndex: number | null
 }

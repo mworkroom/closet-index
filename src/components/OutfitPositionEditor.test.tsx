@@ -146,4 +146,112 @@ describe('OutfitPositionEditor', () => {
 
     expect(screen.getByText(/상하 -4px/)).toBeInTheDocument()
   })
+
+  it('shows learned defaults for untouched items and resets back to them', async () => {
+    const user = userEvent.setup()
+    const outer = item('outer', '재킷', 'Outer-Jacket')
+    const shoes = item('shoes', '신발', 'Shoes')
+    const bag = item('bag', '가방', 'Bags')
+    const outfit: Outfit = {
+      id: 'outfit',
+      displayName: null,
+      rating: null,
+      itemIds: [outer.id, shoes.id, bag.id],
+      itemPlacements: [
+        {
+          itemId: outer.id,
+          slot: null,
+          positionX: null,
+          positionY: null,
+          itemScale: null,
+          zIndex: null,
+        },
+        {
+          itemId: shoes.id,
+          slot: null,
+          positionX: null,
+          positionY: null,
+          itemScale: null,
+          zIndex: null,
+        },
+        {
+          itemId: bag.id,
+          slot: null,
+          positionX: null,
+          positionY: null,
+          itemScale: null,
+          zIndex: null,
+        },
+      ],
+    }
+
+    render(
+      <OutfitPositionEditor
+        outfit={outfit}
+        items={[outer, shoes, bag]}
+        onSave={vi.fn(async () => undefined)}
+      />,
+    )
+
+    expect(
+      screen.getByText('좌우 0px · 상하 24px · 크기 90%'),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /신발/ }))
+    expect(
+      screen.getByText('좌우 0px · 상하 -20px · 크기 100%'),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /가방/ }))
+    expect(
+      screen.getByText('좌우 -28px · 상하 0px · 크기 120%'),
+    ).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole('button', { name: '가방 오른쪽으로 4px 이동' }),
+    )
+    await user.click(screen.getByRole('button', { name: '가방 5% 축소' }))
+    expect(
+      screen.getByText('좌우 -24px · 상하 0px · 크기 115%'),
+    ).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole('button', { name: '가방 원위치와 원래 크기' }),
+    )
+    expect(
+      screen.getByText('좌우 -28px · 상하 0px · 크기 120%'),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps explicit saved zero and 100% values instead of learned defaults', () => {
+    const outer = item('outer', '재킷', 'Outer-Jacket')
+    const outfit: Outfit = {
+      id: 'outfit',
+      displayName: null,
+      rating: null,
+      itemIds: [outer.id],
+      itemPlacements: [
+        {
+          itemId: outer.id,
+          slot: null,
+          positionX: 0,
+          positionY: 0,
+          itemScale: 1,
+          zIndex: null,
+        },
+      ],
+    }
+
+    render(
+      <OutfitPositionEditor
+        outfit={outfit}
+        items={[outer]}
+        onSave={vi.fn(async () => undefined)}
+      />,
+    )
+
+    expect(
+      screen.getByText('좌우 0px · 상하 0px · 크기 100%'),
+    ).toBeInTheDocument()
+  })
 })

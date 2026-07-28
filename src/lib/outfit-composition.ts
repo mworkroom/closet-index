@@ -34,7 +34,13 @@ function matchesCategory(rule: CategoryRule, category: string) {
 
 function conditionalNumber(
   rule: CategoryRule,
-  key: 'zIndex' | 'visualScale' | 'visualHeight',
+  key:
+    | 'zIndex'
+    | 'visualScale'
+    | 'visualHeight'
+    | 'defaultPositionX'
+    | 'defaultPositionY'
+    | 'defaultScale',
   hasOuter: boolean,
 ) {
   const values = rule as unknown as Record<string, unknown>
@@ -64,6 +70,29 @@ function resolveRule(item: Item, hasOuter: boolean) {
     zIndex: conditionalNumber(rule, 'zIndex', hasOuter) ?? 0,
     visualScale: conditionalNumber(rule, 'visualScale', hasOuter) ?? 1,
     visualHeight: conditionalNumber(rule, 'visualHeight', hasOuter),
+    defaultPositionX:
+      conditionalNumber(rule, 'defaultPositionX', hasOuter) ?? 0,
+    defaultPositionY:
+      conditionalNumber(rule, 'defaultPositionY', hasOuter) ?? 0,
+    defaultScale: conditionalNumber(rule, 'defaultScale', hasOuter) ?? 1,
+  }
+}
+
+export interface OutfitItemPlacementDefaults {
+  positionX: number
+  positionY: number
+  itemScale: number
+}
+
+export function getOutfitItemPlacementDefaults(
+  item: Item,
+  hasOuter: boolean,
+): OutfitItemPlacementDefaults {
+  const rule = resolveRule(item, hasOuter)
+  return {
+    positionX: rule?.defaultPositionX ?? 0,
+    positionY: rule?.defaultPositionY ?? 0,
+    itemScale: rule?.defaultScale ?? 1,
   }
 }
 
@@ -165,7 +194,7 @@ export function composeOutfitLayers(
         (placement?.slot && slotAliases[placement.slot]) ?? rule.slot
       ) as keyof typeof compositionConfig.slots
       const slot = compositionConfig.slots[slotName]
-      const itemScale = placement?.itemScale ?? 1
+      const itemScale = placement?.itemScale ?? rule.defaultScale
       const targetWidth =
         compositionConfig.itemTemplate.width * rule.visualScale * itemScale
       const targetHeight =
@@ -189,8 +218,8 @@ export function composeOutfitLayers(
         zIndex: placement?.zIndex ?? rule.zIndex,
         objectPosition: position.objectPosition,
         slotName,
-        positionX: placement?.positionX ?? 0,
-        positionY: placement?.positionY ?? 0,
+        positionX: placement?.positionX ?? rule.defaultPositionX,
+        positionY: placement?.positionY ?? rule.defaultPositionY,
       }
     })
     .filter((layer): layer is ResolvedLayer => Boolean(layer))

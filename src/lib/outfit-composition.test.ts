@@ -89,7 +89,8 @@ describe('browser outfit composition v4', () => {
     expect(sideTee).toMatchObject({ zIndex: 0 })
     expect(mainTee).toMatchObject({ zIndex: 50 })
     expect(sideTee!.width).toBeLessThan(mainTee!.width)
-    expect(mainTee!.height).toBeCloseTo(440)
+    expect(mainTee!.height).toBeCloseTo(396)
+    expect(mainTee!.top).toBeCloseTo(190)
   })
 
   it('normalizes portrait outerwear against the approved visible-height cap', () => {
@@ -106,10 +107,12 @@ describe('browser outfit composition v4', () => {
     const cardiganLayer = layers.find((layer) => layer.item.id === cardigan.id)!
     const jacketLayer = layers.find((layer) => layer.item.id === jacket.id)!
 
-    expect(cardiganLayer.width).toBeCloseTo(620)
-    expect(cardiganLayer.height).toBeCloseTo(354.95, 1)
-    expect(jacketLayer.height).toBeCloseTo(500)
-    expect(jacketLayer.width).toBeCloseTo(448.13, 1)
+    expect(cardiganLayer.width).toBeCloseTo(558)
+    expect(cardiganLayer.height).toBeCloseTo(319.45, 1)
+    expect(cardiganLayer.top).toBeCloseTo(174)
+    expect(jacketLayer.height).toBeCloseTo(450)
+    expect(jacketLayer.width).toBeCloseTo(403.31, 1)
+    expect(jacketLayer.top).toBeCloseTo(174)
   })
 
   it('keeps a default gap between the hem and shoes without removing saved offsets', () => {
@@ -136,7 +139,7 @@ describe('browser outfit composition v4', () => {
     const skirtLayer = layers.find((layer) => layer.item.id === skirt.id)!
     const shoesLayer = layers.find((layer) => layer.item.id === shoes.id)!
 
-    expect(shoesLayer.top - (skirtLayer.top + skirtLayer.height)).toBeCloseTo(24)
+    expect(shoesLayer.top - (skirtLayer.top + skirtLayer.height)).toBeCloseTo(4)
   })
 
   it('uses the tighter default hem gap and the reduced shoe baseline', () => {
@@ -155,11 +158,11 @@ describe('browser outfit composition v4', () => {
 
     expect(shoesLayer.width).toBeCloseTo(148.43)
     expect(shoesLayer.height).toBeCloseTo(148.43)
-    expect(shoesLayer.top + shoesLayer.height).toBeCloseTo(1123)
-    expect(shoesLayer.top - (skirtLayer.top + skirtLayer.height)).toBeCloseTo(16)
+    expect(shoesLayer.top + shoesLayer.height).toBeCloseTo(1103)
+    expect(shoesLayer.top - (skirtLayer.top + skirtLayer.height)).toBeCloseTo(-4)
   })
 
-  it('moves the top-layer bag 40px toward the main column', () => {
+  it('uses the learned larger and left-shifted bag baseline', () => {
     const bag = item('bag', 'Bags')
     const outfit: Outfit = {
       id: 'outfit',
@@ -169,8 +172,9 @@ describe('browser outfit composition v4', () => {
     }
 
     const bagLayer = composeOutfitLayers(outfit, [bag])[0]
-    expect(bagLayer.left).toBeCloseTo(579.6)
-    expect(bagLayer.left + bagLayer.width / 2).toBeCloseTo(685)
+    expect(bagLayer.width).toBeCloseTo(252.96)
+    expect(bagLayer.left).toBeCloseTo(530.52)
+    expect(bagLayer.left + bagLayer.width / 2).toBeCloseTo(657)
     expect(bagLayer.zIndex).toBe(80)
   })
 
@@ -206,7 +210,7 @@ describe('browser outfit composition v4', () => {
     })
   })
 
-  it('applies the saved item scale without changing the slot anchor', () => {
+  it('keeps an explicit saved placement above the learned category defaults', () => {
     const outer = item('outer', 'Outer-Cardigan', 100, 100)
     const base: Outfit = {
       id: 'outfit',
@@ -230,10 +234,15 @@ describe('browser outfit composition v4', () => {
 
     const originalLayer = composeOutfitLayers(base, [outer])[0]
     const resizedLayer = composeOutfitLayers(resized, [outer])[0]
+    expect(originalLayer).toMatchObject({
+      top: 174,
+      width: 450,
+      height: 450,
+    })
     expect(resizedLayer).toMatchObject({
-      top: originalLayer.top,
-      width: originalLayer.width * 1.1,
-      height: originalLayer.height * 1.1,
+      top: 150,
+      width: 550,
+      height: 550,
     })
     expect(resizedLayer.left + resizedLayer.width / 2).toBeCloseTo(
       originalLayer.left + originalLayer.width / 2,

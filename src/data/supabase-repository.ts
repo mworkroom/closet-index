@@ -120,6 +120,12 @@ function numericValue(value: number | string | null, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
+function nullableNumericValue(value: number | string | null) {
+  if (value === null) return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 export class SupabaseRepository implements ClosetRepository {
   private readonly imageUrlCache = new SignedImageUrlCache()
 
@@ -241,10 +247,9 @@ export class SupabaseRepository implements ClosetRepository {
         .map((link) => ({
           itemId: link.item_id,
           slot: link.slot,
-          positionX: numericValue(link.position_x),
-          positionY: numericValue(link.position_y),
-          itemScale:
-            link.scale === null ? null : numericValue(link.scale, 1),
+          positionX: nullableNumericValue(link.position_x),
+          positionY: nullableNumericValue(link.position_y),
+          itemScale: nullableNumericValue(link.scale),
           zIndex: link.z_index,
         })),
       preview: imageAssets.outfitPreviews.get(row.id) ?? null,
