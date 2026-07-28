@@ -179,7 +179,7 @@ Batch 2에서 가로로 넓은 Batch 0 가디건과 세로형 후드 재킷·티
 
 ### 4.3 composition v4와 J 배치 기본값
 
-composition v4에서는 iPhone 실사용 확인을 반영해 신발 `visualScale`을 23.94%, 하의·원피스와 신발 사이 기준 간격을 16px로 조정하고 가방 slot을 주열 쪽으로 40px 옮겼다.
+composition v4에서는 iPhone 실사용 확인을 반영해 신발 category 기준 `visualScale`을 26.6%로 유지하면서 placement 기본 크기를 90%로 표시한다. 하의·원피스와 신발 사이 기준 간격은 16px로 조정하고 가방 slot은 주열 쪽으로 40px 옮겼다.
 
 이후 Supabase에 저장된 15개 Outfit·35개 Item 배치를 읽기 전용으로 집계한 결과, 다음 수정 방향이 반복됐다.
 
@@ -187,10 +187,12 @@ composition v4에서는 iPhone 실사용 확인을 반영해 신발 `visualScale
 |---|---:|
 | 아우터 | 크기 90%, 아래 24px |
 | 아우터 없이 주열에 놓는 일반 상의 | 크기 90%, 아래 40px |
-| 신발 | 위 20px |
-| 가방 | 크기 120%, 왼쪽 28px |
+| 신발 | 크기 90%, 위 20px |
+| 가방 | 크기 100%, 왼쪽 28px |
 
 이 값은 `visualScale`이나 개별 저장값을 일괄 덮어쓰지 않는 placement 기본값이다. Supabase의 `position_x`, `position_y`, `scale`이 `NULL`인 미수정 Item에만 사용하며, 숫자가 저장된 Item은 `0`, `1`을 포함해 기존 명시값을 우선한다. 따라서 이미 J가 수정한 Outfit은 현재 모습을 유지하고, 아직 수정하지 않은 Outfit만 반복된 선호를 초기 배치로 받는다.
+
+신발 크기를 바꿀 때 하의가 함께 움직이지 않도록 하의·신발 간격 계산은 신발의 90% 기본 크기를 기준으로 고정한다. 사용자가 신발을 확대·축소해도 신발 layer만 달라지고 하의의 위치와 크기는 유지된다.
 
 아우터와 함께 오른쪽 보조열에 놓이는 `Top-T-shirts`, `Top-T-shirts-innerwear`, 하의, 목 액세서리, 양말은 현재 표본이 부족하거나 수정 방향이 달라 공통 placement 기본값을 추가하지 않는다.
 

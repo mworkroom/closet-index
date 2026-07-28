@@ -151,6 +151,7 @@ interface ResolvedLayer extends OutfitCompositionLayer {
   slotName: keyof typeof compositionConfig.slots
   positionX: number
   positionY: number
+  gapReferenceTop: number | undefined
 }
 
 function applyHemToShoesGap(layers: ResolvedLayer[]) {
@@ -158,7 +159,7 @@ function applyHemToShoesGap(layers: ResolvedLayer[]) {
   const shoes = layers.find((layer) => layer.slotName === 'main-shoes')
   if (!shoes) return
 
-  const maximumHemBottom = shoes.top - gap
+  const maximumHemBottom = (shoes.gapReferenceTop ?? shoes.top) - gap
   for (const layer of layers) {
     if (
       layer.slotName !== 'main-bottom' &&
@@ -208,6 +209,28 @@ export function composeOutfitLayers(
         targetHeight,
       )
       const position = positionForSlot(slot, width, height)
+      let gapReferenceTop: number | undefined
+      if (slotName === 'main-shoes') {
+        const defaultTargetWidth =
+          compositionConfig.itemTemplate.width *
+          rule.visualScale *
+          rule.defaultScale
+        const defaultTargetHeight =
+          (rule.visualHeight ??
+            compositionConfig.itemTemplate.height * rule.visualScale) *
+          rule.defaultScale
+        const defaultSize = fitInside(
+          item.image?.widthPx ?? null,
+          item.image?.heightPx ?? null,
+          defaultTargetWidth,
+          defaultTargetHeight,
+        )
+        gapReferenceTop = positionForSlot(
+          slot,
+          defaultSize.width,
+          defaultSize.height,
+        ).top
+      }
 
       return {
         item,
@@ -220,6 +243,7 @@ export function composeOutfitLayers(
         slotName,
         positionX: placement?.positionX ?? rule.defaultPositionX,
         positionY: placement?.positionY ?? rule.defaultPositionY,
+        gapReferenceTop,
       }
     })
     .filter((layer): layer is ResolvedLayer => Boolean(layer))
@@ -227,11 +251,19 @@ export function composeOutfitLayers(
   applyHemToShoesGap(layers)
 
   return layers
-    .map(({ slotName: _slotName, positionX, positionY, ...layer }) => ({
-      ...layer,
-      left: layer.left + positionX,
-      top: layer.top + positionY,
-    }))
+    .map(
+      ({
+        slotName: _slotName,
+        positionX,
+        positionY,
+        gapReferenceTop: _gapReferenceTop,
+        ...layer
+      }) => ({
+        ...layer,
+        left: layer.left + positionX,
+        top: layer.top + positionY,
+      }),
+    )
     .sort(
       (left, right) =>
         left.zIndex - right.zIndex || left.item.id.localeCompare(right.item.id),

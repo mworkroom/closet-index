@@ -199,12 +199,12 @@ describe('OutfitPositionEditor', () => {
 
     await user.click(screen.getByRole('button', { name: /신발/ }))
     expect(
-      screen.getByText('좌우 0px · 상하 -20px · 크기 100%'),
+      screen.getByText('좌우 0px · 상하 -20px · 크기 90%'),
     ).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /가방/ }))
     expect(
-      screen.getByText('좌우 -28px · 상하 0px · 크기 120%'),
+      screen.getByText('좌우 -28px · 상하 0px · 크기 100%'),
     ).toBeInTheDocument()
 
     await user.click(
@@ -212,14 +212,14 @@ describe('OutfitPositionEditor', () => {
     )
     await user.click(screen.getByRole('button', { name: '가방 5% 축소' }))
     expect(
-      screen.getByText('좌우 -24px · 상하 0px · 크기 115%'),
+      screen.getByText('좌우 -24px · 상하 0px · 크기 95%'),
     ).toBeInTheDocument()
 
     await user.click(
       screen.getByRole('button', { name: '가방 원위치와 원래 크기' }),
     )
     expect(
-      screen.getByText('좌우 -28px · 상하 0px · 크기 120%'),
+      screen.getByText('좌우 -28px · 상하 0px · 크기 100%'),
     ).toBeInTheDocument()
   })
 

@@ -162,7 +162,7 @@ describe('browser outfit composition v4', () => {
     expect(shoesLayer.top - (skirtLayer.top + skirtLayer.height)).toBeCloseTo(-4)
   })
 
-  it('uses the learned larger and left-shifted bag baseline', () => {
+  it('uses the 100% and left-shifted bag baseline', () => {
     const bag = item('bag', 'Bags')
     const outfit: Outfit = {
       id: 'outfit',
@@ -172,10 +172,53 @@ describe('browser outfit composition v4', () => {
     }
 
     const bagLayer = composeOutfitLayers(outfit, [bag])[0]
-    expect(bagLayer.width).toBeCloseTo(252.96)
-    expect(bagLayer.left).toBeCloseTo(530.52)
+    expect(bagLayer.width).toBeCloseTo(210.8)
+    expect(bagLayer.left).toBeCloseTo(551.6)
     expect(bagLayer.left + bagLayer.width / 2).toBeCloseTo(657)
     expect(bagLayer.zIndex).toBe(80)
+  })
+
+  it('keeps the bottom unchanged when only the shoes are resized', () => {
+    const skirt = item('skirt', 'Bottom-Skirts', 621, 1219)
+    const shoes = item('shoes', 'Shoes')
+    const base: Outfit = {
+      id: 'outfit',
+      displayName: null,
+      rating: null,
+      itemIds: [skirt.id, shoes.id],
+    }
+    const resizedShoes: Outfit = {
+      ...base,
+      itemPlacements: [
+        {
+          itemId: shoes.id,
+          slot: null,
+          positionX: null,
+          positionY: null,
+          itemScale: 1.1,
+          zIndex: null,
+        },
+      ],
+    }
+
+    const baseLayers = composeOutfitLayers(base, [skirt, shoes])
+    const resizedLayers = composeOutfitLayers(resizedShoes, [skirt, shoes])
+    const baseSkirt = baseLayers.find((layer) => layer.item.id === skirt.id)!
+    const resizedSkirt = resizedLayers.find(
+      (layer) => layer.item.id === skirt.id,
+    )!
+    const baseShoes = baseLayers.find((layer) => layer.item.id === shoes.id)!
+    const resizedShoesLayer = resizedLayers.find(
+      (layer) => layer.item.id === shoes.id,
+    )!
+
+    expect(resizedSkirt).toMatchObject({
+      left: baseSkirt.left,
+      top: baseSkirt.top,
+      width: baseSkirt.width,
+      height: baseSkirt.height,
+    })
+    expect(resizedShoesLayer.width).toBeGreaterThan(baseShoes.width)
   })
 
   it('applies saved 4px position offsets without changing size', () => {
