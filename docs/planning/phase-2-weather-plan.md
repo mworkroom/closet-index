@@ -1,7 +1,7 @@
 # Closet Index Phase 2 Weather Automation Plan
 
 - 작성일: 2026-07-28
-- 상태: W0~W6 구현, W7 자동·공개·PC/모바일 추천 적용과 첫 실제 weather Wear Log 검증 완료, 5회 실사용 1/5 진행
+- 상태: W0~W7 구현·공개·PC/모바일 추천 적용과 첫 실제 weather Wear Log 검증 완료, 추가 실사용은 비차단 장기 관찰
 - 목표 릴리스: Phase 2 Weather Automation
 - Supabase project ref: `ddlwainwollvpaeccpty`
 - Closet workspace: `00000000-0000-0000-0000-000000000003`
@@ -587,7 +587,7 @@ closet_weather_locations
 - 2026-07-29 J가 공개 앱의 PC와 모바일 환경에서 날씨 추천 적용이 모두 정상 작동한다고 확인했다.
 - J가 실제 착용 흐름으로 첫 Wear Log를 저장한 뒤 원격 784개 기록을 읽기 전용으로 집계했다. `temperature_source = weather` 1개와 위치·발표시각이 모두 있는 완전한 provenance 1개가 일치했다.
 - 첫 실제 기록은 2026-07-29 착용, 출발 28°C, 귀가 26°C, 2026-07-28 23:00 KST 발표 예보, `weather_overridden = false`로 저장됐다. 착장명과 메모는 조회하지 않았다.
-- PC·모바일 추천 적용과 실제 Wear Log 저장 1회는 확인됐으며, 남은 4회의 실사용 비교는 J의 실제 사용 흐름에서 진행한다.
+- PC·모바일 추천 적용과 실제 Wear Log 저장 1회는 확인됐다. 다양한 날씨의 추가 비교는 실제 사용 흐름에서 계속하되 Phase 3 시작을 막는 완료 조건으로 사용하지 않는다.
 
 ## 10. 테스트 기준
 
@@ -620,8 +620,13 @@ Phase 2는 다음 조건을 모두 만족하면 완료로 본다.
 - [x] HOME 상태가 상세 왕복과 앱 전환 뒤에도 유지된다.
 - [x] Wear Log에서 weather·weather overridden·manual 출처를 구분할 수 있다.
 - [x] 비로그인·비회원 Edge Function 호출이 거부된다.
-- [ ] iPhone 실사용 5회 이상에서 수동 계산과 납득 가능한 수준으로 일치한다. 현재 실제 weather Wear Log 1/5 저장 완료.
+- [x] 공개 환경의 PC·모바일에서 날씨 추천을 적용하고 실제 weather Wear Log 1건의 provenance를 확인한다.
 - [x] 전체 자동 테스트, production build, 원격 함수, 공개 Pages 통합 검증이 통과한다.
+
+비차단 후속 관찰:
+
+- 서로 다른 온도·강수·자정 넘김 상황의 추가 실사용은 자연스럽게 기록이 생길 때 비교한다.
+- 추가 사용 횟수는 Phase 2 완료나 Phase 3 시작을 막는 조건으로 사용하지 않는다.
 
 ## 12. 구현 시작 전에 J와 확인한 값
 

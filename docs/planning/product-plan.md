@@ -3,7 +3,7 @@
 - 최종 수정일: 2026-07-26
 - 문서 상태: 제품 기준선
 - 대상 릴리스: v1.0 및 이후 Roadmap
-- 관련 문서: [Roadmap](./roadmap.md), [Phase 1 MVP Spec](./phase-1-mvp-spec.md), [Phase 2 Weather Plan](./phase-2-weather-plan.md)
+- 관련 문서: [Roadmap](./roadmap.md), [Phase 1 MVP Spec](./phase-1-mvp-spec.md), [Phase 2 Weather Plan](./phase-2-weather-plan.md), [Phase 3 Visual Wardrobe Plan](./phase-3-visual-wardrobe-plan.md)
 
 ## 1. 문서의 역할
 

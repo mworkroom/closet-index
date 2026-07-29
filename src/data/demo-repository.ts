@@ -1,4 +1,12 @@
 import type {
+  Item,
+  ItemCreateInput,
+  ItemImageUploadInput,
+  ItemWriteInput,
+  MatchingOutfit,
+  Outfit,
+  OutfitCloneInput,
+  OutfitCreateInput,
   OutfitItemPositionInput,
   WeatherForecastRequest,
   WeatherForecastResponse,
@@ -12,6 +20,35 @@ import type { ClosetRepository } from './repository'
 
 const STORAGE_KEY = 'closet-index-demo-data-v3'
 
+function normalizeItem(input: ItemWriteInput, id: string): Item {
+  const name = input.name.trim()
+  const category = input.category.trim()
+  if (!name) throw new Error('Item 이름을 입력해 주세요.')
+  if (!category) throw new Error('Item 카테고리를 선택해 주세요.')
+  if (!/^#[0-9A-Fa-f]{6}$/.test(input.displayHex)) {
+    throw new Error('fallback 색상은 6자리 HEX여야 합니다.')
+  }
+
+  return {
+    id,
+    name,
+    category,
+    semanticColor: input.semanticColor?.trim() || null,
+    displayHex: input.displayHex.toUpperCase(),
+    seasons: [...input.seasons],
+    retired: false,
+    rainOk: input.rainOk,
+    longWalkOk: input.longWalkOk,
+    memo: input.memo?.trim() || null,
+    acquiredOn: input.acquiredOn,
+    image: null,
+  }
+}
+
+function itemSetKey(itemIds: string[]) {
+  return [...new Set(itemIds)].sort().join('\n')
+}
+
 function cloneDemoData() {
   return structuredClone(demoData)
 }
@@ -23,6 +60,7 @@ function readData() {
   try {
     const data = JSON.parse(stored) as typeof demoData
     data.weatherLocations ??= structuredClone(demoData.weatherLocations)
+    for (const outfit of data.outfits) outfit.archivedAt ??= null
     data.wearLogs = data.wearLogs.map((log) => {
       const normalized = { ...log }
       normalized.temperatureSource ??= 'notion'
@@ -41,9 +79,70 @@ function writeData(data: typeof demoData) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
 }
 
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.addEventListener('load', () => resolve(String(reader.result)))
+    reader.addEventListener('error', () =>
+      reject(new Error('이미지 미리보기를 저장하지 못했습니다.')),
+    )
+    reader.readAsDataURL(blob)
+  })
+}
+
 export class DemoRepository implements ClosetRepository {
   async load() {
     return readData()
+  }
+
+  async createItem(input: ItemCreateInput) {
+    const data = readData()
+    const existing = data.items.find((item) => item.id === input.id)
+    if (existing) return existing
+
+    const item = normalizeItem(input, input.id)
+    data.items.push(item)
+    writeData(data)
+    return item
+  }
+
+  async updateItem(itemId: string, input: ItemWriteInput) {
+    const data = readData()
+    const index = data.items.findIndex((item) => item.id === itemId)
+    if (index < 0) throw new Error('Item을 찾을 수 없습니다.')
+
+    const current = data.items[index]
+    const item = {
+      ...normalizeItem(input, itemId),
+      retired: current.retired,
+      image: current.image ?? null,
+    }
+    data.items[index] = item
+    writeData(data)
+    return item
+  }
+
+  async replaceItemImage(itemId: string, input: ItemImageUploadInput) {
+    const data = readData()
+    const item = data.items.find((entry) => entry.id === itemId)
+    if (!item) throw new Error('Item을 찾을 수 없습니다.')
+    item.image = {
+      id: crypto.randomUUID(),
+      storagePath: `demo/items/${itemId}/cutout.webp`,
+      url: await blobToDataUrl(input.blob),
+      widthPx: input.widthPx,
+      heightPx: input.heightPx,
+      expiresAt: null,
+    }
+    writeData(data)
+  }
+
+  async setItemRetired(itemId: string, retired: boolean) {
+    const data = readData()
+    const item = data.items.find((entry) => entry.id === itemId)
+    if (!item) throw new Error('Item을 찾을 수 없습니다.')
+    item.retired = retired
+    writeData(data)
   }
 
   async updateItemSuitability(
@@ -84,6 +183,103 @@ export class DemoRepository implements ClosetRepository {
         zIndex: null,
       })
     }
+    writeData(data)
+  }
+
+  async findMatchingOutfits(itemIds: string[]): Promise<MatchingOutfit[]> {
+    const targetKey = itemSetKey(itemIds)
+    if (!targetKey || new Set(itemIds).size !== itemIds.length) {
+      throw new Error('Outfit Item은 비어 있지 않고 중복이 없어야 합니다.')
+    }
+
+    return readData()
+      .outfits.filter((outfit) => itemSetKey(outfit.itemIds) === targetKey)
+      .map((outfit) => ({
+        id: outfit.id,
+        displayName: outfit.displayName,
+        rating: outfit.rating,
+        archivedAt: outfit.archivedAt ?? null,
+      }))
+  }
+
+  async createOutfit(input: OutfitCreateInput): Promise<Outfit> {
+    const data = readData()
+    const existing = data.outfits.find((outfit) => outfit.id === input.id)
+    if (existing) return existing
+    if (input.items.length === 0) {
+      throw new Error('Outfit에는 Item이 하나 이상 필요합니다.')
+    }
+
+    const itemIds = input.items.map((item) => item.itemId)
+    if (new Set(itemIds).size !== itemIds.length) {
+      throw new Error('같은 Item을 Outfit에 두 번 넣을 수 없습니다.')
+    }
+    if (itemIds.some((itemId) => !data.items.some((item) => item.id === itemId))) {
+      throw new Error('Outfit Item을 찾을 수 없습니다.')
+    }
+
+    const targetKey = itemSetKey(itemIds)
+    const duplicates = data.outfits.filter(
+      (outfit) => itemSetKey(outfit.itemIds) === targetKey,
+    )
+    if (!input.allowDuplicate && duplicates.length > 0) {
+      throw new Error('같은 Item 조합의 Outfit이 이미 있습니다.')
+    }
+
+    const outfit: Outfit = {
+      id: input.id,
+      displayName: input.displayName?.trim() || null,
+      rating: null,
+      archivedAt: null,
+      itemIds,
+      itemPlacements: input.items.map((item) => ({
+        itemId: item.itemId,
+        slot: item.slot,
+        positionX: item.positionX,
+        positionY: item.positionY,
+        itemScale: item.itemScale,
+        zIndex: item.zIndex,
+      })),
+      preview: null,
+    }
+    data.outfits.push(outfit)
+    writeData(data)
+    return outfit
+  }
+
+  async cloneOutfit(input: OutfitCloneInput): Promise<Outfit> {
+    const data = readData()
+    const source = data.outfits.find(
+      (outfit) => outfit.id === input.sourceOutfitId,
+    )
+    if (!source) throw new Error('복제할 Outfit을 찾을 수 없습니다.')
+
+    return this.createOutfit({
+      id: input.id,
+      displayName: input.displayName ?? source.displayName,
+      allowDuplicate: true,
+      items: source.itemIds.map((itemId, index) => {
+        const placement = source.itemPlacements?.find(
+          (entry) => entry.itemId === itemId,
+        )
+        return {
+          itemId,
+          slot: placement?.slot ?? null,
+          sortOrder: index,
+          positionX: placement?.positionX ?? null,
+          positionY: placement?.positionY ?? null,
+          itemScale: placement?.itemScale ?? null,
+          zIndex: placement?.zIndex ?? null,
+        }
+      }),
+    })
+  }
+
+  async setOutfitArchived(outfitId: string, archived: boolean) {
+    const data = readData()
+    const outfit = data.outfits.find((entry) => entry.id === outfitId)
+    if (!outfit) throw new Error('Outfit을 찾을 수 없습니다.')
+    outfit.archivedAt = archived ? new Date().toISOString() : null
     writeData(data)
   }
 

@@ -11,6 +11,7 @@ import { CalendarPage } from './pages/CalendarPage'
 import { ClosetPage } from './pages/ClosetPage'
 import { HomePage } from './pages/HomePage'
 import { ItemDetailPage } from './pages/ItemDetailPage'
+import { ItemEditorPage } from './pages/ItemEditorPage'
 import { AccessDeniedPage, LoginPage } from './pages/LoginPage'
 import { LookbookPage } from './pages/LookbookPage'
 import { MorePage } from './pages/MorePage'
@@ -48,6 +49,8 @@ function AuthenticatedApp() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/closet" element={<ClosetPage />} />
+          <Route path="/closet/new" element={<ItemEditorPage />} />
+          <Route path="/closet/:itemId/edit" element={<ItemEditorPage />} />
           <Route path="/closet/:itemId" element={<ItemDetailPage />} />
           <Route path="/lookbook" element={<LookbookPage />} />
           <Route path="/favorite" element={<LookbookPage favoriteOnly />} />

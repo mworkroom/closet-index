@@ -1,7 +1,8 @@
 import { CloudRain, Footprints } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
+import { ItemImageEditor } from '../components/ItemImageEditor'
 import { ItemVisual } from '../components/ItemVisual'
 import { OutfitCard } from '../components/OutfitCard'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
@@ -11,12 +12,21 @@ import { getItemStats, getOutfitStats } from '../lib/outfits'
 
 export function ItemDetailPage() {
   const { itemId = '' } = useParams()
-  const { data, loading, error, refresh, updateItemSuitability } = useClosetData()
+  const {
+    data,
+    loading,
+    error,
+    refresh,
+    setItemRetired,
+    updateItemSuitability,
+  } = useClosetData()
   const item = data?.items.find((entry) => entry.id === itemId)
   const [rainOk, setRainOk] = useState(true)
   const [longWalkOk, setLongWalkOk] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [retireConfirming, setRetireConfirming] = useState(false)
+  const [retireSaving, setRetireSaving] = useState(false)
   const [visibleOutfitCount, setVisibleOutfitCount] = useState(9)
 
   useEffect(() => {
@@ -67,8 +77,35 @@ export function ItemDetailPage() {
     }
   }
 
+  const changeRetired = async (retired: boolean) => {
+    if (!item) return
+    setRetireSaving(true)
+    try {
+      await setItemRetired(item.id, retired)
+      setRetireConfirming(false)
+    } catch {
+      // DataContext owns the user-facing error state.
+    } finally {
+      setRetireSaving(false)
+    }
+  }
+
   return (
-    <AppShell title={item?.name ?? 'Item'} eyebrow="ITEM DETAIL" back>
+    <AppShell
+      title={item?.name ?? 'Item'}
+      eyebrow="ITEM DETAIL"
+      back
+      action={
+        item ? (
+          <Link
+            className="button button--secondary"
+            to={`/closet/${item.id}/edit`}
+          >
+            정보 수정
+          </Link>
+        ) : undefined
+      }
+    >
       {loading && <LoadingState />}
       {error && <ErrorState message={error} onRetry={() => void refresh()} />}
       {data && !item && (
@@ -120,6 +157,8 @@ export function ItemDetailPage() {
             </div>
           </section>
 
+          <ItemImageEditor item={item} />
+
           <section className="panel">
             <div className="section-heading">
               <div>
@@ -163,6 +202,59 @@ export function ItemDetailPage() {
               {saving ? '저장 중…' : '적합성 저장'}
             </button>
             {saved && <p className="success-message">저장했습니다.</p>}
+          </section>
+
+          <section className="panel item-lifecycle-panel">
+            <div>
+              <p className="eyebrow">LIFECYCLE</p>
+              <h2>{item.retired ? 'Retired Item' : '사용 중인 Item'}</h2>
+            </div>
+            <p>
+              {item.retired
+                ? '목록의 Retired 포함 필터에서 계속 확인할 수 있습니다.'
+                : '더 이상 사용하지 않는 Item은 기록을 지우지 않고 Retired로 전환합니다.'}
+            </p>
+            {item.retired ? (
+              <button
+                className="button button--secondary button--wide"
+                type="button"
+                disabled={retireSaving}
+                onClick={() => void changeRetired(false)}
+              >
+                {retireSaving ? '변경 중…' : '사용 중으로 되돌리기'}
+              </button>
+            ) : retireConfirming ? (
+              <div className="retire-confirmation" role="alert">
+                <strong>이 Item을 Retired로 전환할까요?</strong>
+                <p>기존 Outfit과 착용 기록은 그대로 유지됩니다.</p>
+                <div>
+                  <button
+                    className="button button--secondary"
+                    type="button"
+                    disabled={retireSaving}
+                    onClick={() => setRetireConfirming(false)}
+                  >
+                    취소
+                  </button>
+                  <button
+                    className="button button--primary"
+                    type="button"
+                    disabled={retireSaving}
+                    onClick={() => void changeRetired(true)}
+                  >
+                    {retireSaving ? '변경 중…' : 'Retired로 전환'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                className="button button--secondary button--wide"
+                type="button"
+                onClick={() => setRetireConfirming(true)}
+              >
+                Retired로 전환
+              </button>
+            )}
           </section>
 
           <section className="section">

@@ -7,7 +7,14 @@ import {
 import type {
   AppData,
   Item,
+  ItemCreateInput,
+  ItemImageUploadInput,
+  ItemWriteInput,
+  MatchingOutfit,
   Outfit,
+  OutfitCloneInput,
+  OutfitCreateInput,
+  OutfitItemWriteInput,
   OutfitItemPositionInput,
   ThermalFeeling,
   WeatherForecastRequest,
@@ -18,6 +25,7 @@ import type {
   WearLogInput,
 } from '../lib/types'
 import {
+  CLOSET_IMAGE_BUCKET,
   emptyReadyImageAssets,
   loadReadyImageAssets,
   SignedImageUrlCache,
@@ -33,12 +41,14 @@ interface ItemRow {
   name: string
   category: string
   semantic_color: string | null
+  palette_id?: string | null
   seasons: string[]
   retired: boolean
   rain_ok: boolean
   long_walk_ok: boolean
   memo: string | null
   acquired_on: string | null
+  display_hex?: string | null
   color_palette: PaletteRelation | PaletteRelation[] | null
 }
 
@@ -46,6 +56,7 @@ interface OutfitRow {
   id: string
   display_name: string | null
   rating: 'favorite' | 'ok' | 'error' | null
+  archived_at?: string | null
 }
 
 interface OutfitItemRow {
@@ -201,6 +212,51 @@ function paletteHex(value: ItemRow['color_palette']) {
   return value?.display_hex ?? '#B8B8B4'
 }
 
+function toItem(row: ItemRow, image: Item['image'] = null): Item {
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    semanticColor: row.semantic_color,
+    displayHex: row.display_hex ?? paletteHex(row.color_palette),
+    seasons: row.seasons ?? [],
+    retired: row.retired,
+    rainOk: row.rain_ok,
+    longWalkOk: row.long_walk_ok,
+    memo: row.memo,
+    acquiredOn: row.acquired_on,
+    image,
+  }
+}
+
+function itemMatchesInput(row: ItemRow, input: ItemCreateInput) {
+  return (
+    row.name === input.name.trim() &&
+    row.category === input.category.trim() &&
+    row.semantic_color === (input.semanticColor?.trim() || null) &&
+    (row.palette_id ?? null) === input.paletteId &&
+    (row.display_hex ?? paletteHex(row.color_palette)).toUpperCase() ===
+      input.displayHex.toUpperCase() &&
+    JSON.stringify(row.seasons ?? []) === JSON.stringify(input.seasons) &&
+    row.rain_ok === input.rainOk &&
+    row.long_walk_ok === input.longWalkOk &&
+    row.memo === (input.memo?.trim() || null) &&
+    row.acquired_on === input.acquiredOn
+  )
+}
+
+function toOutfitItemWriteRow(item: OutfitItemWriteInput) {
+  return {
+    item_id: item.itemId,
+    slot: item.slot,
+    sort_order: item.sortOrder,
+    position_x: item.positionX,
+    position_y: item.positionY,
+    item_scale: item.itemScale,
+    z_index: item.zIndex,
+  }
+}
+
 function toWearLog(row: WearLogRow): WearLog {
   return {
     id: row.id,
@@ -350,25 +406,15 @@ export class SupabaseRepository implements ClosetRepository {
     const outfitRows = (outfitsResult.data ?? []) as OutfitRow[]
     const links = (outfitItemsResult.data ?? []) as OutfitItemRow[]
 
-    const items: Item[] = itemRows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      category: row.category,
-      semanticColor: row.semantic_color,
-      displayHex: paletteHex(row.color_palette),
-      seasons: row.seasons ?? [],
-      retired: row.retired,
-      rainOk: row.rain_ok,
-      longWalkOk: row.long_walk_ok,
-      memo: row.memo,
-      acquiredOn: row.acquired_on,
-      image: imageAssets.itemImages.get(row.id) ?? null,
-    }))
+    const items: Item[] = itemRows.map((row) =>
+      toItem(row, imageAssets.itemImages.get(row.id) ?? null),
+    )
 
     const outfits: Outfit[] = outfitRows.map((row) => ({
       id: row.id,
       displayName: row.display_name,
       rating: row.rating,
+      archivedAt: row.archived_at ?? null,
       itemIds: links
         .filter((link) => link.outfit_id === row.id)
         .sort((a, b) => a.sort_order - b.sort_order)
@@ -399,6 +445,272 @@ export class SupabaseRepository implements ClosetRepository {
         (weatherLocationsResult.data ?? []) as WeatherLocationRow[]
       ).map(toWeatherLocation),
     }
+  }
+
+  async createItem(input: ItemCreateInput) {
+    const row = {
+      id: input.id,
+      workspace_id: this.workspaceId,
+      name: input.name.trim(),
+      category: input.category.trim(),
+      semantic_color: input.semanticColor?.trim() || null,
+      palette_id: input.paletteId,
+      display_hex: input.displayHex.toUpperCase(),
+      seasons: input.seasons,
+      rain_ok: input.rainOk,
+      long_walk_ok: input.longWalkOk,
+      memo: input.memo?.trim() || null,
+      acquired_on: input.acquiredOn,
+    }
+    const selection =
+      'id,name,category,semantic_color,palette_id,seasons,retired,rain_ok,long_walk_ok,memo,acquired_on,display_hex,color_palette:closet_color_palette(display_hex)'
+    const { data, error } = await this.client
+      .from('closet_items')
+      .insert(row)
+      .select(selection)
+      .single()
+
+    if (error?.code === '23505') {
+      const existing = await this.client
+        .from('closet_items')
+        .select(selection)
+        .eq('id', input.id)
+        .eq('workspace_id', this.workspaceId)
+        .maybeSingle()
+      if (!existing.error && existing.data) {
+        const existingRow = existing.data as unknown as ItemRow
+        if (itemMatchesInput(existingRow, input)) return toItem(existingRow)
+      }
+    }
+    if (error) throw error
+    return toItem(data as unknown as ItemRow)
+  }
+
+  async updateItem(itemId: string, input: ItemWriteInput) {
+    const selection =
+      'id,name,category,semantic_color,palette_id,seasons,retired,rain_ok,long_walk_ok,memo,acquired_on,display_hex,color_palette:closet_color_palette(display_hex)'
+    const { data, error } = await this.client
+      .from('closet_items')
+      .update({
+        name: input.name.trim(),
+        category: input.category.trim(),
+        semantic_color: input.semanticColor?.trim() || null,
+        palette_id: input.paletteId,
+        display_hex: input.displayHex.toUpperCase(),
+        seasons: input.seasons,
+        rain_ok: input.rainOk,
+        long_walk_ok: input.longWalkOk,
+        memo: input.memo?.trim() || null,
+        acquired_on: input.acquiredOn,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', itemId)
+      .eq('workspace_id', this.workspaceId)
+      .select(selection)
+      .maybeSingle()
+
+    if (error) throw error
+    if (!data) throw new Error('Item을 찾을 수 없습니다.')
+    return toItem(data as unknown as ItemRow)
+  }
+
+  async replaceItemImage(itemId: string, input: ItemImageUploadInput) {
+    const begin = await this.client.functions.invoke('closet-item-image', {
+      body: {
+        action: 'begin',
+        workspaceId: this.workspaceId,
+        itemId,
+        widthPx: input.widthPx,
+        heightPx: input.heightPx,
+        bytes: input.bytes,
+      },
+    })
+    if (begin.error) throw begin.error
+    const ticket = begin.data as {
+      imageId: string
+      storagePath: string
+      token: string
+      contentType: string
+    }
+
+    try {
+      const upload = await this.client.storage
+        .from(CLOSET_IMAGE_BUCKET)
+        .uploadToSignedUrl(
+          ticket.storagePath,
+          ticket.token,
+          input.blob,
+          {
+            contentType: 'image/webp',
+            cacheControl: '31536000',
+          },
+        )
+      if (upload.error) throw upload.error
+
+      const finalize = await this.client.functions.invoke(
+        'closet-item-image',
+        {
+          body: {
+            action: 'finalize',
+            workspaceId: this.workspaceId,
+            itemId,
+            imageId: ticket.imageId,
+          },
+        },
+      )
+      if (finalize.error) throw finalize.error
+    } catch (cause) {
+      try {
+        await this.client.functions.invoke('closet-item-image', {
+          body: {
+            action: 'cancel',
+            workspaceId: this.workspaceId,
+            itemId,
+            imageId: ticket.imageId,
+          },
+        })
+      } catch {
+        // A later orphan sweep can clean an interrupted pending upload.
+      }
+      throw cause
+    }
+  }
+
+  async setItemRetired(itemId: string, retired: boolean) {
+    const { data, error } = await this.client
+      .from('closet_items')
+      .update({
+        retired,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', itemId)
+      .eq('workspace_id', this.workspaceId)
+      .select('id')
+      .maybeSingle()
+
+    if (error) throw error
+    if (!data) throw new Error('Item을 찾을 수 없습니다.')
+  }
+
+  async findMatchingOutfits(itemIds: string[]): Promise<MatchingOutfit[]> {
+    const { data, error } = await this.client.rpc(
+      'find_matching_closet_outfits',
+      {
+        p_workspace_id: this.workspaceId,
+        p_item_ids: itemIds,
+      },
+    )
+    if (error) throw error
+
+    return (
+      (data ?? []) as Array<{
+        id: string
+        display_name: string | null
+        rating: Outfit['rating']
+        archived_at: string | null
+      }>
+    ).map((row) => ({
+      id: row.id,
+      displayName: row.display_name,
+      rating: row.rating,
+      archivedAt: row.archived_at,
+    }))
+  }
+
+  async createOutfit(input: OutfitCreateInput): Promise<Outfit> {
+    const { data, error } = await this.client.rpc('create_closet_outfit', {
+      p_workspace_id: this.workspaceId,
+      p_outfit_id: input.id,
+      p_display_name: input.displayName?.trim() || null,
+      p_items: input.items.map(toOutfitItemWriteRow),
+      p_allow_duplicate: input.allowDuplicate,
+    })
+    if (error) throw error
+
+    const row = (Array.isArray(data) ? data[0] : data) as OutfitRow | null
+    if (!row) throw new Error('저장된 Outfit을 불러오지 못했습니다.')
+    return {
+      id: row.id,
+      displayName: row.display_name,
+      rating: row.rating,
+      archivedAt: row.archived_at ?? null,
+      itemIds: input.items.map((item) => item.itemId),
+      itemPlacements: input.items.map((item) => ({
+        itemId: item.itemId,
+        slot: item.slot,
+        positionX: item.positionX,
+        positionY: item.positionY,
+        itemScale: item.itemScale,
+        zIndex: item.zIndex,
+      })),
+      preview: null,
+    }
+  }
+
+  async cloneOutfit(input: OutfitCloneInput): Promise<Outfit> {
+    const { data, error } = await this.client.rpc('clone_closet_outfit', {
+      p_workspace_id: this.workspaceId,
+      p_source_outfit_id: input.sourceOutfitId,
+      p_outfit_id: input.id,
+      p_display_name: input.displayName?.trim() || null,
+    })
+    if (error) throw error
+
+    const row = (Array.isArray(data) ? data[0] : data) as OutfitRow | null
+    if (!row) throw new Error('복제된 Outfit을 불러오지 못했습니다.')
+    const relations = await collectAllPages<OutfitItemRow>(
+      async (from, to) => {
+        const result = await this.client
+          .from('closet_outfit_items')
+          .select(
+            'outfit_id,item_id,sort_order,slot,position_x,position_y,scale,z_index',
+          )
+          .eq('workspace_id', this.workspaceId)
+          .eq('outfit_id', input.id)
+          .order('sort_order')
+          .order('item_id')
+          .range(from, to)
+        return {
+          data: result.data as OutfitItemRow[] | null,
+          error: result.error,
+        }
+      },
+    )
+    if (relations.error) throw relations.error
+
+    const links = relations.data ?? []
+    return {
+      id: row.id,
+      displayName: row.display_name,
+      rating: row.rating,
+      archivedAt: row.archived_at ?? null,
+      itemIds: links.map((link) => link.item_id),
+      itemPlacements: links.map((link) => ({
+        itemId: link.item_id,
+        slot: link.slot,
+        positionX: nullableNumericValue(link.position_x),
+        positionY: nullableNumericValue(link.position_y),
+        itemScale: nullableNumericValue(link.scale),
+        zIndex: link.z_index,
+      })),
+      preview: null,
+    }
+  }
+
+  async setOutfitArchived(outfitId: string, archived: boolean) {
+    const { data, error } = await this.client
+      .from('closet_outfits')
+      .update({
+        archived_at: archived ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', outfitId)
+      .eq('workspace_id', this.workspaceId)
+      .select('id')
+      .maybeSingle()
+
+    if (error) throw error
+    if (!data) throw new Error('Outfit을 찾을 수 없습니다.')
   }
 
   async updateItemSuitability(

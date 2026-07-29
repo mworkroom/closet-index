@@ -435,6 +435,220 @@ button:disabled {
   width: 100%;
 }
 
+.item-editor-form {
+  display: grid;
+  gap: 18px;
+}
+
+.item-editor-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.item-editor-preview p,
+.item-editor-image-note > p,
+.item-lifecycle-panel > p,
+.retire-confirmation p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.item-editor-swatch {
+  width: 58px;
+  min-width: 58px;
+  height: 58px;
+  border: 1px solid rgba(37, 37, 37, 0.14);
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.55);
+}
+
+.item-editor-color-field {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.item-editor-color-field input[type='color'] {
+  width: 52px;
+  min-width: 52px;
+  padding: 5px;
+}
+
+.item-editor-seasons {
+  margin: 18px 0;
+  padding: 0;
+  border: 0;
+}
+
+.item-editor-seasons legend {
+  margin-bottom: 8px;
+  color: #4f4f4b;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.item-editor-check-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.item-editor-check-grid .check-row {
+  justify-content: center;
+  min-height: 44px;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+
+.item-editor-seasons .field-help {
+  margin: 8px 0 0;
+}
+
+.item-editor-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 10px;
+  position: sticky;
+  bottom: 82px;
+  z-index: 2;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+.duplicate-warning {
+  padding: 16px;
+  border: 1px solid #ddbc78;
+  border-radius: 16px;
+  background: #fff9eb;
+}
+
+.duplicate-warning ul {
+  margin: 10px 0 14px;
+  padding-left: 20px;
+}
+
+.duplicate-warning a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.item-lifecycle-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.item-image-editor {
+  display: grid;
+  gap: 14px;
+}
+
+.item-image-editor__intro {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.item-image-review {
+  display: grid;
+  gap: 12px;
+}
+
+.item-image-review__preview {
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background:
+    linear-gradient(45deg, #ecece8 25%, transparent 25%),
+    linear-gradient(-45deg, #ecece8 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #ecece8 75%),
+    linear-gradient(-45deg, transparent 75%, #ecece8 75%),
+    #f8f8f5;
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0;
+  background-size: 16px 16px;
+}
+
+.item-image-review__preview img {
+  width: 100%;
+  max-width: 260px;
+  height: 260px;
+  object-fit: contain;
+}
+
+.item-image-review dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.item-image-review dl > div {
+  display: grid;
+  gap: 3px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+
+.item-image-review dt {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.item-image-review dd {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.item-image-editor__warning {
+  margin: 0;
+  color: #765415;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.item-image-review .field-help {
+  margin: 0;
+}
+
+.item-image-review__actions {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 8px;
+}
+
+.retire-confirmation {
+  padding: 14px;
+  border: 1px solid #ddbc78;
+  border-radius: 14px;
+  background: #fff9eb;
+}
+
+.retire-confirmation > div {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 .icon-button {
   display: inline-flex;
   width: 44px;
@@ -2236,6 +2450,10 @@ button:disabled {
 
   .field-grid--two {
     grid-template-columns: 1fr;
+  }
+
+  .item-editor-check-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .weather-panel {
