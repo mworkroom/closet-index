@@ -10,6 +10,10 @@ import {
 } from 'react'
 import type {
   AppData,
+  Item,
+  ItemCreateInput,
+  ItemImageUploadInput,
+  ItemWriteInput,
   OutfitItemPositionInput,
   WeatherForecastRequest,
   WeatherForecastResponse,
@@ -24,6 +28,13 @@ interface DataState {
   loading: boolean
   error: string | null
   refresh: () => Promise<void>
+  createItem: (input: ItemCreateInput) => Promise<Item>
+  updateItem: (itemId: string, input: ItemWriteInput) => Promise<Item>
+  replaceItemImage: (
+    itemId: string,
+    input: ItemImageUploadInput,
+  ) => Promise<void>
+  setItemRetired: (itemId: string, retired: boolean) => Promise<void>
   updateItemSuitability: (
     itemId: string,
     rainOk: boolean,
@@ -153,12 +164,72 @@ export function DataProvider({
     [repository],
   )
 
+  const createItem = useCallback(
+    async (input: ItemCreateInput) => {
+      setError(null)
+      try {
+        const item = await repository.createItem(input)
+        setData((current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.some((entry) => entry.id === item.id)
+                  ? current.items.map((entry) =>
+                      entry.id === item.id ? item : entry,
+                    )
+                  : [...current.items, item],
+              }
+            : current,
+        )
+        return item
+      } catch (cause) {
+        const message =
+          cause instanceof Error ? cause.message : '저장하지 못했습니다.'
+        setError(message)
+        throw cause
+      }
+    },
+    [repository],
+  )
+
+  const updateItem = useCallback(
+    async (itemId: string, input: ItemWriteInput) => {
+      setError(null)
+      try {
+        const item = await repository.updateItem(itemId, input)
+        setData((current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.map((entry) =>
+                  entry.id === item.id ? item : entry,
+                ),
+              }
+            : current,
+        )
+        return item
+      } catch (cause) {
+        const message =
+          cause instanceof Error ? cause.message : '저장하지 못했습니다.'
+        setError(message)
+        throw cause
+      }
+    },
+    [repository],
+  )
+
   const value = useMemo<DataState>(
     () => ({
       data,
       loading,
       error,
       refresh,
+      createItem,
+      updateItem,
+      replaceItemImage: (itemId, input) =>
+        mutate(() => repository.replaceItemImage(itemId, input)),
+      setItemRetired: (itemId, retired) =>
+        mutate(() => repository.setItemRetired(itemId, retired)),
       updateItemSuitability: (itemId, rainOk, longWalkOk) =>
         mutate(() => repository.updateItemSuitability(itemId, rainOk, longWalkOk)),
       updateOutfitItemPosition,
@@ -169,7 +240,17 @@ export function DataProvider({
       updateWearLog: (id, input) => mutate(() => repository.updateWearLog(id, input)),
       deleteWearLog: (id) => mutate(() => repository.deleteWearLog(id)),
     }),
-    [data, error, loading, mutate, refresh, repository, updateOutfitItemPosition],
+    [
+      createItem,
+      data,
+      error,
+      loading,
+      mutate,
+      refresh,
+      repository,
+      updateItem,
+      updateOutfitItemPosition,
+    ],
   )
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

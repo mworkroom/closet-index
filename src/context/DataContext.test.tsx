@@ -65,7 +65,15 @@ describe('DataProvider outfit placement updates', () => {
     const user = userEvent.setup()
     const repository: ClosetRepository = {
       load: vi.fn(async () => structuredClone(appData)),
+      createItem: vi.fn(),
+      updateItem: vi.fn(),
+      replaceItemImage: vi.fn(async () => undefined),
+      setItemRetired: vi.fn(async () => undefined),
       updateItemSuitability: vi.fn(async () => undefined),
+      findMatchingOutfits: vi.fn(),
+      createOutfit: vi.fn(),
+      cloneOutfit: vi.fn(),
+      setOutfitArchived: vi.fn(async () => undefined),
       updateOutfitItemPosition: vi.fn(async () => undefined),
       saveDefaultWeatherLocation: vi.fn(),
       fetchWeatherForecast: vi.fn(),

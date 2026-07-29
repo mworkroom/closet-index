@@ -35,6 +35,60 @@ export interface OutfitItemPositionInput {
   itemScale: number
 }
 
+export interface ItemWriteInput {
+  name: string
+  category: string
+  semanticColor: string | null
+  paletteId: string | null
+  displayHex: string
+  seasons: string[]
+  rainOk: boolean
+  longWalkOk: boolean
+  memo: string | null
+  acquiredOn: string | null
+}
+
+export interface ItemCreateInput extends ItemWriteInput {
+  id: string
+}
+
+export interface ItemImageUploadInput {
+  blob: Blob
+  widthPx: number
+  heightPx: number
+  bytes: number
+}
+
+export interface OutfitItemWriteInput {
+  itemId: string
+  slot: string | null
+  sortOrder: number
+  positionX: number | null
+  positionY: number | null
+  itemScale: number | null
+  zIndex: number | null
+}
+
+export interface OutfitCreateInput {
+  id: string
+  displayName: string | null
+  items: OutfitItemWriteInput[]
+  allowDuplicate: boolean
+}
+
+export interface OutfitCloneInput {
+  id: string
+  sourceOutfitId: string
+  displayName: string | null
+}
+
+export interface MatchingOutfit {
+  id: string
+  displayName: string | null
+  rating: OutfitRating
+  archivedAt: string | null
+}
+
 export interface Item {
   id: string
   name: string
@@ -54,6 +108,7 @@ export interface Outfit {
   id: string
   displayName: string | null
   rating: OutfitRating
+  archivedAt?: string | null
   itemIds: string[]
   itemPlacements?: OutfitItemPlacement[]
   preview?: OutfitPreview | null

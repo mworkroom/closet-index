@@ -123,7 +123,15 @@ export function ClosetPage() {
   }
 
   return (
-    <AppShell title="Closet" eyebrow="ALL ITEMS">
+    <AppShell
+      title="Closet"
+      eyebrow="ALL ITEMS"
+      action={
+        <Link className="button button--primary" to="/closet/new">
+          새 Item
+        </Link>
+      }
+    >
       <section className="filter-panel">
         <SeasonScopeSummary />
         <label className="search-field">

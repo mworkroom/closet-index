@@ -2,8 +2,8 @@
 
 - 최종 수정일: 2026-07-29
 - 문서 상태: 기준 문서
-- 현재 위치: Phase 2 공개 배포와 첫 실제 weather Wear Log provenance 검증 완료, 5회 실사용 비교 1/5 진행 중
-- 관련 문서: [Product Plan](./product-plan.md), [Phase 1 MVP Spec](./phase-1-mvp-spec.md), [Implementation Status](./phase-1-implementation-status.md), [Phase 2 Weather Plan](./phase-2-weather-plan.md)
+- 현재 위치: Phase 2 구현·공개·실제 Wear Log 경로 검증 완료, Phase 3 구현 전 확인 대기
+- 관련 문서: [Product Plan](./product-plan.md), [Phase 1 MVP Spec](./phase-1-mvp-spec.md), [Implementation Status](./phase-1-implementation-status.md), [Phase 2 Weather Plan](./phase-2-weather-plan.md), [Phase 3 Visual Wardrobe Plan](./phase-3-visual-wardrobe-plan.md)
 
 ## 이 문서의 목적
 
@@ -159,6 +159,8 @@ J가 직접 온도를 확인하고 평균을 계산하던 과정을 자동화한
 
 ## Phase 3 — Visual Wardrobe Expansion
 
+- 상세 실행 계획: [Phase 3 Visual Wardrobe Expansion Plan](./phase-3-visual-wardrobe-plan.md)
+
 ### 목표
 
 대표 착장에 한정된 시각 경험을 전체 옷장과 새 착장 생성 흐름으로 확장한다.
@@ -198,7 +200,8 @@ Phase 4 기능은 실제 v1.0 사용에서 필요성이 확인된 항목부터 �
 
 ## 지금 다음으로 할 일
 
-1. [완료] 날씨 추천으로 실제 착용한 첫 Wear Log를 저장하고 weather provenance를 원격에서 읽기 전용으로 확인
-2. PC·모바일 실사용을 4회 더 반복해 수동 계산과 납득 가능한 수준으로 일치하는지 비교
-3. 두 조건이 충족되면 Phase 2 완료를 선언
-4. Phase 2 실사용 검증과 병행 가능한 Phase 3 시각 옷장 확장 범위를 별도 계획으로 구체화
+1. [완료] Phase 2 자동 테스트·공개 Pages·PC/모바일 추천 적용·첫 실제 weather Wear Log provenance 검증
+2. [완료] Phase 3 Visual Wardrobe Expansion 상세 계획 수립
+3. Phase 3 P3-0의 이미지 입력·삭제·원격 검증 범위를 J와 확인
+4. 원격 schema·RLS·Storage 상태를 읽기 전용으로 대조한 뒤 P3-1 쓰기 계약을 시작
+5. 추가 날씨 실사용은 Phase 3를 막지 않는 장기 관찰로 계속
