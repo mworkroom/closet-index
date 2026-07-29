@@ -1,0 +1,48 @@
+name: Phase 3 Supabase Contract Tests
+
+on:
+  push:
+    branches:
+      - codex/phase3-isolated-validation
+    paths:
+      - .github/workflows/phase3-supabase-contracts.yml
+      - supabase/migrations/**
+      - supabase/tests/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase3-supabase-contracts-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phase3-database-contracts:
+    name: P3-1 and P3-3 pgTAP
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      - name: Start isolated Supabase
+        run: >-
+          supabase start --yes
+          --exclude studio,imgproxy,inbucket,analytics,functions,edge-runtime,realtime,vector
+
+      - name: Run Phase 3 database contract tests
+        run: >-
+          supabase test db --local
+          supabase/tests/phase3_item_outfit_write_contract_test.sql
+          supabase/tests/phase3_item_image_upload_contract_test.sql
+
+      - name: Stop isolated Supabase
+        if: always()
+        run: supabase stop --no-backup
