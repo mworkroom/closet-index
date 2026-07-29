@@ -448,11 +448,12 @@ select is(
   'the clone receives independent relation rows'
 );
 
-select is_null(
-  (
+select ok(
+  exists (
     select rating
     from public.closet_outfits
     where id = '85000000-0000-0000-0000-000000000001'
+      and rating is null
   ),
   'cloning does not change the source rating'
 );
