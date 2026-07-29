@@ -173,8 +173,8 @@ describe('browser outfit composition v4', () => {
 
     const bagLayer = composeOutfitLayers(outfit, [bag])[0]
     expect(bagLayer.width).toBeCloseTo(210.8)
-    expect(bagLayer.left).toBeCloseTo(551.6)
-    expect(bagLayer.left + bagLayer.width / 2).toBeCloseTo(657)
+    expect(bagLayer.left).toBeCloseTo(499.6)
+    expect(bagLayer.left + bagLayer.width / 2).toBeCloseTo(605)
     expect(bagLayer.zIndex).toBe(80)
   })
 

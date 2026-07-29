@@ -34,48 +34,61 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - 90)
     const cutoffDate = cutoff.toISOString().slice(0, 10)
+    const lastWornOnByOutfit = new Map<string, string>()
+    for (const log of data.wearLogs) {
+      const current = lastWornOnByOutfit.get(log.outfitId)
+      if (!current || log.wornOn > current) {
+        lastWornOnByOutfit.set(log.outfitId, log.wornOn)
+      }
+    }
 
-    return data.outfits.filter((outfit) => {
-      const items = outfit.itemIds
-        .map((id) => data.items.find((item) => item.id === id))
-        .filter((item): item is (typeof data.items)[number] => Boolean(item))
-      const unavailable =
-        outfit.rating === 'error' ||
-        items.length !== outfit.itemIds.length ||
-        items.some((item) => item.retired)
-      if (!includeUnavailable && unavailable) return false
-      if ((favoriteOnly || favorite) && outfit.rating !== 'favorite') return false
-      if (!outfitMatchesSeasonScope(outfit, data.items, activeSeasons)) {
-        return false
-      }
-      if (
-        normalized &&
-        !`${outfitLabel(outfit, data.items)} ${items.map((item) => item.name).join(' ')}`
-          .toLocaleLowerCase('ko')
-          .includes(normalized)
-      ) {
-        return false
-      }
-      const logs = data.wearLogs.filter((log) => log.outfitId === outfit.id)
-      if (placeId && !logs.some((log) => log.placeId === placeId)) return false
-      if (notWornRecently) {
-        const last = getOutfitStats(outfit.id, data.wearLogs).lastWornOn
-        if (last && last > cutoffDate) return false
-      }
-      if (minTemp !== null || maxTemp !== null) {
-        const okTemps = logs.flatMap((log) => [
-          ...(log.feelingOut === 'ok' && log.tempOut !== null ? [log.tempOut] : []),
-          ...(log.feelingBack === 'ok' && log.tempBack !== null ? [log.tempBack] : []),
-        ])
-        const overlaps = okTemps.some(
-          (temp) =>
-            (minTemp === null || temp >= minTemp) &&
-            (maxTemp === null || temp <= maxTemp),
-        )
-        if (!overlaps) return false
-      }
-      return true
-    })
+    return data.outfits
+      .filter((outfit) => {
+        const items = outfit.itemIds
+          .map((id) => data.items.find((item) => item.id === id))
+          .filter((item): item is (typeof data.items)[number] => Boolean(item))
+        const unavailable =
+          outfit.rating === 'error' ||
+          items.length !== outfit.itemIds.length ||
+          items.some((item) => item.retired)
+        if (!includeUnavailable && unavailable) return false
+        if ((favoriteOnly || favorite) && outfit.rating !== 'favorite') return false
+        if (!outfitMatchesSeasonScope(outfit, data.items, activeSeasons)) {
+          return false
+        }
+        if (
+          normalized &&
+          !`${outfitLabel(outfit, data.items)} ${items.map((item) => item.name).join(' ')}`
+            .toLocaleLowerCase('ko')
+            .includes(normalized)
+        ) {
+          return false
+        }
+        const logs = data.wearLogs.filter((log) => log.outfitId === outfit.id)
+        if (placeId && !logs.some((log) => log.placeId === placeId)) return false
+        if (notWornRecently) {
+          const last = getOutfitStats(outfit.id, data.wearLogs).lastWornOn
+          if (last && last > cutoffDate) return false
+        }
+        if (minTemp !== null || maxTemp !== null) {
+          const okTemps = logs.flatMap((log) => [
+            ...(log.feelingOut === 'ok' && log.tempOut !== null ? [log.tempOut] : []),
+            ...(log.feelingBack === 'ok' && log.tempBack !== null ? [log.tempBack] : []),
+          ])
+          const overlaps = okTemps.some(
+            (temp) =>
+              (minTemp === null || temp >= minTemp) &&
+              (maxTemp === null || temp <= maxTemp),
+          )
+          if (!overlaps) return false
+        }
+        return true
+      })
+      .sort((a, b) =>
+        (lastWornOnByOutfit.get(b.id) ?? '').localeCompare(
+          lastWornOnByOutfit.get(a.id) ?? '',
+        ),
+      )
   }, [
     activeSeasons,
     data,

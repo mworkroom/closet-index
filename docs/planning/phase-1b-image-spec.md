@@ -188,7 +188,7 @@ composition v4에서는 iPhone 실사용 확인을 반영해 신발 category 기
 | 아우터 | 크기 90%, 아래 52px |
 | 아우터 없이 주열에 놓는 일반 상의 | 크기 90%, 아래 52px |
 | 신발 | 크기 80%, 위 20px |
-| 가방 | 크기 100%, 왼쪽 28px |
+| 가방 | 크기 100%, 왼쪽 80px |
 
 이 값은 `visualScale`이나 개별 저장값을 일괄 덮어쓰지 않는 placement 기본값이다. Supabase의 `position_x`, `position_y`, `scale`이 `NULL`인 미수정 Item에만 사용하며, 숫자가 저장된 Item은 `0`, `1`을 포함해 기존 명시값을 우선한다. 따라서 이미 J가 수정한 Outfit은 현재 모습을 유지하고, 아직 수정하지 않은 Outfit만 반복된 선호를 초기 배치로 받는다.
 

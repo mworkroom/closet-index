@@ -45,6 +45,17 @@ describe('Phase 1B screen visuals', () => {
     const grid = document.querySelector<HTMLElement>('.outfit-grid')
     expect(grid).toBeInTheDocument()
     expect(within(grid!).getAllByRole('link')).toHaveLength(5)
+    expect(
+      within(grid!)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href')),
+    ).toEqual([
+      '/outfits/outfit-summer',
+      '/outfits/outfit-favorite',
+      '/outfits/outfit-skirt',
+      '/outfits/outfit-layered',
+      '/outfits/outfit-unrated',
+    ])
     const favoriteOutfit = demoData.outfits.find(
       (outfit) => outfit.id === 'outfit-favorite',
     )
