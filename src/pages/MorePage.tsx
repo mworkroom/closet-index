@@ -12,7 +12,7 @@ const links = [
   {
     to: '/statistics',
     title: 'Statistics',
-    description: 'Outfit과 Item 착용 집계',
+    description: '착용 기록과 상세 카테고리별 보유 집계',
     icon: BarChart3,
   },
   {

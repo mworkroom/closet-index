@@ -138,8 +138,9 @@
       "slot": "main-waist",
       "zIndex": 55,
       "visualWidth": 600,
-      "visualHeight": 260,
-      "fit": "fill"
+      "defaultPositionX": -100,
+      "defaultPositionY": 0,
+      "defaultScale": 0.7
     },
     {
       "match": "prefix",

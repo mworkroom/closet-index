@@ -4,6 +4,7 @@ import { AppShell } from '../components/AppShell'
 import { ErrorState, LoadingState } from '../components/States'
 import { Swatch } from '../components/Swatch'
 import { useClosetData } from '../context/DataContext'
+import { getItemCategoryStatistics } from '../lib/item-categories'
 import { getItemStats, getOutfitStats, outfitLabel } from '../lib/outfits'
 
 export function StatisticsPage() {
@@ -40,6 +41,10 @@ export function StatisticsPage() {
         : [],
     [data],
   )
+  const categoryGroups = useMemo(
+    () => getItemCategoryStatistics(data?.items ?? []),
+    [data],
+  )
 
   return (
     <AppShell title="Statistics" eyebrow="BASIC COUNTS" back>
@@ -59,6 +64,46 @@ export function StatisticsPage() {
             <div>
               <span>Items</span>
               <strong>{data.items.length}</strong>
+            </div>
+          </section>
+
+          <section className="section">
+            <div className="section-heading">
+              <h2>카테고리별 보유</h2>
+              <span className="count">
+                {categoryGroups.reduce(
+                  (total, group) => total + group.categories.length,
+                  0,
+                )}
+                종류
+              </span>
+            </div>
+            <div className="category-stat-groups">
+              {categoryGroups.map((group) => (
+                <section
+                  className="category-stat-group"
+                  aria-labelledby={`category-group-${group.id}`}
+                  key={group.id}
+                >
+                  <div className="category-stat-group__heading">
+                    <h3 id={`category-group-${group.id}`}>{group.label}</h3>
+                    <span>
+                      전체 {group.totalCount}개 · 사용 중 {group.activeCount}개
+                    </span>
+                  </div>
+                  <dl className="category-stat-list">
+                    {group.categories.map((category) => (
+                      <div key={category.category}>
+                        <dt>{category.category}</dt>
+                        <dd>
+                          <strong>{category.totalCount}개</strong>
+                          <span>사용 중 {category.activeCount}개</span>
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+              ))}
             </div>
           </section>
 

@@ -151,7 +151,9 @@ Item 선택 기능:
 
 - 이름 검색
 - 현재 계절 범위
-- 카테고리
+- 상위 카테고리 그룹은 `Outer → Top → Bottom → Dress → Shoes → Bag → Acc` 순서로 표시
+- `Socks`는 `Acc`에 포함하고, 독립 `Innerwear` Item은 선택 대상에서 제외
+- `Top-T-shirts-innerwear`처럼 상위 접두사가 있는 상세 카테고리는 해당 상위 그룹에 포함
 - 색상 카테고리
 - 사용 중 Item 기본 표시
 - Retired Item은 명시적으로 포함할 때만 표시
@@ -451,7 +453,9 @@ Storage 객체와 database transaction은 하나로 묶을 수 없으므로 이�
 
 작업:
 
-- Item 검색·카테고리·색상·계절 필터
+- Item 검색·`Outer → Top → Bottom → Dress → Shoes → Bag → Acc` 상위 카테고리 그룹·색상·계절 필터
+- CLOSET과 같은 공통 `category → categoryGroup` 규칙을 사용하고 상세 category는 저장·통계·composition용으로 보존
+- `Socks`는 `Acc`에 포함하고 독립 `Innerwear` Item은 선택 대상에서 제외하되 Statistics 집계에는 유지
 - Item 추가·제거와 중복 선택 차단
 - composition v4 실시간 미리보기
 - Item별 위치·크기 조정

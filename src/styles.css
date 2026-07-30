@@ -2190,6 +2190,80 @@ button:disabled {
   font-size: 0.72rem;
 }
 
+.category-stat-groups {
+  display: grid;
+  gap: 12px;
+}
+
+.category-stat-group {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.category-stat-group__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--surface-soft);
+  padding: 12px 14px;
+}
+
+.category-stat-group__heading h3 {
+  margin: 0;
+  font-size: 0.96rem;
+}
+
+.category-stat-group__heading span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-align: right;
+}
+
+.category-stat-list {
+  margin: 0;
+}
+
+.category-stat-list > div {
+  display: flex;
+  min-height: 50px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding: 9px 14px;
+}
+
+.category-stat-list > div:first-child {
+  border-top: 0;
+}
+
+.category-stat-list dt {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.category-stat-list dd {
+  display: grid;
+  flex: none;
+  gap: 2px;
+  margin: 0;
+  text-align: right;
+}
+
+.category-stat-list dd strong {
+  font-size: 0.85rem;
+}
+
+.category-stat-list dd span {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
 .settings-card {
   display: grid;
   padding: 0 18px;

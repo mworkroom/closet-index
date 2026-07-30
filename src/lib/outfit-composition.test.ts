@@ -50,9 +50,16 @@ describe('browser outfit composition v4', () => {
       positionY: 0,
       itemScale: 1.5,
     })
+    expect(
+      getOutfitItemPlacementDefaults(item('waist', 'Acc-Waist'), false),
+    ).toEqual({
+      positionX: -100,
+      positionY: 0,
+      itemScale: 0.7,
+    })
   })
 
-  it('places a waist accessory over the top and bottom using a wrapped ratio', () => {
+  it('places a waist accessory over the top and bottom without changing its ratio', () => {
     const waist = item('waist', 'Acc-Waist', 672, 704)
     const top = item('top', 'Top-T-shirts')
     const bottom = item('bottom', 'Bottom-Skirts')
@@ -61,18 +68,28 @@ describe('browser outfit composition v4', () => {
       displayName: null,
       rating: null,
       itemIds: [top.id, bottom.id, waist.id],
+      itemPlacements: [
+        {
+          itemId: waist.id,
+          slot: null,
+          positionX: -100,
+          positionY: 16,
+          itemScale: 0.7,
+          zIndex: null,
+        },
+      ],
     }
 
     const layers = composeOutfitLayers(outfit, [top, bottom, waist])
     const waistLayer = layers.find((layer) => layer.item.id === waist.id)!
 
     expect(waistLayer).toMatchObject({
-      left: 210,
-      top: 500,
-      width: 600,
-      height: 260,
+      left: 200,
+      top: 516,
+      width: 420,
+      height: 440,
       zIndex: 55,
-      objectFit: 'fill',
+      objectFit: 'contain',
     })
     expect(layers.map((layer) => layer.item.id)).toEqual([
       'bottom',

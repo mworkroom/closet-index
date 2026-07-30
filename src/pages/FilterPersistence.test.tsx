@@ -45,15 +45,30 @@ describe('section filter persistence', () => {
     const first = renderCloset()
     const category = await screen.findByRole('combobox', { name: '카테고리' })
 
-    await user.selectOptions(category, 'Top-T-shirts')
-    expect(category).toHaveValue('Top-T-shirts')
+    await user.selectOptions(category, 'top')
+    expect(category).toHaveValue('top')
+    expect(
+      await screen.findByRole('link', {
+        name: '네이비 티셔츠 아이템 상세 보기',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', {
+        name: '아이보리 니트 아이템 상세 보기',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', {
+        name: '블루 가디건 아이템 상세 보기',
+      }),
+    ).not.toBeInTheDocument()
 
     first.unmount()
     renderCloset()
 
     expect(
       await screen.findByRole('combobox', { name: '카테고리' }),
-    ).toHaveValue('Top-T-shirts')
+    ).toHaveValue('top')
   })
 
   it('이전 날짜의 HOME 조건은 복원하지 않는다', async () => {

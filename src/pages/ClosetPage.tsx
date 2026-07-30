@@ -8,22 +8,29 @@ import { ItemVisual } from '../components/ItemVisual'
 import { useClosetData } from '../context/DataContext'
 import { useSeasonScope } from '../context/SeasonScopeContext'
 import { formatMonthDayYear } from '../lib/date'
+import {
+  getAvailableItemCategoryGroups,
+  isItemCategoryFilterGroupId,
+  isItemVisibleInWardrobeSelection,
+  itemMatchesCategoryGroup,
+  type ItemCategoryFilterGroupId,
+} from '../lib/item-categories'
 import { sortItems, type ItemSort } from '../lib/items'
 import { getItemStats } from '../lib/outfits'
 import { itemMatchesSeasonScope } from '../lib/seasons'
 
 const defaultSort: ItemSort = 'acquired-desc'
-const CLOSET_FILTER_STORAGE_KEY = 'closet-index:closet-filters:v1'
+const CLOSET_FILTER_STORAGE_KEY = 'closet-index:closet-filters:v2'
 
 interface StoredClosetFilters {
-  category: string
+  categoryGroup: ItemCategoryFilterGroupId | ''
   color: string
   includeRetired: boolean
   sort: ItemSort
 }
 
 const defaultFilters: StoredClosetFilters = {
-  category: '',
+  categoryGroup: '',
   color: '',
   includeRetired: false,
   sort: defaultSort,
@@ -35,8 +42,13 @@ function readStoredFilters(): StoredClosetFilters {
     if (!raw) return defaultFilters
     const parsed = JSON.parse(raw) as Partial<StoredClosetFilters>
     const validSorts: ItemSort[] = ['acquired-desc', 'acquired-asc', 'name']
+    const storedCategoryGroup =
+      typeof parsed.categoryGroup === 'string' &&
+      isItemCategoryFilterGroupId(parsed.categoryGroup)
+        ? parsed.categoryGroup
+        : ''
     return {
-      category: typeof parsed.category === 'string' ? parsed.category : '',
+      categoryGroup: storedCategoryGroup,
       color: typeof parsed.color === 'string' ? parsed.color : '',
       includeRetired:
         typeof parsed.includeRetired === 'boolean'
@@ -56,7 +68,9 @@ export function ClosetPage() {
   const { activeSeasons } = useSeasonScope()
   const [initialFilters] = useState(readStoredFilters)
   const [query, setQuery] = useState('')
-  const [category, setCategory] = useState(initialFilters.category)
+  const [categoryGroup, setCategoryGroup] = useState(
+    initialFilters.categoryGroup,
+  )
   const [color, setColor] = useState(initialFilters.color)
   const [includeRetired, setIncludeRetired] = useState(
     initialFilters.includeRetired,
@@ -65,7 +79,7 @@ export function ClosetPage() {
 
   useEffect(() => {
     const filters: StoredClosetFilters = {
-      category,
+      categoryGroup,
       color,
       includeRetired,
       sort,
@@ -78,10 +92,10 @@ export function ClosetPage() {
     } catch {
       // Storage can be unavailable in private browsing; filters still work in memory.
     }
-  }, [category, color, includeRetired, sort])
+  }, [categoryGroup, color, includeRetired, sort])
 
-  const categories = useMemo(
-    () => [...new Set(data?.items.map((item) => item.category) ?? [])].sort(),
+  const categoryGroups = useMemo(
+    () => getAvailableItemCategoryGroups(data?.items ?? []),
     [data],
   )
   const colors = useMemo(
@@ -100,9 +114,10 @@ export function ClosetPage() {
     const normalized = query.trim().toLocaleLowerCase('ko')
     return sortItems(
       data.items.filter((item) => {
+        if (!isItemVisibleInWardrobeSelection(item)) return false
         if (!includeRetired && item.retired) return false
         if (!itemMatchesSeasonScope(item, activeSeasons)) return false
-        if (category && item.category !== category) return false
+        if (!itemMatchesCategoryGroup(item, categoryGroup)) return false
         if (color && item.semanticColor !== color) return false
         return (
           !normalized ||
@@ -112,11 +127,11 @@ export function ClosetPage() {
       }),
       sort,
     )
-  }, [activeSeasons, category, color, data, includeRetired, query, sort])
+  }, [activeSeasons, categoryGroup, color, data, includeRetired, query, sort])
 
   const reset = () => {
     setQuery('')
-    setCategory('')
+    setCategoryGroup('')
     setColor('')
     setIncludeRetired(false)
     setSort(defaultSort)
@@ -147,12 +162,18 @@ export function ClosetPage() {
         <div className="filter-row">
           <select
             aria-label="카테고리"
-            value={category}
-            onChange={(event) => setCategory(event.target.value)}
+            value={categoryGroup}
+            onChange={(event) =>
+              setCategoryGroup(
+                event.target.value as ItemCategoryFilterGroupId | '',
+              )
+            }
           >
             <option value="">모든 카테고리</option>
-            {categories.map((value) => (
-              <option key={value}>{value}</option>
+            {categoryGroups.map((group) => (
+              <option value={group.id} key={group.id}>
+                {group.label}
+              </option>
             ))}
           </select>
           <select

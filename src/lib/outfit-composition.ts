@@ -25,7 +25,7 @@ export interface OutfitCompositionLayer {
   height: number
   zIndex: number
   objectPosition: string
-  objectFit: 'contain' | 'fill'
+  objectFit: 'contain'
 }
 
 function matchesCategory(rule: CategoryRule, category: string) {
@@ -74,7 +74,6 @@ function resolveRule(item: Item, hasOuter: boolean) {
     visualScale: conditionalNumber(rule, 'visualScale', hasOuter) ?? 1,
     visualWidth: conditionalNumber(rule, 'visualWidth', hasOuter),
     visualHeight: conditionalNumber(rule, 'visualHeight', hasOuter),
-    fit: 'fit' in rule && rule.fit === 'fill' ? 'fill' : 'inside',
     defaultPositionX:
       conditionalNumber(rule, 'defaultPositionX', hasOuter) ?? 0,
     defaultPositionY:
@@ -209,15 +208,12 @@ export function composeOutfitLayers(
         (rule.visualHeight ??
           compositionConfig.itemTemplate.height * rule.visualScale) *
         itemScale
-      const { width, height } =
-        rule.fit === 'fill'
-          ? { width: targetWidth, height: targetHeight }
-          : fitInside(
-              item.image?.widthPx ?? null,
-              item.image?.heightPx ?? null,
-              targetWidth,
-              targetHeight,
-            )
+      const { width, height } = fitInside(
+        item.image?.widthPx ?? null,
+        item.image?.heightPx ?? null,
+        targetWidth,
+        targetHeight,
+      )
       const position = positionForSlot(slot, width, height)
       let gapReferenceTop: number | undefined
       if (slotName === 'main-shoes') {
@@ -250,7 +246,7 @@ export function composeOutfitLayers(
         height,
         zIndex: placement?.zIndex ?? rule.zIndex,
         objectPosition: position.objectPosition,
-        objectFit: rule.fit === 'fill' ? 'fill' : 'contain',
+        objectFit: 'contain',
         slotName,
         positionX: placement?.positionX ?? rule.defaultPositionX,
         positionY: placement?.positionY ?? rule.defaultPositionY,

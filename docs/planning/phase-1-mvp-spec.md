@@ -247,7 +247,9 @@ Phase 1A는 실제 옷 이미지 없이 데이터·추천·기록의 정확성�
 입력:
 
 - 검색어
-- 카테고리
+- 상위 카테고리 그룹은 `Outer → Top → Bottom → Dress → Shoes → Bag → Acc` 순서로 표시한다.
+- 상세 카테고리 값은 변경하지 않고 UI에서만 묶으며, `Socks`는 `Acc`에 포함한다.
+- 독립 `Innerwear` Item은 CLOSET에서 제외하고 Statistics에서만 표시한다. `Top-T-shirts-innerwear`는 `Top`으로 취급한다.
 - 의미상 색상 카테고리
 - Retired 포함 여부
 
@@ -454,6 +456,7 @@ Phase 1 제외:
 - Outfit별 착용 횟수
 - Item별 착용 횟수
 - 마지막 착용일
+- 상위 그룹별 전체·사용 중 Item 수와 상세 category별 수량. 독립 `Innerwear`와 알 수 없는 category도 통계에서는 보존한다.
 - 이전 검증에 필요한 기본 집계
 
 Phase 1 비목표:

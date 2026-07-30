@@ -64,8 +64,6 @@ const config = {
       slot: "main-waist",
       zIndex: 55,
       visualWidth: 600,
-      visualHeight: 260,
-      fit: "fill",
     },
   ],
 };
@@ -99,15 +97,13 @@ describe("Outfit composition contract", () => {
     });
   });
 
-  it("resolves the waist-specific wrapped display ratio", () => {
+  it("resolves a waist width while preserving the source ratio", () => {
     expect(
       resolveCategoryDefaults("Acc-Waist", false, config.categoryRules),
     ).toEqual({
       slot: "main-waist",
       zIndex: 55,
       visualWidth: 600,
-      visualHeight: 260,
-      fit: "fill",
     });
   });
 

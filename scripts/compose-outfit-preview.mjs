@@ -61,7 +61,6 @@ export function resolveCategoryDefaults(category, hasOuter, rules) {
     (hasOuter ? rule.visualHeightWhenOuter : rule.visualHeightWithoutOuter) ??
     rule.visualHeight;
   if (visualHeight !== undefined) resolved.visualHeight = visualHeight;
-  if (rule.fit !== undefined) resolved.fit = rule.fit;
   return resolved;
 }
 
@@ -114,7 +113,6 @@ export function analyzeCompositionManifest(manifest, config) {
       visualScale: item.visualScale ?? defaults?.visualScale ?? 1,
       visualWidth: item.visualWidth ?? defaults?.visualWidth,
       visualHeight: item.visualHeight ?? defaults?.visualHeight,
-      fit: item.fit ?? defaults?.fit ?? "inside",
     };
   });
 
@@ -219,7 +217,7 @@ async function normalizeItem({
     .resize({
       width: Math.max(1, Math.round(targetWidth)),
       height: Math.max(1, Math.round(targetHeight)),
-      fit: item.fit ?? "inside",
+      fit: "inside",
       withoutEnlargement: false,
     })
     .png()
@@ -266,7 +264,7 @@ async function normalizeItem({
         visualScale,
         visualWidth: item.visualWidth ?? null,
         visualHeight: item.visualHeight ?? null,
-        fit: item.fit ?? "inside",
+        fit: "inside",
         itemScale: scale,
       },
     },
