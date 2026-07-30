@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { composeOutfitLayers } from './outfit-composition'
+import {
+  composeOutfitLayers,
+  getOutfitItemPlacementDefaults,
+} from './outfit-composition'
 import type { ImageAsset, Item, Outfit } from './types'
 
 const image: ImageAsset = {
@@ -34,6 +37,21 @@ function item(
 }
 
 describe('browser outfit composition v4', () => {
+  it('uses the shared scarf position and sock scale defaults', () => {
+    expect(
+      getOutfitItemPlacementDefaults(item('scarf', 'Acc-Neck'), false),
+    ).toMatchObject({
+      positionY: 144,
+      itemScale: 1,
+    })
+    expect(
+      getOutfitItemPlacementDefaults(item('socks', 'Socks'), false),
+    ).toMatchObject({
+      positionY: 0,
+      itemScale: 1.5,
+    })
+  })
+
   it('keeps bag on top and innerwear between outer and bottom', () => {
     const items = [
       item('bag', 'Bags'),

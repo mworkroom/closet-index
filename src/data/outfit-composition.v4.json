@@ -122,7 +122,8 @@
       "value": "Acc-Neck",
       "slot": "main-neck",
       "zIndex": 70,
-      "visualScale": 0.27
+      "visualScale": 0.27,
+      "defaultPositionY": 144
     },
     {
       "match": "prefix",
@@ -206,7 +207,8 @@
       "value": "Socks",
       "slot": "main-socks",
       "zIndex": 10,
-      "visualScale": 0.2
+      "visualScale": 0.2,
+      "defaultScale": 1.5
     }
   ]
 }

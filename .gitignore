@@ -33,3 +33,4 @@ supabase/functions/fixtures/live/
 !.env.notion.example
 !.env.supabase.example
 .DS_Store
+대량 이미지 등록.cmd

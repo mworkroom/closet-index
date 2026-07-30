@@ -263,13 +263,12 @@ function encodedStoragePath(storagePath) {
   return storagePath.split("/").map(encodeURIComponent).join("/");
 }
 
-async function verifyRemoteRelations({
+export async function verifyRemoteItems({
   supabaseUrl,
   adminKey,
   workspaceId,
   manifest,
 }) {
-  const outfitIds = manifestOutfitIds(manifest);
   const itemIds = manifest.items.map((item) => item.uuid).join(",");
   const itemResponse = await fetch(
     `${supabaseUrl}/rest/v1/closet_items` +
@@ -297,6 +296,21 @@ async function verifyRemoteRelations({
         `manifest=${item.category}, remote=${remote.category}`,
     );
   }
+}
+
+async function verifyRemoteRelations({
+  supabaseUrl,
+  adminKey,
+  workspaceId,
+  manifest,
+}) {
+  const outfitIds = manifestOutfitIds(manifest);
+  await verifyRemoteItems({
+    supabaseUrl,
+    adminKey,
+    workspaceId,
+    manifest,
+  });
 
   const relationResponse = await fetch(
     `${supabaseUrl}/rest/v1/closet_outfit_items` +
