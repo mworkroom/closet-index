@@ -14,6 +14,7 @@ const slotAliases: Record<string, keyof typeof compositionConfig.slots> = {
   bag: 'side-bag',
   socks: 'main-socks',
   accessory: 'main-neck',
+  waist: 'main-waist',
 }
 
 export interface OutfitCompositionLayer {
@@ -24,6 +25,7 @@ export interface OutfitCompositionLayer {
   height: number
   zIndex: number
   objectPosition: string
+  objectFit: 'contain' | 'fill'
 }
 
 function matchesCategory(rule: CategoryRule, category: string) {
@@ -37,6 +39,7 @@ function conditionalNumber(
   key:
     | 'zIndex'
     | 'visualScale'
+    | 'visualWidth'
     | 'visualHeight'
     | 'defaultPositionX'
     | 'defaultPositionY'
@@ -69,7 +72,9 @@ function resolveRule(item: Item, hasOuter: boolean) {
     slot,
     zIndex: conditionalNumber(rule, 'zIndex', hasOuter) ?? 0,
     visualScale: conditionalNumber(rule, 'visualScale', hasOuter) ?? 1,
+    visualWidth: conditionalNumber(rule, 'visualWidth', hasOuter),
     visualHeight: conditionalNumber(rule, 'visualHeight', hasOuter),
+    fit: 'fit' in rule && rule.fit === 'fill' ? 'fill' : 'inside',
     defaultPositionX:
       conditionalNumber(rule, 'defaultPositionX', hasOuter) ?? 0,
     defaultPositionY:
@@ -197,17 +202,22 @@ export function composeOutfitLayers(
       const slot = compositionConfig.slots[slotName]
       const itemScale = placement?.itemScale ?? rule.defaultScale
       const targetWidth =
-        compositionConfig.itemTemplate.width * rule.visualScale * itemScale
+        (rule.visualWidth ??
+          compositionConfig.itemTemplate.width * rule.visualScale) *
+        itemScale
       const targetHeight =
         (rule.visualHeight ??
           compositionConfig.itemTemplate.height * rule.visualScale) *
         itemScale
-      const { width, height } = fitInside(
-        item.image?.widthPx ?? null,
-        item.image?.heightPx ?? null,
-        targetWidth,
-        targetHeight,
-      )
+      const { width, height } =
+        rule.fit === 'fill'
+          ? { width: targetWidth, height: targetHeight }
+          : fitInside(
+              item.image?.widthPx ?? null,
+              item.image?.heightPx ?? null,
+              targetWidth,
+              targetHeight,
+            )
       const position = positionForSlot(slot, width, height)
       let gapReferenceTop: number | undefined
       if (slotName === 'main-shoes') {
@@ -240,6 +250,7 @@ export function composeOutfitLayers(
         height,
         zIndex: placement?.zIndex ?? rule.zIndex,
         objectPosition: position.objectPosition,
+        objectFit: rule.fit === 'fill' ? 'fill' : 'contain',
         slotName,
         positionX: placement?.positionX ?? rule.defaultPositionX,
         positionY: placement?.positionY ?? rule.defaultPositionY,

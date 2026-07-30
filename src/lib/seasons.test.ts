@@ -74,6 +74,7 @@ describe('season scope', () => {
       makeItem('shoes', 'Shoes', ['Summer']),
       makeItem('innerwear', 'Top-T-shirts-Innerwear', ['Summer']),
       makeItem('socks', 'Socks', ['Summer']),
+      makeItem('waist', 'Acc-Waist', ['Summer']),
     ]
     const outfit = makeOutfit(items.map((item) => item.id))
 
@@ -82,6 +83,7 @@ describe('season scope', () => {
     expect(isSeasonDefiningItem(items[4])).toBe(false)
     expect(isSeasonDefiningItem(items[5])).toBe(false)
     expect(isSeasonDefiningItem(items[6])).toBe(false)
+    expect(isSeasonDefiningItem(items[7])).toBe(false)
     expect(outfitMatchesSeasonScope(outfit, items, ['Summer'])).toBe(false)
     expect(outfitMatchesSeasonScope(outfit, items, ['Winter'])).toBe(true)
   })

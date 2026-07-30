@@ -381,6 +381,7 @@ describe('recommendOutfits', () => {
       { id: 'innerwear', name: '이너웨어', category: 'Innerwear' },
       { id: 'socks', name: '양말', category: 'Socks' },
       { id: 'acc-neck', name: '기성 목 액세서리', category: 'Acc-Neck' },
+      { id: 'acc-waist', name: '허리 액세서리', category: 'Acc-Waist' },
       { id: 'acc-head-made', name: '손뜨개 머리 액세서리', category: 'Acc-Head-made' },
       { id: 'acc-hands-made', name: '손뜨개 손 액세서리', category: 'Acc-Hands-made' },
     ].map((item, index) => ({

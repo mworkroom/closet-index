@@ -52,6 +52,35 @@ describe('browser outfit composition v4', () => {
     })
   })
 
+  it('places a waist accessory over the top and bottom using a wrapped ratio', () => {
+    const waist = item('waist', 'Acc-Waist', 672, 704)
+    const top = item('top', 'Top-T-shirts')
+    const bottom = item('bottom', 'Bottom-Skirts')
+    const outfit: Outfit = {
+      id: 'waist-outfit',
+      displayName: null,
+      rating: null,
+      itemIds: [top.id, bottom.id, waist.id],
+    }
+
+    const layers = composeOutfitLayers(outfit, [top, bottom, waist])
+    const waistLayer = layers.find((layer) => layer.item.id === waist.id)!
+
+    expect(waistLayer).toMatchObject({
+      left: 210,
+      top: 500,
+      width: 600,
+      height: 260,
+      zIndex: 55,
+      objectFit: 'fill',
+    })
+    expect(layers.map((layer) => layer.item.id)).toEqual([
+      'bottom',
+      'top',
+      'waist',
+    ])
+  })
+
   it('keeps bag on top and innerwear between outer and bottom', () => {
     const items = [
       item('bag', 'Bags'),

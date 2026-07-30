@@ -38,6 +38,7 @@ export function LayeredOutfitPreview({
             height: `${(layer.height / OUTFIT_COMPOSITION_CANVAS.height) * 100}%`,
             zIndex: layer.zIndex,
             objectPosition: layer.objectPosition,
+            objectFit: layer.objectFit,
           }}
         />
       ))}

@@ -42,6 +42,13 @@
       "anchor": "top",
       "allowRoleCollisions": true
     },
+    "main-waist": {
+      "x": 210,
+      "y": 500,
+      "width": 600,
+      "height": 260,
+      "anchor": "top"
+    },
     "main-bottom": {
       "x": 70,
       "y": 500,
@@ -124,6 +131,15 @@
       "zIndex": 70,
       "visualScale": 0.27,
       "defaultPositionY": 144
+    },
+    {
+      "match": "prefix",
+      "value": "Acc-Waist",
+      "slot": "main-waist",
+      "zIndex": 55,
+      "visualWidth": 600,
+      "visualHeight": 260,
+      "fit": "fill"
     },
     {
       "match": "prefix",

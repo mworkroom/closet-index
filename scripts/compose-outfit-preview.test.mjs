@@ -9,6 +9,7 @@ const config = {
   slots: {
     "main-upper": { allowRoleCollisions: true },
     "main-innerwear": {},
+    "main-waist": {},
     "main-bottom": {},
     "main-dress": {},
     "side-top": {},
@@ -57,6 +58,15 @@ const config = {
       zIndex: 30,
       visualScale: 0.64,
     },
+    {
+      match: "prefix",
+      value: "Acc-Waist",
+      slot: "main-waist",
+      zIndex: 55,
+      visualWidth: 600,
+      visualHeight: 260,
+      fit: "fill",
+    },
   ],
 };
 
@@ -86,6 +96,18 @@ describe("Outfit composition contract", () => {
       zIndex: 50,
       visualScale: 0.85,
       visualHeight: 440,
+    });
+  });
+
+  it("resolves the waist-specific wrapped display ratio", () => {
+    expect(
+      resolveCategoryDefaults("Acc-Waist", false, config.categoryRules),
+    ).toEqual({
+      slot: "main-waist",
+      zIndex: 55,
+      visualWidth: 600,
+      visualHeight: 260,
+      fit: "fill",
     });
   });
 

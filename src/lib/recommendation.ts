@@ -34,6 +34,7 @@ const recentPurchaseExcludedCategories = new Set([
   'innerwear',
   'socks',
   'acc-neck',
+  'acc-waist',
   'acc-head-made',
   'acc-hands-made',
 ])
@@ -53,7 +54,13 @@ function thermalWeight(item: Item) {
     return 3
   }
   if (category.includes('top') || category.includes('inner')) return 2
-  if (category.includes('bag') || category.includes('accessor')) return 0.25
+  if (
+    category.startsWith('acc-') ||
+    category.includes('bag') ||
+    category.includes('accessor')
+  ) {
+    return 0.25
+  }
   return 1
 }
 

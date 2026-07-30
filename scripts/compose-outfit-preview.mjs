@@ -53,10 +53,15 @@ export function resolveCategoryDefaults(category, hasOuter, rules) {
     (hasOuter ? rule.visualScaleWhenOuter : rule.visualScaleWithoutOuter) ??
     rule.visualScale;
   if (visualScale !== undefined) resolved.visualScale = visualScale;
+  const visualWidth =
+    (hasOuter ? rule.visualWidthWhenOuter : rule.visualWidthWithoutOuter) ??
+    rule.visualWidth;
+  if (visualWidth !== undefined) resolved.visualWidth = visualWidth;
   const visualHeight =
     (hasOuter ? rule.visualHeightWhenOuter : rule.visualHeightWithoutOuter) ??
     rule.visualHeight;
   if (visualHeight !== undefined) resolved.visualHeight = visualHeight;
+  if (rule.fit !== undefined) resolved.fit = rule.fit;
   return resolved;
 }
 
@@ -107,7 +112,9 @@ export function analyzeCompositionManifest(manifest, config) {
       slot,
       zIndex: item.zIndex ?? defaults?.zIndex ?? 0,
       visualScale: item.visualScale ?? defaults?.visualScale ?? 1,
+      visualWidth: item.visualWidth ?? defaults?.visualWidth,
       visualHeight: item.visualHeight ?? defaults?.visualHeight,
+      fit: item.fit ?? defaults?.fit ?? "inside",
     };
   });
 
@@ -203,7 +210,7 @@ async function normalizeItem({
   const scale = item.scale ?? 1;
   const visualScale = item.visualScale ?? 1;
   const targetWidth = itemTemplate
-    ? itemTemplate.width * visualScale * scale
+    ? (item.visualWidth ?? itemTemplate.width * visualScale) * scale
     : slot.width * scale;
   const targetHeight = itemTemplate
     ? (item.visualHeight ?? itemTemplate.height * visualScale) * scale
@@ -212,7 +219,7 @@ async function normalizeItem({
     .resize({
       width: Math.max(1, Math.round(targetWidth)),
       height: Math.max(1, Math.round(targetHeight)),
-      fit: "inside",
+      fit: item.fit ?? "inside",
       withoutEnlargement: false,
     })
     .png()
@@ -257,7 +264,9 @@ async function normalizeItem({
         top: placement.top,
         zIndex: item.zIndex,
         visualScale,
+        visualWidth: item.visualWidth ?? null,
         visualHeight: item.visualHeight ?? null,
+        fit: item.fit ?? "inside",
         itemScale: scale,
       },
     },
