@@ -63,12 +63,16 @@ describe('section filter persistence', () => {
       }),
     ).not.toBeInTheDocument()
 
+    await user.click(screen.getByRole('checkbox', { name: 'Unworn' }))
+    expect(screen.getByRole('checkbox', { name: 'Unworn' })).toBeChecked()
+
     first.unmount()
     renderCloset()
 
     expect(
       await screen.findByRole('combobox', { name: '카테고리' }),
     ).toHaveValue('top')
+    expect(screen.getByRole('checkbox', { name: 'Unworn' })).toBeChecked()
   })
 
   it('이전 날짜의 HOME 조건은 복원하지 않는다', async () => {

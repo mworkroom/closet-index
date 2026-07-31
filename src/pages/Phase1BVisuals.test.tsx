@@ -90,6 +90,28 @@ describe('Phase 1B screen visuals', () => {
     ).toBeInTheDocument()
   })
 
+  it('LOOKBOOK의 Unworn 필터는 착용 기록이 0회인 Outfit만 표시한다', async () => {
+    const user = userEvent.setup()
+    renderRoute('/lookbook', '/lookbook', <LookbookPage />)
+
+    await screen.findByRole('heading', { name: '착장' })
+    await user.click(screen.getByRole('checkbox', { name: 'Unworn' }))
+
+    const grid = document.querySelector<HTMLElement>('.outfit-grid')
+    expect(grid).toBeInTheDocument()
+    const links = within(grid!).getAllByRole('link')
+    expect(links.length).toBeGreaterThan(0)
+    links.forEach((link) => {
+      const outfitId = link.getAttribute('href')?.replace('/outfits/', '')
+      expect(getOutfitStats(outfitId ?? '', demoData.wearLogs).wearCount).toBe(0)
+    })
+    expect(
+      within(grid!).queryByRole('link', {
+        name: /블루 가디건.*착장 상세 보기/,
+      }),
+    ).not.toBeInTheDocument()
+  })
+
   it('CLOSET 행에서 cutout과 스와치 fallback을 함께 유지한다', async () => {
     renderRoute('/closet', '/closet', <ClosetPage />)
 
@@ -129,6 +151,47 @@ describe('Phase 1B screen visuals', () => {
     expect(
       within(knitLink).getByRole('img', { name: 'Ivory 색상' }),
     ).toBeInTheDocument()
+  })
+
+  it('CLOSET의 Unworn 필터는 어떤 Outfit에서도 입지 않은 Item만 표시한다', async () => {
+    const user = userEvent.setup()
+    const unwornItem = {
+      ...demoData.items[0],
+      id: 'item-unworn',
+      name: '미착용 테스트 Item',
+      retired: false,
+      seasons: [],
+      acquiredOn: null,
+    }
+    window.localStorage.setItem(
+      'closet-index-demo-data-v3',
+      JSON.stringify({
+        ...demoData,
+        items: [...demoData.items, unwornItem],
+      }),
+    )
+    renderRoute('/closet', '/closet', <ClosetPage />)
+
+    await screen.findByRole('heading', { name: '아이템' })
+    await user.click(screen.getByRole('checkbox', { name: 'Unworn' }))
+
+    const grid = document.querySelector<HTMLElement>('.item-grid')
+    expect(grid).toBeInTheDocument()
+    const links = within(grid!).getAllByRole('link')
+    expect(links).toHaveLength(1)
+    expect(links[0]).toHaveAccessibleName(
+      '미착용 테스트 Item 아이템 상세 보기',
+    )
+    links.forEach((link) => {
+      const itemId = link.getAttribute('href')?.replace('/closet/', '')
+      expect(
+        getItemStats(itemId ?? '', demoData.outfits, demoData.wearLogs)
+          .wearCount,
+      ).toBe(0)
+    })
+    expect(
+      within(grid!).queryByRole('link', { name: /블루 가디건/ }),
+    ).not.toBeInTheDocument()
   })
 
   it('Item 상세에서 큰 cutout과 기존 속성을 함께 표시한다', async () => {

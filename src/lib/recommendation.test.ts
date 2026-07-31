@@ -251,9 +251,6 @@ describe('recommendOutfits', () => {
     expect(groups.trialRecommendations.map((entry) => entry.outfit.id)).toContain(
       'new-combination',
     )
-    expect(
-      groups.unknownTrialRecommendations.map((entry) => entry.outfit.id),
-    ).not.toContain('new-combination')
   })
 
   it('가방과 액세서리만 겹치는 과거 Outfit은 온도 근거로 쓰지 않는다', () => {
@@ -549,7 +546,6 @@ describe('recommendOutfits', () => {
     const remainingIds = [
       ...groups.recommendations,
       ...groups.trialRecommendations,
-      ...groups.unknownTrialRecommendations,
     ].map((entry) => entry.outfit.id)
 
     expect(recentIds).toContain('outfit-favorite')
@@ -579,9 +575,6 @@ describe('recommendOutfits', () => {
     expect(
       coldGroups.trialRecommendations.map((entry) => entry.outfit.id),
     ).not.toContain('outfit-layered')
-    expect(
-      coldGroups.unknownTrialRecommendations.map((entry) => entry.outfit.id),
-    ).not.toContain('outfit-layered')
     expect(warmGroups.recentPurchases.map((entry) => entry.outfit.id)).toContain(
       'outfit-summer',
     )
@@ -595,7 +588,7 @@ describe('recommendOutfits', () => {
     )
   })
 
-  it('OK 온도 근거가 없는 시험 착장은 미확인 후보로 분리한다', () => {
+  it('OK 온도 근거가 없는 시험 착장은 HOME 추천 그룹에서 제외한다', () => {
     const data: AppData = {
       ...structuredClone(demoData),
       outfits: [
@@ -612,9 +605,7 @@ describe('recommendOutfits', () => {
     const groups = partitionRecommendations(recommendOutfits(data, baseInput), 10)
 
     expect(groups.recentPurchases).toHaveLength(0)
+    expect(groups.recommendations).toHaveLength(0)
     expect(groups.trialRecommendations).toHaveLength(0)
-    expect(
-      groups.unknownTrialRecommendations.map((entry) => entry.outfit.id),
-    ).toEqual(['unknown-trial'])
   })
 })

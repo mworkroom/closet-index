@@ -20,6 +20,7 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
   const { activeSeasons } = useSeasonScope()
   const [query, setQuery] = useState('')
   const [favorite, setFavorite] = useState(false)
+  const [unwornOnly, setUnwornOnly] = useState(false)
   const [notWornRecently, setNotWornRecently] = useState(false)
   const [minimumTemp, setMinimumTemp] = useState('')
   const [maximumTemp, setMaximumTemp] = useState('')
@@ -66,6 +67,7 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
           return false
         }
         const logs = data.wearLogs.filter((log) => log.outfitId === outfit.id)
+        if (unwornOnly && logs.length > 0) return false
         if (placeId && !logs.some((log) => log.placeId === placeId)) return false
         if (notWornRecently) {
           const last = getOutfitStats(outfit.id, data.wearLogs).lastWornOn
@@ -101,11 +103,13 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
     notWornRecently,
     placeId,
     query,
+    unwornOnly,
   ])
 
   const reset = () => {
     setQuery('')
     setFavorite(false)
+    setUnwornOnly(false)
     setNotWornRecently(false)
     setMinimumTemp('')
     setMaximumTemp('')
@@ -189,6 +193,14 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
               Favorite만
             </label>
           )}
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={unwornOnly}
+              onChange={(event) => setUnwornOnly(event.target.checked)}
+            />
+            Unworn
+          </label>
           <label className="check-row">
             <input
               type="checkbox"

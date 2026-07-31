@@ -502,12 +502,6 @@ export function partitionRecommendations(
         matchesTargetTemperature(result) &&
         !recentIds.has(result.outfit.id),
     ),
-    unknownTrialRecommendations: results.filter(
-      (result) =>
-        result.evidence === 'untried' &&
-        temperatureRangeFor(result) === null &&
-        !recentIds.has(result.outfit.id),
-    ),
   }
 }
 

@@ -26,6 +26,7 @@ interface StoredClosetFilters {
   categoryGroup: ItemCategoryFilterGroupId | ''
   color: string
   includeRetired: boolean
+  unwornOnly: boolean
   sort: ItemSort
 }
 
@@ -33,6 +34,7 @@ const defaultFilters: StoredClosetFilters = {
   categoryGroup: '',
   color: '',
   includeRetired: false,
+  unwornOnly: false,
   sort: defaultSort,
 }
 
@@ -54,6 +56,8 @@ function readStoredFilters(): StoredClosetFilters {
         typeof parsed.includeRetired === 'boolean'
           ? parsed.includeRetired
           : false,
+      unwornOnly:
+        typeof parsed.unwornOnly === 'boolean' ? parsed.unwornOnly : false,
       sort: validSorts.includes(parsed.sort as ItemSort)
         ? (parsed.sort as ItemSort)
         : defaultSort,
@@ -75,6 +79,7 @@ export function ClosetPage() {
   const [includeRetired, setIncludeRetired] = useState(
     initialFilters.includeRetired,
   )
+  const [unwornOnly, setUnwornOnly] = useState(initialFilters.unwornOnly)
   const [sort, setSort] = useState<ItemSort>(initialFilters.sort)
 
   useEffect(() => {
@@ -82,6 +87,7 @@ export function ClosetPage() {
       categoryGroup,
       color,
       includeRetired,
+      unwornOnly,
       sort,
     }
     try {
@@ -92,7 +98,7 @@ export function ClosetPage() {
     } catch {
       // Storage can be unavailable in private browsing; filters still work in memory.
     }
-  }, [categoryGroup, color, includeRetired, sort])
+  }, [categoryGroup, color, includeRetired, sort, unwornOnly])
 
   const categoryGroups = useMemo(
     () => getAvailableItemCategoryGroups(data?.items ?? []),
@@ -109,6 +115,15 @@ export function ClosetPage() {
       ].sort(),
     [data],
   )
+  const wornItemIds = useMemo(() => {
+    if (!data) return new Set<string>()
+    const wornOutfitIds = new Set(data.wearLogs.map((log) => log.outfitId))
+    return new Set(
+      data.outfits.flatMap((outfit) =>
+        wornOutfitIds.has(outfit.id) ? outfit.itemIds : [],
+      ),
+    )
+  }, [data])
   const items = useMemo(() => {
     if (!data) return []
     const normalized = query.trim().toLocaleLowerCase('ko')
@@ -116,6 +131,7 @@ export function ClosetPage() {
       data.items.filter((item) => {
         if (!isItemVisibleInWardrobeSelection(item)) return false
         if (!includeRetired && item.retired) return false
+        if (unwornOnly && wornItemIds.has(item.id)) return false
         if (!itemMatchesSeasonScope(item, activeSeasons)) return false
         if (!itemMatchesCategoryGroup(item, categoryGroup)) return false
         if (color && item.semanticColor !== color) return false
@@ -127,13 +143,24 @@ export function ClosetPage() {
       }),
       sort,
     )
-  }, [activeSeasons, categoryGroup, color, data, includeRetired, query, sort])
+  }, [
+    activeSeasons,
+    categoryGroup,
+    color,
+    data,
+    includeRetired,
+    query,
+    sort,
+    unwornOnly,
+    wornItemIds,
+  ])
 
   const reset = () => {
     setQuery('')
     setCategoryGroup('')
     setColor('')
     setIncludeRetired(false)
+    setUnwornOnly(false)
     setSort(defaultSort)
   }
 
@@ -196,14 +223,24 @@ export function ClosetPage() {
             <option value="name">이름순</option>
           </select>
         </div>
-        <label className="check-row">
-          <input
-            type="checkbox"
-            checked={includeRetired}
-            onChange={(event) => setIncludeRetired(event.target.checked)}
-          />
-          Retired 포함
-        </label>
+        <div className="check-stack">
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={unwornOnly}
+              onChange={(event) => setUnwornOnly(event.target.checked)}
+            />
+            Unworn
+          </label>
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={includeRetired}
+              onChange={(event) => setIncludeRetired(event.target.checked)}
+            />
+            Retired 포함
+          </label>
+        </div>
       </section>
 
       {loading && <LoadingState />}

@@ -309,7 +309,6 @@ export function HomePage() {
   const [validationError, setValidationError] = useState<string | null>(null)
   const [showAll, setShowAll] = useState(false)
   const [showAllTrials, setShowAllTrials] = useState(false)
-  const [showAllUnknownTrials, setShowAllUnknownTrials] = useState(false)
 
   const defaultWeatherLocation = useMemo(
     () =>
@@ -382,7 +381,6 @@ export function HomePage() {
     recentPurchases,
     recommendations,
     trialRecommendations,
-    unknownTrialRecommendations,
   } = useMemo(() => {
     const results = data && submitted ? recommendOutfits(data, submitted) : []
     return partitionRecommendations(results)
@@ -397,7 +395,6 @@ export function HomePage() {
   const resetRecommendationLists = () => {
     setShowAll(false)
     setShowAllTrials(false)
-    setShowAllUnknownTrials(false)
   }
 
   const loadWeather = async () => {
@@ -997,61 +994,6 @@ export function HomePage() {
             </section>
           )}
 
-          {unknownTrialRecommendations.length > 0 && (
-            <section className="section trial-section">
-              <div className="section-heading">
-                <div>
-                  <p className="eyebrow">TEMPERATURE UNKNOWN</p>
-                  <h2>적정 온도 미확인 착장</h2>
-                </div>
-                <span className="count">
-                  {unknownTrialRecommendations.length}개 미확인
-                </span>
-              </div>
-
-              <div className="trial-intro">
-                <strong>오늘 온도와 대조할 OK 기록이 아직 없어요.</strong>
-                <p>
-                  핵심 Item별 공통 구간과 비슷한 과거 Outfit 범위를 만들 수
-                  없는 계획입니다. 오늘 추천이 아니라 참고용 시험 후보입니다.
-                </p>
-              </div>
-
-              <div className="card-list">
-                {unknownTrialRecommendations
-                  .slice(
-                    0,
-                    showAllUnknownTrials
-                      ? unknownTrialRecommendations.length
-                      : 3,
-                  )
-                  .map((recommendation) => (
-                    <OutfitCard
-                      key={recommendation.outfit.id}
-                      outfit={recommendation.outfit}
-                      data={data}
-                      recommendation={recommendation}
-                      layout="home"
-                      state={{
-                        recommendation,
-                        input: submitted,
-                        weather: submittedWeather ?? undefined,
-                      }}
-                    />
-                  ))}
-                {!showAllUnknownTrials &&
-                  unknownTrialRecommendations.length > 3 && (
-                    <button
-                      className="button button--secondary button--wide"
-                      type="button"
-                      onClick={() => setShowAllUnknownTrials(true)}
-                    >
-                      나머지 {unknownTrialRecommendations.length - 3}개 더 보기
-                    </button>
-                  )}
-              </div>
-            </section>
-          )}
         </>
       )}
     </AppShell>
