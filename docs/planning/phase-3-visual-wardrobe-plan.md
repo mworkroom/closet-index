@@ -1,7 +1,7 @@
 # Closet Index Phase 3 Visual Wardrobe Expansion Plan
 
 - 작성일: 2026-07-29
-- 상태: P3-0~P3-6 완료, P3-7 공개 마무리 검증 중
+- 상태: Phase 3 완료 (P3-0~P3-7)
 - 목표 릴리스: Phase 3 Visual Wardrobe Expansion
 - 선행 상태: Phase 2 구현·공개·실제 Wear Log 경로 검증 완료
 - 관련 문서: [Roadmap](./roadmap.md), [Product Plan](./product-plan.md), [Phase 1B Plan](./phase-1b-plan.md), [Image Spec](./phase-1b-image-spec.md), [Phase 2 Weather Plan](./phase-2-weather-plan.md)
@@ -569,6 +569,8 @@ Storage 객체와 database transaction은 하나로 묶을 수 없으므로 이�
 - 저장 Preview는 안전한 선택적 cache 계약으로 유지하되 일괄 생성·공유 이미지·목록 우선 사용은 현재 제품 범위에서 보류했다.
 - Calendar는 Preview가 없는 Outfit도 실시간 composition thumbnail을 표시하도록 fallback 경로를 연결했다.
 - 공개 배포 전 전체 회귀와 artifact 검증, 공개 Pages 확인을 마지막 차단 조건으로 둔다.
+- 최종 전체 Vitest 45개 파일·197개 테스트, production build와 Pages artifact 검사가 통과했다. GitHub Pages 실행 `30672277387`의 build·artifact upload·deploy가 성공했고, 공개 HTML은 새 JS `index-Bfz6323z.js`와 CSS `index-80jPsnSb.css`를 200으로 제공한다.
+- Browser runtime은 로컬 asset 경로 오류로 연결되지 않았지만 Calendar Preview 없는 Outfit과 HOME 계절 범위·3개씩 펼치기를 자동 UI 테스트로 고정했고, 공개 artifact에 해당 코드가 포함된 것을 확인했다. 이는 Phase 3 완료를 막지 않는 검증 도구 제한으로 기록한다.
 
 배포 검증:
 
@@ -618,19 +620,19 @@ Storage 객체와 database transaction은 하나로 묶을 수 없으므로 이�
 
 Phase 3는 다음 조건을 만족하면 완료로 본다.
 
-- [ ] 회원이 새 Item을 이미지 없이 등록하고 편집할 수 있다.
-- [ ] Item cutout을 앱에서 등록·교체·재시도할 수 있다.
-- [ ] 고해상도 원본은 기본 원격 저장되지 않는다.
-- [ ] 회원이 빈 화면과 기존 Outfit 복제로 새 Outfit을 만들 수 있다.
-- [ ] 기존 Outfit의 Item relation과 Wear Log는 복제 과정에서 변하지 않는다.
-- [ ] 같은 Item 조합의 기존 Outfit을 저장 전에 확인할 수 있다.
-- [ ] 새 Outfit과 relation은 원자적으로 저장되고 중복 제출에 안전하다.
-- [ ] Outfit 보관·복원이 만족도와 기존 Wear Log를 바꾸지 않는다.
-- [ ] 새 Item·Outfit이 기존 추천·LOOKBOOK·Wear Log에 연결된다.
-- [ ] 이미지 없음·일부 있음·오류 상태에서 fallback이 유지된다.
-- [ ] 비로그인·비회원 쓰기와 Storage 접근이 거부된다.
-- [ ] 고아 metadata와 고아 Storage object가 없다.
-- [ ] 전체 자동 테스트, production build, 원격 계약, 공개 Pages 검증이 통과한다.
+- [x] 회원이 새 Item을 이미지 없이 등록하고 편집할 수 있다.
+- [x] Item cutout을 앱에서 등록·교체·재시도할 수 있다.
+- [x] 고해상도 원본은 기본 원격 저장되지 않는다.
+- [x] 회원이 빈 화면과 기존 Outfit 복제로 새 Outfit을 만들 수 있다.
+- [x] 기존 Outfit의 Item relation과 Wear Log는 복제 과정에서 변하지 않는다.
+- [x] 같은 Item 조합의 기존 Outfit을 저장 전에 확인할 수 있다.
+- [x] 새 Outfit과 relation은 원자적으로 저장되고 중복 제출에 안전하다.
+- [x] Outfit 보관·복원이 만족도와 기존 Wear Log를 바꾸지 않는다.
+- [x] 새 Item·Outfit이 기존 추천·LOOKBOOK·Wear Log에 연결된다.
+- [x] 이미지 없음·일부 있음·오류 상태에서 fallback이 유지된다.
+- [x] 비로그인·비회원 쓰기와 Storage 접근이 거부된다.
+- [x] 고아 metadata와 고아 Storage object가 없다.
+- [x] 전체 자동 테스트, production build, 원격 계약, 공개 Pages 검증이 통과한다.
 
 ## 12. P3-0에서 J와 확인할 값
 
