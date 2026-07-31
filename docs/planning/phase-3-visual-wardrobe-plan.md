@@ -528,7 +528,7 @@ Storage 객체와 database transaction은 하나로 묶을 수 없으므로 이�
 - production의 preview metadata·Storage object를 변경하지 않고 고아 metadata, 누락 ready object, 고아 object를 읽기 전용으로 분류하는 `outfit:preview:audit` 명령을 추가했다.
 - 로컬 TypeScript 검사, 전체 Vitest 44개 파일·195개 테스트와 production build가 통과했고, GitHub Actions 격리 Supabase 실행 `30667343590`에서 전체 migration과 P3-1·P3-3·P3-6 pgTAP 3개 파일·70개 계약이 모두 통과했다.
 - production에는 migration version `20260731220215`와 `closet-outfit-preview` Function version 1을 적용했다. Function은 `ACTIVE`·`verify_jwt=true`이고 무인증 POST는 401로 거절됐다. 적용 전후 주요 수량이 유지됐으며 Preview audit의 고아 metadata·누락 ready object·고아 object는 모두 0이었다.
-- 공개 Pages는 아직 P3-6 웹 코드로 갱신하지 않았다. 실제 authenticated preview 생성·재생성과 browser runtime의 PC·모바일 렌더링 QA는 P3-7 공개 배포 검증으로 남겼다.
+- P3-6 웹 코드를 main에 fast-forward 통합했고 GitHub Pages 실행 `30669399088`이 성공했다. 실제 공개 HTML·JS·CSS와 P3-6 Function slug·source fingerprint 포함을 확인했다. authenticated preview 생성·재생성과 browser runtime의 PC·모바일 렌더링 QA만 P3-7 공개 상호작용 검증으로 남겼다.
 
 완료 조건:
 

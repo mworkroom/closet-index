@@ -188,4 +188,4 @@ Phase 3 쓰기가 이미 발생했다면 column 제거와 인덱스 복원을 �
    - Preview audit 결과 ready 1개, pending·error·stale 0개였고 고아 metadata·누락 ready object·고아 object도 모두 0개였다.
    - 기존 수동 Preview 1개는 새 source fingerprint가 없으므로 현재 composition을 추측해 backfill하지 않고 공개 앱에서 재생성한다.
 
-P3-6 웹 코드는 아직 공개 Pages에 배포하지 않았다. 따라서 authenticated signed upload, 실제 Preview 생성·재생성·stale 전환과 PC·모바일 UI 확인은 main 통합과 Pages 배포 뒤 실행한다.
+P3-6 웹 코드는 main에 fast-forward 통합했고 GitHub Pages 실행 `30669399088`의 build·artifact 검증·deploy가 모두 통과했다. 실제 공개 HTML은 JS `index-BlzTTZra.js`와 CSS `index-80jPsnSb.css`를 가리키며 두 자산 모두 200이고, JS에 `closet-outfit-preview`와 source fingerprint 코드가 포함돼 있다. Browser runtime의 로컬 asset 경로 오류로 authenticated signed upload, 실제 Preview 생성·재생성·stale 전환과 PC·모바일 UI 확인은 아직 남아 있다.
