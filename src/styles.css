@@ -2327,6 +2327,16 @@ button:disabled {
   margin-top: 12px;
 }
 
+.similar-outfits__subsection {
+  margin-top: 14px;
+}
+
+.similar-outfits__subsection h3 {
+  color: #555551;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
 .similar-outfit-row {
   display: flex;
   align-items: center;
@@ -2336,6 +2346,10 @@ button:disabled {
   border-radius: 13px;
   background: var(--surface);
   padding: 11px 12px;
+}
+
+.similar-outfit-row--item {
+  background: #fbfaf7;
 }
 
 .similar-outfit-row > span:first-child {

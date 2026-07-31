@@ -279,10 +279,25 @@ export interface SimilarOutfitMatch {
   okObservationCount: number
 }
 
+export interface ItemTemperatureEvidence {
+  itemId: string
+  itemName: string
+  category: string
+  wearCount: number
+  lastWornOn: string | null
+  okRange: { min: number; max: number }
+  okObservationCount: number
+}
+
 export interface SimilarOutfitEvidence {
   confidence: SimilarityConfidence
   knownItemCount: number
   totalItemCount: number
+  supportedCoreItemCount: number
+  totalCoreItemCount: number
+  itemEvidence: ItemTemperatureEvidence[]
+  aggregateOkRange: { min: number; max: number } | null
+  aggregateOkObservationCount: number
   matches: SimilarOutfitMatch[]
 }
 

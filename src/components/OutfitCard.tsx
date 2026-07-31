@@ -28,9 +28,13 @@ export function OutfitCard({
   const isTrial = recommendation?.evidence === 'untried'
   const similarEvidence = recommendation?.similarEvidence
   const similarMatch = similarEvidence?.matches[0]
-  const homeRange = isTrial ? similarMatch?.okRange : recommendation?.okRange
+  const homeRange = isTrial
+    ? (similarEvidence?.aggregateOkRange ?? similarMatch?.okRange)
+    : recommendation?.okRange
   const homeOkCount = isTrial
-    ? similarMatch?.okObservationCount
+    ? similarEvidence?.aggregateOkRange
+      ? similarEvidence.aggregateOkObservationCount
+      : similarMatch?.okObservationCount
     : recommendation?.okObservationCount
   const accessibleLabel = `${outfit.archivedAt ? '보관된 ' : ''}${outfitLabel(
     outfit,
@@ -91,13 +95,15 @@ export function OutfitCard({
               <span>
                 {homeRange
                   ? `${homeRange.min}~${homeRange.max}°C ${
-                      isTrial ? '유사 범위' : '적정 범위'
+                      isTrial ? '시험 범위' : '적정 범위'
                     }`
                   : '적정 범위 없음'}
               </span>
               <span>
                 {homeOkCount
-                  ? `${isTrial ? '유사 ' : ''}OK ${homeOkCount}회`
+                  ? `${isTrial ? '근거 ' : ''}OK ${homeOkCount}${
+                      isTrial ? '개' : '회'
+                    }`
                   : 'OK 기록 없음'}
               </span>
             </div>
@@ -166,8 +172,9 @@ export function OutfitCard({
           )}
           {isTrial && similarEvidence && (
             <p className="similar-evidence-summary">
-              기존 아이템 {similarEvidence.knownItemCount}/
-              {similarEvidence.totalItemCount}개에 착용 근거 있음
+              {similarEvidence.totalCoreItemCount > 0
+                ? `핵심 Item ${similarEvidence.supportedCoreItemCount}/${similarEvidence.totalCoreItemCount}개에 OK 온도 근거`
+                : `기존 아이템 ${similarEvidence.knownItemCount}/${similarEvidence.totalItemCount}개에 착용 근거 있음`}
             </p>
           )}
           {purchaseHighlight &&

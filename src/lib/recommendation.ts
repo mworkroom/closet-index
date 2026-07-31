@@ -1,6 +1,7 @@
 import type {
   AppData,
   Item,
+  ItemTemperatureEvidence,
   Outfit,
   OutfitRating,
   RecommendationInput,
@@ -73,6 +74,10 @@ function isThermalAnchor(item: Item) {
   )
 }
 
+function isCoreTemperatureItem(item: Item) {
+  return thermalWeight(item) >= 2
+}
+
 function observationsFor(logs: WearLog[]): Observation[] {
   return logs.flatMap((log) => {
     const observations: Observation[] = []
@@ -138,19 +143,79 @@ function similarOutfitEvidence(
   const targetItems = target.itemIds
     .map((id) => data.items.find((item) => item.id === id))
     .filter((item): item is Item => Boolean(item))
+  const targetCoreItems = targetItems.filter(isCoreTemperatureItem)
   const observedItemIds = new Set<string>()
+  const supportingLogs = new Map<string, WearLog>()
 
-  const matches = available
+  const observedOutfits = available
     .filter((candidate) => candidate.id !== target.id)
-    .flatMap((candidate): SimilarOutfitMatch[] => {
-      const logs = data.wearLogs.filter((log) => log.outfitId === candidate.id)
+    .map((candidate) => ({
+      outfit: candidate,
+      logs: data.wearLogs.filter((log) => log.outfitId === candidate.id),
+    }))
+    .filter(({ logs }) => observationsFor(logs).length > 0)
+
+  observedOutfits.forEach(({ outfit }) => {
+    outfit.itemIds.forEach((itemId) => observedItemIds.add(itemId))
+  })
+
+  const itemEvidence = targetCoreItems.flatMap(
+    (item): ItemTemperatureEvidence[] => {
+      const logsById = new Map<string, WearLog>()
+
+      observedOutfits.forEach(({ outfit, logs }) => {
+        if (!outfit.itemIds.includes(item.id)) return
+        logs.forEach((log) => logsById.set(log.id, log))
+      })
+
+      const logs = [...logsById.values()]
+      const { okRange, okTemps } = okRangeFor(observationsFor(logs))
+      if (!okRange) return []
+
+      logs.forEach((log) => supportingLogs.set(log.id, log))
+      const sortedLogs = [...logs].sort((a, b) =>
+        b.wornOn.localeCompare(a.wornOn),
+      )
+
+      return [
+        {
+          itemId: item.id,
+          itemName: item.name,
+          category: item.category,
+          wearCount: logs.length,
+          lastWornOn: sortedLogs[0]?.wornOn ?? null,
+          okRange,
+          okObservationCount: okTemps.length,
+        },
+      ]
+    },
+  )
+
+  const minimumSupportedCoreItems = Math.min(2, targetCoreItems.length)
+  const hasEnoughItemEvidence =
+    minimumSupportedCoreItems > 0 &&
+    itemEvidence.length >= minimumSupportedCoreItems
+  const itemRangeIntersection = hasEnoughItemEvidence
+    ? {
+        min: Math.max(...itemEvidence.map((evidence) => evidence.okRange.min)),
+        max: Math.min(...itemEvidence.map((evidence) => evidence.okRange.max)),
+      }
+    : null
+  const aggregateOkRange =
+    itemRangeIntersection && itemRangeIntersection.min <= itemRangeIntersection.max
+      ? itemRangeIntersection
+      : null
+  const aggregateOkObservationCount = okRangeFor(
+    observationsFor([...supportingLogs.values()]),
+  ).okTemps.length
+
+  const matches = observedOutfits
+    .flatMap(({ outfit: candidate, logs }): SimilarOutfitMatch[] => {
       const observations = observationsFor(logs)
-      if (observations.length === 0) return []
 
       const candidateItems = candidate.itemIds
         .map((id) => data.items.find((item) => item.id === id))
         .filter((item): item is Item => Boolean(item))
-      candidateItems.forEach((item) => observedItemIds.add(item.id))
 
       const candidateIds = new Set(candidateItems.map((item) => item.id))
       const sharedItems = targetItems.filter((item) => candidateIds.has(item.id))
@@ -203,26 +268,42 @@ function similarOutfitEvidence(
     })
     .slice(0, 3)
 
-  if (matches.length === 0) return null
+  if (matches.length === 0 && itemEvidence.length === 0) return null
 
   const best = matches[0]
-  const supportingWearCount = matches
-    .filter(
-      (match) => best.weightedSimilarity - match.weightedSimilarity <= 0.05,
-    )
-    .reduce((sum, match) => sum + match.wearCount, 0)
+  const supportingWearCount = best
+    ? matches
+        .filter(
+          (match) => best.weightedSimilarity - match.weightedSimilarity <= 0.05,
+        )
+        .reduce((sum, match) => sum + match.wearCount, 0)
+    : 0
+  const hasMediumOutfitEvidence = Boolean(
+    best && best.weightedSimilarity >= 0.7 && supportingWearCount >= 2,
+  )
+  const hasMediumItemEvidence =
+    aggregateOkRange !== null &&
+    itemEvidence.length === targetCoreItems.length &&
+    supportingLogs.size >= 2
   const confidence =
-    best.weightedSimilarity >= 0.7 && supportingWearCount >= 2
-      ? 'medium'
-      : 'low'
+    hasMediumOutfitEvidence || hasMediumItemEvidence ? 'medium' : 'low'
 
   return {
     confidence,
     knownItemCount: targetItems.filter((item) => observedItemIds.has(item.id))
       .length,
     totalItemCount: targetItems.length,
+    supportedCoreItemCount: itemEvidence.length,
+    totalCoreItemCount: targetCoreItems.length,
+    itemEvidence,
+    aggregateOkRange,
+    aggregateOkObservationCount,
     matches,
   }
+}
+
+function partialEvidenceRange(evidence: SimilarOutfitEvidence | null) {
+  return evidence?.aggregateOkRange ?? evidence?.matches[0]?.okRange ?? null
 }
 
 function rangeDistance(target: number, range: { min: number; max: number } | null) {
@@ -312,15 +393,33 @@ function evaluateOutfit(
     )
   } else if (similarEvidence) {
     const best = similarEvidence.matches[0]
-    reasons.push(
-      `비슷한 과거 착장 ${best.sharedItemCount}/${best.targetItemCount}개 일치`,
-    )
-    if (best.okRange) {
+    if (similarEvidence.aggregateOkRange) {
       reasons.push(
-        `유사 착장 ${best.okRange.min}~${best.okRange.max}°C · OK ${best.okObservationCount}회`,
+        `핵심 Item ${similarEvidence.supportedCoreItemCount}/${similarEvidence.totalCoreItemCount}개에 OK 온도 근거`,
       )
+      reasons.push(
+        `Item별 종합 ${similarEvidence.aggregateOkRange.min}~${similarEvidence.aggregateOkRange.max}°C · OK 관측 ${similarEvidence.aggregateOkObservationCount}개`,
+      )
+      if (best) {
+        reasons.push(
+          `비슷한 과거 착장 ${best.sharedItemCount}/${best.targetItemCount}개 일치`,
+        )
+      }
+    } else if (best) {
+      reasons.push(
+        `비슷한 과거 착장 ${best.sharedItemCount}/${best.targetItemCount}개 일치`,
+      )
+      if (best.okRange) {
+        reasons.push(
+          `유사 착장 ${best.okRange.min}~${best.okRange.max}°C · OK ${best.okObservationCount}회`,
+        )
+      } else {
+        reasons.push('유사 착장에 OK 온도 기록 없음')
+      }
     } else {
-      reasons.push('유사 착장에 OK 온도 기록 없음')
+      reasons.push(
+        `핵심 Item ${similarEvidence.supportedCoreItemCount}/${similarEvidence.totalCoreItemCount}개에 일부 온도 근거`,
+      )
     }
   } else {
     reasons.push('온도 근거 없음')
@@ -375,14 +474,16 @@ export function partitionRecommendations(
   const temperatureRangeFor = (result: RecommendationResult) =>
     result.evidence === 'observed'
       ? result.okRange
-      : (result.similarEvidence?.matches[0]?.okRange ?? null)
+      : partialEvidenceRange(result.similarEvidence)
   const matchesTargetTemperature = (result: RecommendationResult) =>
     rangeDistance(result.targetTemp, temperatureRangeFor(result)) === 0
 
   const recentPurchases = results
     .filter(
       (result) =>
-        result.latestAcquiredOn !== null && matchesTargetTemperature(result),
+        result.evidence === 'observed' &&
+        result.latestAcquiredOn !== null &&
+        matchesTargetTemperature(result),
     )
     .sort((a, b) =>
       (b.latestAcquiredOn ?? '').localeCompare(a.latestAcquiredOn ?? ''),
@@ -442,6 +543,16 @@ export function recommendOutfits(
       if (aDistance !== bDistance) return aDistance - bDistance
 
       if (a.evidence === 'untried' && b.evidence === 'untried') {
+        const aItemCoverage = a.similarEvidence?.totalCoreItemCount
+          ? a.similarEvidence.supportedCoreItemCount /
+            a.similarEvidence.totalCoreItemCount
+          : -1
+        const bItemCoverage = b.similarEvidence?.totalCoreItemCount
+          ? b.similarEvidence.supportedCoreItemCount /
+            b.similarEvidence.totalCoreItemCount
+          : -1
+        if (aItemCoverage !== bItemCoverage) return bItemCoverage - aItemCoverage
+
         const aSimilarity =
           a.similarEvidence?.matches[0]?.weightedSimilarity ?? -1
         const bSimilarity =

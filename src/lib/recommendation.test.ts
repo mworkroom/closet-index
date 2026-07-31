@@ -144,7 +144,116 @@ describe('recommendOutfits', () => {
     expect(best?.targetItemCount).toBe(4)
     expect(best?.changedItemNames).toEqual(['새 신발'])
     expect(best?.weightedSimilarity).toBeCloseTo(0.8)
-    expect(result?.reasons[0]).toBe('비슷한 과거 착장 3/4개 일치')
+    expect(result?.reasons[0]).toBe('핵심 Item 3/3개에 OK 온도 근거')
+  })
+
+  it('서로 다른 과거 Outfit의 핵심 Item 온도를 모아 새 조합의 시험 범위를 만든다', () => {
+    const data: AppData = structuredClone(demoData)
+    const template = data.items[0]
+    data.items = [
+      {
+        ...template,
+        id: 'target-top',
+        name: '고양이 티셔츠',
+        category: 'Top-T-shirts',
+        acquiredOn: null,
+      },
+      {
+        ...template,
+        id: 'target-bottom',
+        name: '요거트 스커트',
+        category: 'Bottom-Skirts',
+        acquiredOn: null,
+      },
+      {
+        ...template,
+        id: 'other-top',
+        name: '다른 상의',
+        category: 'Top-T-shirts',
+        acquiredOn: null,
+      },
+      {
+        ...template,
+        id: 'other-bottom',
+        name: '다른 하의',
+        category: 'Bottom-Skirts',
+        acquiredOn: null,
+      },
+    ]
+    data.outfits = [
+      {
+        id: 'bottom-history',
+        displayName: null,
+        rating: 'ok',
+        itemIds: ['other-top', 'target-bottom'],
+      },
+      {
+        id: 'top-history',
+        displayName: null,
+        rating: 'ok',
+        itemIds: ['target-top', 'other-bottom'],
+      },
+      {
+        id: 'new-combination',
+        displayName: null,
+        rating: null,
+        itemIds: ['target-top', 'target-bottom'],
+      },
+    ]
+    data.wearLogs = [
+      {
+        ...wearLog('bottom-log', 'bottom-history', '2026-06-28'),
+        tempOut: 24,
+        tempBack: 21,
+        feelingOut: 'ok',
+        feelingBack: 'ok',
+      },
+      {
+        ...wearLog('top-log', 'top-history', '2026-07-08'),
+        tempOut: 25,
+        tempBack: 25,
+        feelingOut: 'ok',
+        feelingBack: 'ok',
+      },
+    ]
+
+    const results = recommendOutfits(data, {
+      ...baseInput,
+      tempOut: 25,
+    })
+    const result = results.find(
+      (entry) => entry.outfit.id === 'new-combination',
+    )
+    const groups = partitionRecommendations(results, 10)
+
+    expect(result?.similarEvidence?.matches).toHaveLength(0)
+    expect(result?.similarEvidence?.supportedCoreItemCount).toBe(2)
+    expect(result?.similarEvidence?.totalCoreItemCount).toBe(2)
+    expect(result?.similarEvidence?.itemEvidence).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          itemId: 'target-bottom',
+          okRange: { min: 19, max: 26 },
+        }),
+        expect.objectContaining({
+          itemId: 'target-top',
+          okRange: { min: 23, max: 27 },
+        }),
+      ]),
+    )
+    expect(result?.similarEvidence?.aggregateOkRange).toEqual({
+      min: 23,
+      max: 26,
+    })
+    expect(result?.similarEvidence?.aggregateOkObservationCount).toBe(3)
+    expect(result?.similarEvidence?.confidence).toBe('medium')
+    expect(result?.reasons[0]).toBe('핵심 Item 2/2개에 OK 온도 근거')
+    expect(groups.trialRecommendations.map((entry) => entry.outfit.id)).toContain(
+      'new-combination',
+    )
+    expect(
+      groups.unknownTrialRecommendations.map((entry) => entry.outfit.id),
+    ).not.toContain('new-combination')
   })
 
   it('가방과 액세서리만 겹치는 과거 Outfit은 온도 근거로 쓰지 않는다', () => {
@@ -448,7 +557,7 @@ describe('recommendOutfits', () => {
     expect(remainingIds).not.toContain(recentIds[0])
   })
 
-  it('부분 근거 온도가 맞지 않는 최근 구매 시험 착장은 오늘 후보에서 제외한다', () => {
+  it('미착용 Outfit은 구매일이 있어도 온도가 맞을 때 시험 착장으로 분류한다', () => {
     const coldGroups = partitionRecommendations(
       recommendOutfits(demoData, {
         ...baseInput,
@@ -474,6 +583,14 @@ describe('recommendOutfits', () => {
       coldGroups.unknownTrialRecommendations.map((entry) => entry.outfit.id),
     ).not.toContain('outfit-layered')
     expect(warmGroups.recentPurchases.map((entry) => entry.outfit.id)).toContain(
+      'outfit-summer',
+    )
+    expect(warmGroups.recentPurchases.map((entry) => entry.outfit.id)).not.toContain(
+      'outfit-layered',
+    )
+    expect(
+      warmGroups.trialRecommendations.map((entry) => entry.outfit.id),
+    ).toContain(
       'outfit-layered',
     )
   })

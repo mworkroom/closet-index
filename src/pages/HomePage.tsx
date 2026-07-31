@@ -866,11 +866,12 @@ export function HomePage() {
 
               <div className="recommendation-intro">
                 <strong>
-                  오늘 온도에 맞는 후보 중 최근 구매 아이템을 먼저 골랐어요.
+                  오늘 온도에 맞고 직접 입어본 후보 중 최근 구매 아이템을
+                  먼저 골랐어요.
                 </strong>
                 <p>
-                  직접 착용 또는 비슷한 과거 착장의 OK 온도 범위와 맞는
-                  Outfit만 구매일 최신순으로 보여줍니다.
+                  직접 착용한 OK 온도 범위와 맞는 Outfit만 구매일 최신순으로
+                  보여줍니다. 미착용 조합은 새 착장 시험해보기에 남습니다.
                 </p>
               </div>
 
@@ -961,7 +962,8 @@ export function HomePage() {
                   오늘 온도와 비슷한 근거가 있어요.
                 </strong>
                 <p>
-                  비슷한 과거 착장의 OK 온도 범위에 해당하는                 착장입니다. 
+                  핵심 Item별 OK 온도를 모은 공통 구간이나 비슷한 과거
+                  Outfit의 범위에 해당하는 착장입니다.
                 </p>
               </div>
 
@@ -1010,8 +1012,8 @@ export function HomePage() {
               <div className="trial-intro">
                 <strong>오늘 온도와 대조할 OK 기록이 아직 없어요.</strong>
                 <p>
-                  비슷한 과거 착장을 찾지 못했거나 적정 온도 기록이 없는
-                  계획입니다. 오늘 추천이 아니라 참고용 시험 후보입니다.
+                  핵심 Item별 공통 구간과 비슷한 과거 Outfit 범위를 만들 수
+                  없는 계획입니다. 오늘 추천이 아니라 참고용 시험 후보입니다.
                 </p>
               </div>
 
