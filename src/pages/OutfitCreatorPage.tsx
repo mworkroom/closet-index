@@ -23,6 +23,7 @@ import {
 } from '../lib/outfit-composition'
 import { sortItems } from '../lib/items'
 import { outfitLabel } from '../lib/outfits'
+import { prepareOutfitPreview } from '../lib/outfit-preview'
 import {
   itemMatchesSeasonScope,
   SEASONS,
@@ -104,6 +105,7 @@ export function OutfitCreatorPage() {
     refresh,
     findMatchingOutfits,
     createOutfit,
+    replaceOutfitPreview,
   } = useClosetData()
   const { activeSeasons } = useSeasonScope()
   const [outfitId] = useState(() => crypto.randomUUID())
@@ -297,7 +299,22 @@ export function OutfitCreatorPage() {
           }
         }),
       })
-      navigate(`/outfits/${created.id}`, { replace: true })
+      let previewWarning: string | null = null
+      if (imageCount === selectedItems.length) {
+        try {
+          const preview = await prepareOutfitPreview(created, data?.items ?? [])
+          await replaceOutfitPreview(created.id, preview)
+        } catch (cause) {
+          previewWarning =
+            cause instanceof Error
+              ? cause.message
+              : '착장 preview를 만들지 못했습니다.'
+        }
+      }
+      navigate(`/outfits/${created.id}`, {
+        replace: true,
+        state: previewWarning ? { previewWarning } : undefined,
+      })
     } catch (cause) {
       setSaveError(
         cause instanceof Error ? cause.message : 'Outfit을 저장하지 못했습니다.',
@@ -566,7 +583,7 @@ export function OutfitCreatorPage() {
               disabled={selectedItems.length === 0 || saving || matches.length > 0}
               onClick={() => void save(false)}
             >
-              {saving ? '저장 중…' : '새 Outfit 저장'}
+              {saving ? 'Outfit과 preview 저장 중…' : '새 Outfit 저장'}
             </button>
             <p className="outfit-creator__save-note">
               저장할 때 새 Outfit과 모든 Item 관계를 한 번에 생성합니다. Wear Log는

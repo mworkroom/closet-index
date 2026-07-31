@@ -18,6 +18,7 @@ import type {
   Outfit,
   OutfitCreateInput,
   OutfitItemPlacementInput,
+  OutfitPreviewUploadInput,
   WeatherForecastRequest,
   WeatherForecastResponse,
   WeatherLocationInput,
@@ -47,6 +48,10 @@ interface DataState {
   createOutfit: (input: OutfitCreateInput) => Promise<Outfit>
   setOutfitArchived: (outfitId: string, archived: boolean) => Promise<void>
   updateOutfitItemPlacement: (input: OutfitItemPlacementInput) => Promise<void>
+  replaceOutfitPreview: (
+    outfitId: string,
+    input: OutfitPreviewUploadInput,
+  ) => Promise<void>
   saveDefaultWeatherLocation: (input: WeatherLocationInput) => Promise<void>
   fetchWeatherForecast: (
     input: WeatherForecastRequest,
@@ -145,6 +150,11 @@ export function DataProvider({
 
               return {
                 ...outfit,
+                preview: null,
+                previewState:
+                  outfit.preview || outfit.previewState === 'ready'
+                    ? 'stale'
+                    : (outfit.previewState ?? 'missing'),
                 itemPlacements: hasPlacement
                   ? placements.map((placement) =>
                       placement.itemId === input.itemId
@@ -175,6 +185,17 @@ export function DataProvider({
   const findMatchingOutfits = useCallback(
     (itemIds: string[]) => repository.findMatchingOutfits(itemIds),
     [repository],
+  )
+
+  const replaceOutfitPreview = useCallback(
+    async (outfitId: string, input: OutfitPreviewUploadInput) => {
+      if (!repository.replaceOutfitPreview) {
+        throw new Error('이 환경에서는 Outfit preview 저장을 지원하지 않습니다.')
+      }
+      await repository.replaceOutfitPreview(outfitId, input)
+      await refresh()
+    },
+    [refresh, repository],
   )
 
   const createOutfit = useCallback(
@@ -307,6 +328,7 @@ export function DataProvider({
       createOutfit,
       setOutfitArchived,
       updateOutfitItemPlacement,
+      replaceOutfitPreview,
       saveDefaultWeatherLocation: (input) =>
         mutate(() => repository.saveDefaultWeatherLocation(input)),
       fetchWeatherForecast: (input) => repository.fetchWeatherForecast(input),
@@ -327,6 +349,7 @@ export function DataProvider({
       setOutfitArchived,
       updateItem,
       updateOutfitItemPlacement,
+      replaceOutfitPreview,
     ],
   )
 

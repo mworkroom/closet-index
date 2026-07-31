@@ -10,6 +10,7 @@ import { useSeasonScope } from '../context/SeasonScopeContext'
 import { getOutfitStats, outfitLabel } from '../lib/outfits'
 import { sortPlacesForSelection } from '../lib/place-options'
 import { outfitMatchesSeasonScope } from '../lib/seasons'
+import type { OutfitPreviewState } from '../lib/types'
 
 function parseOptionalNumber(value: string) {
   return value.trim() === '' ? null : Number(value)
@@ -26,6 +27,7 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
   const [maximumTemp, setMaximumTemp] = useState('')
   const [placeId, setPlaceId] = useState('')
   const [includeUnavailable, setIncludeUnavailable] = useState(false)
+  const [previewState, setPreviewState] = useState<OutfitPreviewState | ''>('')
 
   const outfits = useMemo(() => {
     if (!data) return []
@@ -54,6 +56,9 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
           items.length !== outfit.itemIds.length ||
           items.some((item) => item.retired)
         if (!includeUnavailable && unavailable) return false
+        const currentPreviewState =
+          outfit.previewState ?? (outfit.preview ? 'ready' : 'missing')
+        if (previewState && currentPreviewState !== previewState) return false
         if ((favoriteOnly || favorite) && outfit.rating !== 'favorite') return false
         if (!outfitMatchesSeasonScope(outfit, data.items, activeSeasons)) {
           return false
@@ -102,6 +107,7 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
     minimumTemp,
     notWornRecently,
     placeId,
+    previewState,
     query,
     unwornOnly,
   ])
@@ -115,6 +121,7 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
     setMaximumTemp('')
     setPlaceId('')
     setIncludeUnavailable(false)
+    setPreviewState('')
   }
 
   return (
@@ -144,7 +151,7 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
             onChange={(event) => setQuery(event.target.value)}
           />
         </label>
-        <div className="filter-row filter-row--single">
+        <div className="filter-row">
           <select
             aria-label="장소"
             value={placeId}
@@ -156,6 +163,20 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
                 {place.name}
               </option>
             ))}
+          </select>
+          <select
+            aria-label="미리보기 상태"
+            value={previewState}
+            onChange={(event) =>
+              setPreviewState(event.target.value as OutfitPreviewState | '')
+            }
+          >
+            <option value="">모든 Preview 상태</option>
+            <option value="missing">Preview 없음</option>
+            <option value="stale">Preview 오래됨</option>
+            <option value="error">Preview 오류</option>
+            <option value="pending">Preview 생성 중</option>
+            <option value="ready">Preview 준비됨</option>
           </select>
         </div>
         <div className="temperature-filter" aria-label="OK 온도 범위">

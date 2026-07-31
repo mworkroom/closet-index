@@ -518,6 +518,16 @@ Storage 객체와 database transaction은 하나로 묶을 수 없으므로 이�
 - 이미지 없음·오류·stale 필터
 - 고아 metadata·Storage object 점검 도구
 
+구현 상태 (2026-08-01):
+
+- composition v4의 현재 relation·누끼 metadata를 source fingerprint로 묶고, 브라우저에서 900×1200 WebP를 생성하는 경로를 구현했다.
+- `closet-outfit-preview` Edge Function과 service-role 전용 begin·finalize·cancel RPC migration을 추가했다. 새 version의 pending metadata와 Storage object를 먼저 만든 뒤 검증된 경우에만 ready로 승격한다.
+- 새 preview 생성 중 또는 실패 시 마지막 정상 ready preview를 계속 사용할 수 있고, 성공한 뒤에만 이전 ready metadata를 error·stale로 전환하고 객체 정리를 시도한다.
+- Outfit relation 변경과 ready cutout 교체 trigger, composition version·relation·image ID를 포함한 browser fingerprint 대조로 stale cache가 현재 착장으로 표시되지 않게 했다.
+- 새 Outfit 저장 뒤 preview를 자동 시도하되 실패해도 Outfit 저장은 유지한다. Outfit 상세에는 preview 상태와 수동 재생성, Lookbook에는 없음·오래됨·오류·생성 중·준비됨 상태 필터를 추가했다.
+- production의 preview metadata·Storage object를 변경하지 않고 고아 metadata, 누락 ready object, 고아 object를 읽기 전용으로 분류하는 `outfit:preview:audit` 명령을 추가했다.
+- 로컬 TypeScript 검사, 전체 Vitest 44개 파일·195개 테스트와 production build가 통과했다. 로컬 Docker가 없어 신규 pgTAP 18개와 실제 Function 호출은 아직 실행하지 않았고, browser runtime의 로컬 경로 오류로 PC·모바일 렌더링 QA도 P3-7 전 확인으로 남겼다.
+
 완료 조건:
 
 - preview 실패가 Outfit 사용을 막지 않는다.

@@ -11,6 +11,7 @@ import {
   Footprints,
   MapPin,
   RotateCcw,
+  RefreshCw,
   Thermometer,
   TrainFront,
 } from 'lucide-react'
@@ -26,6 +27,7 @@ import { useClosetData } from '../context/DataContext'
 import { formatMonthDayYear } from '../lib/date'
 import type { RecommendationNavigationState } from '../lib/navigation'
 import { getOutfitStats, outfitLabel } from '../lib/outfits'
+import { prepareOutfitPreview } from '../lib/outfit-preview'
 import { feelingLabels, ratingLabels, recommendationLabels } from '../lib/types'
 
 function TransportIcon({ name }: { name: string }) {
@@ -48,7 +50,9 @@ function TransportIcon({ name }: { name: string }) {
 export function OutfitDetailPage() {
   const { outfitId = '' } = useParams()
   const location = useLocation()
-  const navigationState = (location.state ?? {}) as RecommendationNavigationState
+  const navigationState = (location.state ?? {}) as RecommendationNavigationState & {
+    previewWarning?: string
+  }
   const {
     data,
     loading,
@@ -56,9 +60,13 @@ export function OutfitDetailPage() {
     refresh,
     setOutfitArchived,
     updateOutfitItemPlacement,
+    replaceOutfitPreview,
   } = useClosetData()
   const [archiveConfirming, setArchiveConfirming] = useState(false)
   const [archiveSaving, setArchiveSaving] = useState(false)
+  const [previewSaving, setPreviewSaving] = useState(false)
+  const [previewSaved, setPreviewSaved] = useState(false)
+  const [previewError, setPreviewError] = useState<string | null>(null)
   const outfit = data?.outfits.find((entry) => entry.id === outfitId)
   const items =
     outfit && data
@@ -94,6 +102,24 @@ export function OutfitDetailPage() {
     }
   }
 
+  const regeneratePreview = async () => {
+    if (!outfit || !data || previewSaving) return
+    setPreviewSaving(true)
+    setPreviewSaved(false)
+    setPreviewError(null)
+    try {
+      const preview = await prepareOutfitPreview(outfit, data.items)
+      await replaceOutfitPreview(outfit.id, preview)
+      setPreviewSaved(true)
+    } catch (cause) {
+      setPreviewError(
+        cause instanceof Error ? cause.message : '착장 preview를 만들지 못했습니다.',
+      )
+    } finally {
+      setPreviewSaving(false)
+    }
+  }
+
   return (
     <AppShell
       title="착장 상세"
@@ -126,6 +152,14 @@ export function OutfitDetailPage() {
                 <RotateCcw size={17} aria-hidden="true" />
                 {archiveSaving ? '복원 중…' : '복원하기'}
               </button>
+            </section>
+          )}
+          {navigationState.previewWarning && (
+            <section className="outfit-preview-notice" role="status">
+              <strong>Outfit은 저장됐습니다.</strong>
+              <span>
+                Preview는 만들지 못했습니다. 상세 화면에서 다시 시도할 수 있습니다.
+              </span>
             </section>
           )}
           {navigationState.recommendation && (
@@ -327,6 +361,50 @@ export function OutfitDetailPage() {
                 <h2>착장 관리</h2>
               </div>
             </div>
+            <div className="outfit-preview-management">
+              <span>
+                <strong>저장 Preview</strong>
+                <small>
+                  {outfit.previewState === 'ready'
+                    ? `준비됨 · v${outfit.preview?.compositionVersion ?? '?'}`
+                    : outfit.previewState === 'stale'
+                      ? '현재 배치 또는 누끼와 달라 재생성이 필요합니다.'
+                      : outfit.previewState === 'error'
+                        ? '마지막 생성에 실패했습니다.'
+                        : outfit.previewState === 'pending'
+                          ? '생성 중인 기록이 있습니다.'
+                          : '아직 저장된 preview가 없습니다.'}
+                </small>
+              </span>
+              <button
+                type="button"
+                className="button button--secondary"
+                disabled={!hasCompleteCutoutSet || previewSaving}
+                onClick={() => void regeneratePreview()}
+              >
+                <RefreshCw size={17} aria-hidden="true" />
+                {previewSaving
+                  ? '생성 중…'
+                  : outfit.previewState === 'ready'
+                    ? '다시 만들기'
+                    : 'Preview 만들기'}
+              </button>
+            </div>
+            {!hasCompleteCutoutSet && (
+              <p className="outfit-preview-help">
+                모든 구성 Item에 누끼 이미지가 있어야 저장 preview를 만들 수 있습니다.
+              </p>
+            )}
+            {previewSaved && (
+              <p className="success-message" role="status">
+                현재 배치로 preview를 저장했습니다.
+              </p>
+            )}
+            {previewError && (
+              <p className="form-error" role="alert">
+                {previewError}
+              </p>
+            )}
             <Link
               className="button button--secondary button--wide"
               to={`/outfits/new?source=${encodeURIComponent(outfit.id)}`}

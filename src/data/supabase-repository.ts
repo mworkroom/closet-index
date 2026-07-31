@@ -16,6 +16,7 @@ import type {
   OutfitCreateInput,
   OutfitItemWriteInput,
   OutfitItemPlacementInput,
+  OutfitPreviewUploadInput,
   ThermalFeeling,
   WeatherForecastRequest,
   WeatherForecastResponse,
@@ -24,6 +25,7 @@ import type {
   WearLog,
   WearLogInput,
 } from '../lib/types'
+import { getOutfitPreviewFingerprint } from '../lib/outfit-preview'
 import {
   CLOSET_IMAGE_BUCKET,
   emptyReadyImageAssets,
@@ -359,7 +361,7 @@ export class SupabaseRepository implements ClosetRepository {
         .order('name'),
       this.client
         .from('closet_outfits')
-        .select('id,display_name,rating')
+        .select('id,display_name,rating,archived_at')
         .eq('workspace_id', this.workspaceId)
         .order('created_at'),
       outfitItemsPromise,
@@ -430,7 +432,30 @@ export class SupabaseRepository implements ClosetRepository {
           zIndex: link.z_index,
         })),
       preview: imageAssets.outfitPreviews.get(row.id) ?? null,
+      previewState:
+        imageAssets.outfitPreviewStates.get(row.id) ?? 'missing',
     }))
+
+    await Promise.all(
+      outfits.map(async (outfit) => {
+        if (!outfit.preview?.sourceFingerprint) return
+        try {
+          const currentFingerprint = await getOutfitPreviewFingerprint(
+            outfit,
+            items,
+          )
+          if (currentFingerprint === outfit.preview.sourceFingerprint) return
+        } catch {
+          // A preview cache failure must not block the wardrobe data load.
+        }
+        if (outfit.previewState === 'ready') {
+          outfit.previewState = 'stale'
+        }
+        if (outfit.preview) {
+          outfit.preview = null
+        }
+      }),
+    )
 
     return {
       items,
@@ -576,6 +601,75 @@ export class SupabaseRepository implements ClosetRepository {
     }
   }
 
+  async replaceOutfitPreview(
+    outfitId: string,
+    input: OutfitPreviewUploadInput,
+  ) {
+    const begin = await this.client.functions.invoke(
+      'closet-outfit-preview',
+      {
+        body: {
+          action: 'begin',
+          workspaceId: this.workspaceId,
+          outfitId,
+          widthPx: input.widthPx,
+          heightPx: input.heightPx,
+          bytes: input.bytes,
+          sourceFingerprint: input.sourceFingerprint,
+        },
+      },
+    )
+    if (begin.error) throw begin.error
+    const ticket = begin.data as {
+      previewId: string
+      storagePath: string
+      token: string
+      contentType: string
+    }
+
+    try {
+      const upload = await this.client.storage
+        .from(CLOSET_IMAGE_BUCKET)
+        .uploadToSignedUrl(
+          ticket.storagePath,
+          ticket.token,
+          input.blob,
+          {
+            contentType: 'image/webp',
+            cacheControl: '31536000',
+          },
+        )
+      if (upload.error) throw upload.error
+
+      const finalize = await this.client.functions.invoke(
+        'closet-outfit-preview',
+        {
+          body: {
+            action: 'finalize',
+            workspaceId: this.workspaceId,
+            outfitId,
+            previewId: ticket.previewId,
+          },
+        },
+      )
+      if (finalize.error) throw finalize.error
+    } catch (cause) {
+      try {
+        await this.client.functions.invoke('closet-outfit-preview', {
+          body: {
+            action: 'cancel',
+            workspaceId: this.workspaceId,
+            outfitId,
+            previewId: ticket.previewId,
+          },
+        })
+      } catch {
+        // A later orphan sweep can clean an interrupted pending upload.
+      }
+      throw cause
+    }
+  }
+
   async setItemRetired(itemId: string, retired: boolean) {
     const { data, error } = await this.client
       .from('closet_items')
@@ -644,6 +738,7 @@ export class SupabaseRepository implements ClosetRepository {
         zIndex: item.zIndex,
       })),
       preview: null,
+      previewState: 'missing',
     }
   }
 
@@ -694,6 +789,7 @@ export class SupabaseRepository implements ClosetRepository {
         zIndex: link.z_index,
       })),
       preview: null,
+      previewState: 'missing',
     }
   }
 

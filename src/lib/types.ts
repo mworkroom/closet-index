@@ -16,7 +16,15 @@ export interface ImageAsset {
 
 export interface OutfitPreview extends ImageAsset {
   compositionVersion: number
+  sourceFingerprint: string | null
 }
+
+export type OutfitPreviewState =
+  | 'missing'
+  | 'pending'
+  | 'ready'
+  | 'stale'
+  | 'error'
 
 export interface OutfitItemPlacement {
   itemId: string
@@ -59,6 +67,14 @@ export interface ItemImageUploadInput {
   widthPx: number
   heightPx: number
   bytes: number
+}
+
+export interface OutfitPreviewUploadInput {
+  blob: Blob
+  widthPx: number
+  heightPx: number
+  bytes: number
+  sourceFingerprint: string
 }
 
 export interface OutfitItemWriteInput {
@@ -114,6 +130,7 @@ export interface Outfit {
   itemIds: string[]
   itemPlacements?: OutfitItemPlacement[]
   preview?: OutfitPreview | null
+  previewState?: OutfitPreviewState
 }
 
 export interface SelectOption {

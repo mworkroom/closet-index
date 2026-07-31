@@ -112,6 +112,32 @@ describe('Phase 1B screen visuals', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('LOOKBOOK에서 저장 Preview가 없는 Outfit만 관리할 수 있다', async () => {
+    const user = userEvent.setup()
+    renderRoute('/lookbook', '/lookbook', <LookbookPage />)
+
+    await screen.findByRole('heading', { name: '착장' })
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: '미리보기 상태' }),
+      'missing',
+    )
+
+    const grid = document.querySelector<HTMLElement>('.outfit-grid')
+    expect(grid).toBeInTheDocument()
+    const links = within(grid!).getAllByRole('link')
+    expect(links.length).toBeGreaterThan(0)
+    links.forEach((link) => {
+      const outfitId = link.getAttribute('href')?.replace('/outfits/', '')
+      const outfit = demoData.outfits.find((entry) => entry.id === outfitId)
+      expect(outfit?.previewState).toBe('missing')
+    })
+    expect(
+      within(grid!).queryByRole('link', {
+        name: /블루 가디건.*착장 상세 보기/,
+      }),
+    ).not.toBeInTheDocument()
+  })
+
   it('CLOSET 행에서 cutout과 스와치 fallback을 함께 유지한다', async () => {
     renderRoute('/closet', '/closet', <ClosetPage />)
 

@@ -1776,6 +1776,48 @@ button:disabled {
   font-variant-numeric: tabular-nums;
 }
 
+.outfit-preview-notice,
+.outfit-preview-management {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  background: var(--surface-soft);
+}
+
+.outfit-preview-notice span,
+.outfit-preview-management span {
+  display: grid;
+  gap: 3px;
+}
+
+.outfit-preview-management small,
+.outfit-preview-help,
+.outfit-preview-notice span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.outfit-preview-management .button {
+  flex: none;
+}
+
+@media (max-width: 520px) {
+  .outfit-preview-notice,
+  .outfit-preview-management {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .outfit-preview-management .button {
+    width: 100%;
+  }
+}
+
 .outfit-card__grid-summary strong {
   color: var(--warning);
   font-size: 0.68rem;

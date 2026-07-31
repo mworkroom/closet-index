@@ -16,6 +16,7 @@
     "notion:import": "node scripts/import-supabase.mjs",
     "outfit:preview": "node scripts/compose-outfit-preview.mjs",
     "outfit:upload": "node scripts/upload-outfit-preview.mjs",
+    "outfit:preview:audit": "node scripts/audit-outfit-previews.mjs",
     "images:prepare": "node scripts/prepare-image-upload.mjs",
     "images:bulk": "node scripts/image-bulk-tool.mjs",
     "weather:capture": "node scripts/capture-kma-forecast.mjs"

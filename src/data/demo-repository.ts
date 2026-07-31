@@ -8,6 +8,7 @@ import type {
   OutfitCloneInput,
   OutfitCreateInput,
   OutfitItemPlacementInput,
+  OutfitPreviewUploadInput,
   WeatherForecastRequest,
   WeatherForecastResponse,
   WeatherLocation,
@@ -61,6 +62,10 @@ function readData() {
     const data = JSON.parse(stored) as typeof demoData
     data.weatherLocations ??= structuredClone(demoData.weatherLocations)
     for (const outfit of data.outfits) outfit.archivedAt ??= null
+    for (const outfit of data.outfits) {
+      outfit.previewState ??= outfit.preview ? 'ready' : 'missing'
+      if (outfit.preview) outfit.preview.sourceFingerprint ??= null
+    }
     data.wearLogs = data.wearLogs.map((log) => {
       const normalized = { ...log }
       normalized.temperatureSource ??= 'notion'
@@ -134,6 +139,32 @@ export class DemoRepository implements ClosetRepository {
       heightPx: input.heightPx,
       expiresAt: null,
     }
+    for (const outfit of data.outfits) {
+      if (!outfit.itemIds.includes(itemId)) continue
+      outfit.previewState = outfit.preview ? 'stale' : 'missing'
+      outfit.preview = null
+    }
+    writeData(data)
+  }
+
+  async replaceOutfitPreview(
+    outfitId: string,
+    input: OutfitPreviewUploadInput,
+  ) {
+    const data = readData()
+    const outfit = data.outfits.find((entry) => entry.id === outfitId)
+    if (!outfit) throw new Error('Outfit을 찾을 수 없습니다.')
+    outfit.preview = {
+      id: crypto.randomUUID(),
+      storagePath: `demo/outfits/${outfitId}/preview/v${(outfit.preview?.compositionVersion ?? 0) + 1}.webp`,
+      url: await blobToDataUrl(input.blob),
+      widthPx: input.widthPx,
+      heightPx: input.heightPx,
+      expiresAt: null,
+      compositionVersion: (outfit.preview?.compositionVersion ?? 0) + 1,
+      sourceFingerprint: input.sourceFingerprint,
+    }
+    outfit.previewState = 'ready'
     writeData(data)
   }
 
@@ -185,6 +216,8 @@ export class DemoRepository implements ClosetRepository {
         zIndex: input.zIndex,
       })
     }
+    outfit.previewState = outfit.preview ? 'stale' : 'missing'
+    outfit.preview = null
     writeData(data)
   }
 
@@ -243,6 +276,7 @@ export class DemoRepository implements ClosetRepository {
         zIndex: item.zIndex,
       })),
       preview: null,
+      previewState: 'missing',
     }
     data.outfits.push(outfit)
     writeData(data)

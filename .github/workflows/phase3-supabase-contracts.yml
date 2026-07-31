@@ -3,7 +3,7 @@ name: Phase 3 Supabase Contract Tests
 on:
   push:
     branches:
-      - codex/phase3-isolated-validation
+      - "codex/phase3-*"
     paths:
       - .github/workflows/phase3-supabase-contracts.yml
       - supabase/migrations/**
@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   phase3-database-contracts:
-    name: P3-1 and P3-3 pgTAP
+    name: Phase 3 pgTAP contracts
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -48,6 +48,7 @@ jobs:
           supabase test db --local
           supabase/tests/phase3_item_outfit_write_contract_test.sql
           supabase/tests/phase3_item_image_upload_contract_test.sql
+          supabase/tests/phase3_outfit_preview_cache_contract_test.sql
 
       - name: Stop isolated Supabase
         if: always()

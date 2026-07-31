@@ -142,7 +142,9 @@ export const demoData: AppData = {
         heightPx: 1200,
         expiresAt: null,
         compositionVersion: 1,
+        sourceFingerprint: null,
       },
+      previewState: 'ready',
     },
     {
       id: 'outfit-summer',
@@ -150,6 +152,7 @@ export const demoData: AppData = {
       rating: 'ok',
       itemIds: ['item-tee', 'item-pants', 'item-shoes'],
       preview: null,
+      previewState: 'missing',
     },
     {
       id: 'outfit-skirt',
@@ -164,25 +167,30 @@ export const demoData: AppData = {
         heightPx: 1200,
         expiresAt: null,
         compositionVersion: 1,
+        sourceFingerprint: null,
       },
+      previewState: 'ready',
     },
     {
       id: 'outfit-layered',
       displayName: '쌀쌀한 날 레이어드',
       rating: 'ok',
       itemIds: ['item-cardigan', 'item-tee', 'item-pants'],
+      previewState: 'missing',
     },
     {
       id: 'outfit-unrated',
       displayName: '아직 평가하지 않은 조합',
       rating: null,
       itemIds: ['item-knit', 'item-pants'],
+      previewState: 'missing',
     },
     {
       id: 'outfit-error',
       displayName: '다시 입지 않을 조합',
       rating: 'error',
       itemIds: ['item-cardigan', 'item-skirt', 'item-loafers'],
+      previewState: 'missing',
     },
   ],
   wearLogs: [

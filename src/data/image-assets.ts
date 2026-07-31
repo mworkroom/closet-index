@@ -3,6 +3,7 @@ import type {
   AppData,
   ImageAsset,
   OutfitPreview,
+  OutfitPreviewState,
 } from '../lib/types'
 
 export const CLOSET_IMAGE_BUCKET = 'closet-images'
@@ -27,6 +28,9 @@ interface OutfitPreviewRow {
   composition_version: number
   width_px: number | null
   height_px: number | null
+  status: 'pending' | 'ready' | 'error'
+  stale_at: string | null
+  source_fingerprint: string | null
 }
 
 interface SignedUrlResult {
@@ -58,6 +62,7 @@ export interface ResolvedSignedUrl {
 export interface ReadyImageAssets {
   itemImages: Map<string, ImageAsset>
   outfitPreviews: Map<string, OutfitPreview>
+  outfitPreviewStates: Map<string, OutfitPreviewState>
 }
 
 function batches<T>(values: T[], size: number) {
@@ -133,6 +138,7 @@ export function emptyReadyImageAssets(): ReadyImageAssets {
   return {
     itemImages: new Map(),
     outfitPreviews: new Map(),
+    outfitPreviewStates: new Map(),
   }
 }
 
@@ -173,31 +179,35 @@ export async function loadReadyImageAssets(
   const previewQuery = client
     .from('closet_outfit_previews')
     .select(
-      'id,outfit_id,storage_path,composition_version,width_px,height_px',
+      'id,outfit_id,storage_path,composition_version,width_px,height_px,status,stale_at,source_fingerprint',
     )
     .eq('workspace_id', workspaceId)
-    .eq('status', 'ready')
 
   const [itemRows, allPreviewRows] = await Promise.all([
     safeRows<ItemImageRow>(itemQuery),
     safeRows<OutfitPreviewRow>(previewQuery),
   ])
-  const previewRows = latestPreviews(allPreviewRows)
+  const latestPreviewRows = latestPreviews(allPreviewRows)
+  const readyPreviewRows = latestPreviews(
+    allPreviewRows.filter(
+      (row) => row.status === 'ready' && !row.stale_at,
+    ),
+  )
   const paths = [
     ...itemRows.map((row) => row.storage_path),
-    ...previewRows.map((row) => row.storage_path),
+    ...readyPreviewRows.map((row) => row.storage_path),
   ]
 
-  if (paths.length === 0) return emptyReadyImageAssets()
-
-  let signedUrls: Map<string, ResolvedSignedUrl>
-  try {
-    signedUrls = await cache.resolve(
-      client.storage.from(CLOSET_IMAGE_BUCKET),
-      paths,
-    )
-  } catch {
-    return emptyReadyImageAssets()
+  let signedUrls = new Map<string, ResolvedSignedUrl>()
+  if (paths.length > 0) {
+    try {
+      signedUrls = await cache.resolve(
+        client.storage.from(CLOSET_IMAGE_BUCKET),
+        paths,
+      )
+    } catch {
+      signedUrls = new Map()
+    }
   }
 
   const itemImages = new Map<string, ImageAsset>()
@@ -215,7 +225,7 @@ export async function loadReadyImageAssets(
   }
 
   const outfitPreviews = new Map<string, OutfitPreview>()
-  for (const row of previewRows) {
+  for (const row of readyPreviewRows) {
     const signed = signedUrls.get(row.storage_path)
     if (!signed) continue
     outfitPreviews.set(row.outfit_id, {
@@ -226,10 +236,19 @@ export async function loadReadyImageAssets(
       heightPx: row.height_px,
       expiresAt: signed.expiresAt,
       compositionVersion: row.composition_version,
+      sourceFingerprint: row.source_fingerprint,
     })
   }
 
-  return { itemImages, outfitPreviews }
+  const outfitPreviewStates = new Map<string, OutfitPreviewState>()
+  for (const row of latestPreviewRows) {
+    outfitPreviewStates.set(
+      row.outfit_id,
+      row.stale_at ? 'stale' : row.status,
+    )
+  }
+
+  return { itemImages, outfitPreviews, outfitPreviewStates }
 }
 
 export function getImageRefreshDelay(

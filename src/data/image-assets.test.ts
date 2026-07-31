@@ -100,6 +100,9 @@ describe('loadReadyImageAssets', () => {
             composition_version: 1,
             width_px: 900,
             height_px: 1200,
+            status: 'ready',
+            stale_at: null,
+            source_fingerprint: null,
           },
           {
             id: 'preview-v2',
@@ -108,6 +111,9 @@ describe('loadReadyImageAssets', () => {
             composition_version: 2,
             width_px: 900,
             height_px: 1200,
+            status: 'ready',
+            stale_at: null,
+            source_fingerprint: null,
           },
         ],
         error: null,
@@ -130,6 +136,7 @@ describe('loadReadyImageAssets', () => {
       id: 'preview-v2',
       compositionVersion: 2,
     })
+    expect(result.outfitPreviewStates.get('outfit-1')).toBe('ready')
     expect(bucket.createSignedUrls).toHaveBeenCalledWith(
       [
         'workspace/items/item-1/cutout/image-1.webp',
@@ -152,6 +159,9 @@ describe('loadReadyImageAssets', () => {
             composition_version: 1,
             width_px: 900,
             height_px: 1200,
+            status: 'ready',
+            stale_at: null,
+            source_fingerprint: null,
           },
         ],
         error: null,
@@ -172,6 +182,54 @@ describe('loadReadyImageAssets', () => {
         ],
       ]),
     })
+  })
+
+  it('새 pending이 있어도 마지막 ready preview를 유지하고 관리 상태만 표시한다', async () => {
+    const bucket = signedBucket()
+    const client = imageClient({
+      itemResult: { data: [], error: null },
+      previewResult: {
+        data: [
+          {
+            id: 'preview-ready',
+            outfit_id: 'outfit-1',
+            storage_path: 'workspace/outfits/outfit-1/preview/v1.webp',
+            composition_version: 1,
+            width_px: 900,
+            height_px: 1200,
+            status: 'ready',
+            stale_at: null,
+            source_fingerprint: null,
+          },
+          {
+            id: 'preview-pending',
+            outfit_id: 'outfit-1',
+            storage_path: 'workspace/outfits/outfit-1/preview/v2.webp',
+            composition_version: 2,
+            width_px: 900,
+            height_px: 1200,
+            status: 'pending',
+            stale_at: null,
+            source_fingerprint: 'a'.repeat(64),
+          },
+        ],
+        error: null,
+      },
+      bucket,
+    })
+
+    const result = await loadReadyImageAssets(
+      client,
+      'workspace',
+      new SignedImageUrlCache(),
+    )
+
+    expect(result.outfitPreviews.get('outfit-1')?.id).toBe('preview-ready')
+    expect(result.outfitPreviewStates.get('outfit-1')).toBe('pending')
+    expect(bucket.createSignedUrls).toHaveBeenCalledWith(
+      ['workspace/outfits/outfit-1/preview/v1.webp'],
+      3600,
+    )
   })
 
   it('Storage 서명이 실패하면 예외 대신 빈 이미지 결과를 돌려준다', async () => {
@@ -203,6 +261,7 @@ describe('loadReadyImageAssets', () => {
     ).resolves.toEqual({
       itemImages: new Map(),
       outfitPreviews: new Map(),
+      outfitPreviewStates: new Map(),
     })
   })
 })
