@@ -463,6 +463,17 @@ Storage 객체와 database transaction은 하나로 묶을 수 없으므로 이�
 - 동일 Item 조합 경고
 - 새 Outfit과 relation의 원자적 저장
 
+구현 상태 (2026-07-31):
+
+- LOOKBOOK 상단에 `새 Outfit` 진입을 추가하고 빈 화면에서 Item을 골라 착장을 구성하는 화면을 구현했다.
+- 선택 요약·실시간 composition·검색·상위 카테고리·색상·계절·Retired 필터와 Item 추가·제거를 연결했다.
+- 공통 category group 규칙을 재사용해 `Outer → Top → Bottom → Dress → Shoes → Bag → Acc` 순서를 유지하고, `Socks`는 `Acc`에 포함하며 독립 `Innerwear`는 선택 대상에서 제외했다.
+- 이미지 유무가 섞인 Item 조합을 허용하고, 이미지가 있는 Item에는 위치·크기와 T-shirt 표시 방식을 새 Outfit의 draft relation 값으로 조정할 수 있게 했다.
+- 같은 Item 조합이 있으면 기존 Outfit 링크를 먼저 표시하고 명시적으로 확인한 경우에만 별도 UUID로 저장한다.
+- 기존 `create_closet_outfit` database function을 재사용해 Outfit과 모든 relation을 한 transaction으로 저장하고, 성공 결과를 Context에 즉시 반영한 뒤 새 상세로 이동한다.
+- 생성 UUID는 화면 진입 때 한 번만 만들고 저장 중 버튼을 잠가 재시도와 중복 제출에 안전하게 했다. Wear Log와 평가는 자동 생성하지 않는다.
+- demo 단위 테스트, PC 1200px·모바일 375px 브라우저 QA와 production build를 통과했다. production 앱 배포와 실제 Supabase 생성 검증은 P3-7 전 확인으로 남겨 둔다.
+
 완료 조건:
 
 - 이미지 있는 Item과 없는 Item을 함께 저장할 수 있다.

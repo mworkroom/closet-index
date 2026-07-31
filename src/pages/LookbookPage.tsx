@@ -116,6 +116,13 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
     <AppShell
       title={favoriteOnly ? 'Favorite' : 'Lookbook'}
       eyebrow={favoriteOnly ? 'FAVORITE OUTFITS' : 'ALL OUTFITS'}
+      action={
+        !favoriteOnly ? (
+          <Link className="button button--primary" to="/outfits/new">
+            새 Outfit
+          </Link>
+        ) : undefined
+      }
     >
       {favoriteOnly && (
         <p className="scope-note">Favorite로 평가한 착장만 보고 있습니다.</p>

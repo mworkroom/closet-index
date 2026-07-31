@@ -1,0 +1,151 @@
+import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { DataProvider } from '../context/DataContext'
+import { SeasonScopeProvider } from '../context/SeasonScopeContext'
+import { DemoRepository } from '../data/demo-repository'
+import { OutfitCreatorPage } from './OutfitCreatorPage'
+
+function renderCreator(repository: DemoRepository) {
+  return render(
+    <MemoryRouter initialEntries={['/outfits/new']}>
+      <SeasonScopeProvider>
+        <DataProvider repository={repository}>
+          <Routes>
+            <Route path="/outfits/new" element={<OutfitCreatorPage />} />
+            <Route path="/outfits/:outfitId" element={<p>저장 완료</p>} />
+          </Routes>
+        </DataProvider>
+      </SeasonScopeProvider>
+    </MemoryRouter>,
+  )
+}
+
+describe('Outfit creator', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  afterEach(() => {
+    cleanup()
+  })
+
+  it('이미지 유무가 섞인 Item과 배치값을 새 Outfit으로 한 번에 저장한다', async () => {
+    const user = userEvent.setup()
+    const repository = new DemoRepository()
+    const createOutfit = vi.spyOn(repository, 'createOutfit')
+
+    renderCreator(repository)
+
+    await user.click(
+      await screen.findByRole('button', { name: '블루 가디건 추가' }),
+    )
+    await user.click(screen.getByRole('button', { name: '아이보리 니트 추가' }))
+    await user.click(
+      screen.getByRole('button', { name: '블루 가디건 오른쪽으로 4px 이동' }),
+    )
+    await user.type(
+      screen.getByRole('textbox', { name: 'Outfit 이름 (선택)' }),
+      '새 레이어드 착장',
+    )
+    await user.click(screen.getByRole('button', { name: '새 Outfit 저장' }))
+
+    expect(await screen.findByText('저장 완료')).toBeInTheDocument()
+    expect(createOutfit).toHaveBeenCalledTimes(1)
+    expect(createOutfit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: expect.any(String),
+        displayName: '새 레이어드 착장',
+        allowDuplicate: false,
+        items: [
+          expect.objectContaining({
+            itemId: 'item-cardigan',
+            sortOrder: 0,
+            positionX: expect.any(Number),
+          }),
+          expect.objectContaining({
+            itemId: 'item-knit',
+            sortOrder: 1,
+            positionX: expect.any(Number),
+          }),
+        ],
+      }),
+    )
+  })
+
+  it('같은 Item 조합은 기존 Outfit을 먼저 안내하고 확인 뒤에만 저장한다', async () => {
+    const user = userEvent.setup()
+    const repository = new DemoRepository()
+    const createOutfit = vi.spyOn(repository, 'createOutfit')
+
+    renderCreator(repository)
+
+    await user.click(
+      await screen.findByRole('button', { name: '아이보리 니트 추가' }),
+    )
+    await user.click(screen.getByRole('button', { name: '블랙 팬츠 추가' }))
+    await user.click(screen.getByRole('button', { name: '새 Outfit 저장' }))
+
+    expect(
+      await screen.findByText('같은 Item 조합의 Outfit이 이미 있습니다.'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('아직 평가하지 않은 조합')).toBeInTheDocument()
+    expect(createOutfit).not.toHaveBeenCalled()
+
+    await user.click(
+      screen.getByRole('button', { name: '같은 조합으로 별도 저장' }),
+    )
+
+    expect(await screen.findByText('저장 완료')).toBeInTheDocument()
+    expect(createOutfit).toHaveBeenCalledTimes(1)
+    expect(createOutfit).toHaveBeenCalledWith(
+      expect.objectContaining({ allowDuplicate: true }),
+    )
+  })
+
+  it('독립 Innerwear는 숨기고 Socks는 Acc에서 선택할 수 있다', async () => {
+    const user = userEvent.setup()
+    const repository = new DemoRepository()
+    await repository.createItem({
+      id: 'item-innerwear-only',
+      name: '테스트 이너웨어',
+      category: 'Innerwear',
+      semanticColor: 'White',
+      paletteId: null,
+      displayHex: '#FFFFFF',
+      seasons: ['Spring'],
+      rainOk: true,
+      longWalkOk: true,
+      memo: null,
+      acquiredOn: null,
+    })
+    await repository.createItem({
+      id: 'item-socks-test',
+      name: '테스트 양말',
+      category: 'Socks',
+      semanticColor: 'Black',
+      paletteId: null,
+      displayHex: '#111111',
+      seasons: ['Spring'],
+      rainOk: true,
+      longWalkOk: true,
+      memo: null,
+      acquiredOn: null,
+    })
+
+    renderCreator(repository)
+
+    expect(
+      await screen.findByRole('button', { name: '테스트 양말 추가' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: '테스트 이너웨어 추가' }),
+    ).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Acc' }))
+    expect(
+      screen.getByRole('button', { name: '테스트 양말 추가' }),
+    ).toBeInTheDocument()
+  })
+})

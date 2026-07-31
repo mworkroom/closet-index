@@ -16,6 +16,7 @@ import { AccessDeniedPage, LoginPage } from './pages/LoginPage'
 import { LookbookPage } from './pages/LookbookPage'
 import { MorePage } from './pages/MorePage'
 import { OutfitDetailPage } from './pages/OutfitDetailPage'
+import { OutfitCreatorPage } from './pages/OutfitCreatorPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { StatisticsPage } from './pages/StatisticsPage'
 import { WearLogPage } from './pages/WearLogPage'
@@ -54,6 +55,7 @@ function AuthenticatedApp() {
           <Route path="/closet/:itemId" element={<ItemDetailPage />} />
           <Route path="/lookbook" element={<LookbookPage />} />
           <Route path="/favorite" element={<LookbookPage favoriteOnly />} />
+          <Route path="/outfits/new" element={<OutfitCreatorPage />} />
           <Route path="/outfits/:outfitId" element={<OutfitDetailPage />} />
           <Route path="/wear/:outfitId" element={<WearLogPage />} />
           <Route path="/records/:logId/edit" element={<WearLogPage />} />

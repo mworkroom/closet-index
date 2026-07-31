@@ -14,6 +14,9 @@ import type {
   ItemCreateInput,
   ItemImageUploadInput,
   ItemWriteInput,
+  MatchingOutfit,
+  Outfit,
+  OutfitCreateInput,
   OutfitItemPlacementInput,
   WeatherForecastRequest,
   WeatherForecastResponse,
@@ -40,6 +43,8 @@ interface DataState {
     rainOk: boolean,
     longWalkOk: boolean,
   ) => Promise<void>
+  findMatchingOutfits: (itemIds: string[]) => Promise<MatchingOutfit[]>
+  createOutfit: (input: OutfitCreateInput) => Promise<Outfit>
   updateOutfitItemPlacement: (input: OutfitItemPlacementInput) => Promise<void>
   saveDefaultWeatherLocation: (input: WeatherLocationInput) => Promise<void>
   fetchWeatherForecast: (
@@ -166,6 +171,39 @@ export function DataProvider({
     [repository],
   )
 
+  const findMatchingOutfits = useCallback(
+    (itemIds: string[]) => repository.findMatchingOutfits(itemIds),
+    [repository],
+  )
+
+  const createOutfit = useCallback(
+    async (input: OutfitCreateInput) => {
+      setError(null)
+      try {
+        const outfit = await repository.createOutfit(input)
+        setData((current) =>
+          current
+            ? {
+                ...current,
+                outfits: current.outfits.some((entry) => entry.id === outfit.id)
+                  ? current.outfits.map((entry) =>
+                      entry.id === outfit.id ? outfit : entry,
+                    )
+                  : [...current.outfits, outfit],
+              }
+            : current,
+        )
+        return outfit
+      } catch (cause) {
+        const message =
+          cause instanceof Error ? cause.message : 'Outfit을 저장하지 못했습니다.'
+        setError(message)
+        throw cause
+      }
+    },
+    [repository],
+  )
+
   const createItem = useCallback(
     async (input: ItemCreateInput) => {
       setError(null)
@@ -234,6 +272,8 @@ export function DataProvider({
         mutate(() => repository.setItemRetired(itemId, retired)),
       updateItemSuitability: (itemId, rainOk, longWalkOk) =>
         mutate(() => repository.updateItemSuitability(itemId, rainOk, longWalkOk)),
+      findMatchingOutfits,
+      createOutfit,
       updateOutfitItemPlacement,
       saveDefaultWeatherLocation: (input) =>
         mutate(() => repository.saveDefaultWeatherLocation(input)),
@@ -244,9 +284,11 @@ export function DataProvider({
     }),
     [
       createItem,
+      createOutfit,
       data,
       error,
       loading,
+      findMatchingOutfits,
       mutate,
       refresh,
       repository,

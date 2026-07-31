@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -93,6 +93,7 @@ describe('WearLogPage weather provenance', () => {
     const departure = await screen.findByRole('spinbutton', {
       name: /출발 온도/,
     })
+    await waitFor(() => expect(departure).toHaveValue(24))
     fireEvent.change(departure, { target: { value: '23' } })
 
     expect(screen.getByText('기상청 예보에서 직접 수정')).toBeVisible()

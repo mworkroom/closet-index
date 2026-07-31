@@ -62,6 +62,30 @@ function PositionProbe() {
   )
 }
 
+function CreateOutfitProbe() {
+  const { data, loading, createOutfit } = useClosetData()
+
+  return (
+    <>
+      <span>{loading ? 'loading' : 'ready'}</span>
+      <span>{data?.outfits.map((outfit) => outfit.id).join(',') ?? ''}</span>
+      <button
+        type="button"
+        onClick={() =>
+          void createOutfit({
+            id: 'new-outfit',
+            displayName: '새 착장',
+            allowDuplicate: false,
+            items: [],
+          })
+        }
+      >
+        create
+      </button>
+    </>
+  )
+}
+
 describe('DataProvider outfit placement updates', () => {
   it('updates the loaded outfit without reloading all app data', async () => {
     const user = userEvent.setup()
@@ -107,5 +131,48 @@ describe('DataProvider outfit placement updates', () => {
       itemScale: 1.15,
       zIndex: 0,
     })
+  })
+
+  it('adds a newly created outfit to the loaded data without reloading', async () => {
+    const user = userEvent.setup()
+    const createdOutfit = {
+      id: 'new-outfit',
+      displayName: '새 착장',
+      rating: null,
+      archivedAt: null,
+      itemIds: [],
+      itemPlacements: [],
+    }
+    const repository: ClosetRepository = {
+      load: vi.fn(async () => structuredClone(appData)),
+      createItem: vi.fn(),
+      updateItem: vi.fn(),
+      replaceItemImage: vi.fn(async () => undefined),
+      setItemRetired: vi.fn(async () => undefined),
+      updateItemSuitability: vi.fn(async () => undefined),
+      findMatchingOutfits: vi.fn(),
+      createOutfit: vi.fn(async () => createdOutfit),
+      cloneOutfit: vi.fn(),
+      setOutfitArchived: vi.fn(async () => undefined),
+      updateOutfitItemPlacement: vi.fn(async () => undefined),
+      saveDefaultWeatherLocation: vi.fn(),
+      fetchWeatherForecast: vi.fn(),
+      createWearLog: vi.fn(),
+      updateWearLog: vi.fn(),
+      deleteWearLog: vi.fn(async () => undefined),
+    }
+
+    render(
+      <DataProvider repository={repository}>
+        <CreateOutfitProbe />
+      </DataProvider>,
+    )
+
+    expect(await screen.findByText('outfit')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'create' }))
+
+    expect(await screen.findByText('outfit,new-outfit')).toBeInTheDocument()
+    expect(repository.load).toHaveBeenCalledTimes(1)
+    expect(repository.createOutfit).toHaveBeenCalledTimes(1)
   })
 })
