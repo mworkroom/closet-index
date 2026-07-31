@@ -2,8 +2,8 @@
 
 - 작성일: 2026-07-29
 - 대상 Supabase 프로젝트: `mworkroom` (`ddlwainwollvpaeccpty`)
-- 범위: P3-1 Item·Outfit 쓰기 계약, P3-3 cutout 업로드 계약, `closet-item-image` Edge Function
-- 현재 상태: 원격 미적용, 읽기 전용 사전 점검 완료
+- 범위: P3-1 Item·Outfit 쓰기 계약, P3-3 cutout 업로드 계약, P3-6 Outfit Preview cache와 관련 Edge Function
+- 현재 상태: P3-1·P3-3·P3-6 production database와 Function 적용 완료, P3-6 웹 앱 공개 검증 대기
 
 ## 1. 적용 전 기준선
 
@@ -163,3 +163,29 @@ Phase 3 쓰기가 이미 발생했다면 column 제거와 인덱스 복원을 �
 최종 데이터 기준선은 Item 451개, Outfit 507개, Outfit 관계 2,401개, Wear Log 784개, 이미지 metadata 56개, ready 이미지 56개, Storage 객체 57개로 적용 전과 같다. pending/error 이미지, 고아 metadata, ready metadata의 누락 Storage 객체, 잘못된 `display_hex`는 모두 0개다.
 
 실제 cutout 등록·교체는 production metadata와 Storage 객체를 변경하므로 이번 비쓰기 검증에서 실행하지 않았다. 웹 앱 commit·push·배포도 별도 단계로 남아 있다.
+
+## 6. P3-6 Production 적용 결과
+
+2026-08-01 GitHub Actions 격리 검증 통과 뒤 다음 순서로 Outfit Preview cache의 production database와 Function을 적용했다.
+
+1. 적용 전 사전 점검
+   - 프로젝트 `ddlwainwollvpaeccpty`는 `ACTIVE_HEALTHY`, PostgreSQL 17.6이었다.
+   - P3-6 migration·RPC·trigger와 `closet-outfit-preview` Function은 없었다.
+   - Preview는 ready 1개, pending 0개, error 0개였고 해당 WebP object는 131,816B였다.
+   - Item 이미지 error 68개는 ready 이미지가 이미 있는 60개 Item의 실패 이력이었으며, ready 이미지가 없는 영향 Item은 0개였다.
+2. `phase3_outfit_preview_cache` 적용
+   - 원격 migration version: `20260731220215`
+   - `source_fingerprint`, 회원용 Preview SELECT policy, relation·ready cutout stale trigger를 확인했다.
+   - begin·finalize·cancel RPC는 `public`, `anon`, `authenticated` 실행이 거부되고 `service_role`만 실행 가능하다.
+3. Advisor 비교
+   - P3-6 RPC·RLS·search path와 관련된 새 Security 차단 경고가 없었다.
+   - Performance Advisor에는 기존 다른 앱·backup schema·미사용 인덱스 안내만 남았고 P3-6 배포 차단 항목은 없었다.
+4. `closet-outfit-preview` Edge Function 배포
+   - version `1`, 상태 `ACTIVE`, `verify_jwt=true`
+   - 인증 헤더 없는 production POST는 `401 UNAUTHORIZED_NO_AUTH_HEADER`로 거절됐고 Edge 로그에서도 version 1의 POST 401을 확인했다.
+5. 배포 후 데이터·Storage 점검
+   - Item 451개, Outfit 509개, relation 2,415개, Wear Log 784개, 이미지 metadata 505개, Preview metadata 1개, Storage object 438개로 적용 전후 수량이 같았다.
+   - Preview audit 결과 ready 1개, pending·error·stale 0개였고 고아 metadata·누락 ready object·고아 object도 모두 0개였다.
+   - 기존 수동 Preview 1개는 새 source fingerprint가 없으므로 현재 composition을 추측해 backfill하지 않고 공개 앱에서 재생성한다.
+
+P3-6 웹 코드는 아직 공개 Pages에 배포하지 않았다. 따라서 authenticated signed upload, 실제 Preview 생성·재생성·stale 전환과 PC·모바일 UI 확인은 main 통합과 Pages 배포 뒤 실행한다.
