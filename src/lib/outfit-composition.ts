@@ -17,6 +17,8 @@ const slotAliases: Record<string, keyof typeof compositionConfig.slots> = {
   waist: 'main-waist',
 }
 
+export type OutfitItemDisplayMode = 'auto' | 'inside' | 'side'
+
 export interface OutfitCompositionLayer {
   item: Item
   left: number
@@ -61,11 +63,12 @@ function resolveRule(item: Item, hasOuter: boolean) {
   if (!rule) return null
 
   const conditionalSlot = hasOuter ? 'slotWhenOuter' : 'slotWithoutOuter'
-  const slot =
+  const slot = (
     ('slot' in rule ? rule.slot : undefined) ??
     (conditionalSlot in rule
       ? (rule[conditionalSlot] as keyof typeof compositionConfig.slots)
       : undefined)
+  ) as keyof typeof compositionConfig.slots | undefined
 
   if (!slot) return null
   return {
@@ -82,6 +85,48 @@ function resolveRule(item: Item, hasOuter: boolean) {
   }
 }
 
+export function supportsOutfitItemDisplayMode(item: Pick<Item, 'category'>) {
+  return item.category.startsWith('Top-T-shirts')
+}
+
+export function getOutfitItemDisplayMode(
+  item: Pick<Item, 'category'>,
+  placement: OutfitItemPlacement | null | undefined,
+): OutfitItemDisplayMode {
+  if (!supportsOutfitItemDisplayMode(item) || !placement) return 'auto'
+  if (placement.slot === 'top' && placement.zIndex === 0) return 'side'
+  if (
+    (placement.slot === 'inner' || placement.slot === 'top') &&
+    placement.zIndex !== null
+  ) {
+    return 'inside'
+  }
+  return 'auto'
+}
+
+export function getOutfitItemDisplayPlacement(
+  item: Item,
+  mode: OutfitItemDisplayMode,
+): Pick<OutfitItemPlacement, 'slot' | 'zIndex'> {
+  if (mode === 'auto') return { slot: null, zIndex: null }
+  if (mode === 'side') return { slot: 'top', zIndex: 0 }
+
+  const rule = resolveRule(item, false)
+  return {
+    slot: rule?.slot === 'main-innerwear' ? 'inner' : 'top',
+    zIndex: rule?.zIndex ?? 50,
+  }
+}
+
+function hasOuterForDisplayMode(
+  hasOuter: boolean,
+  mode: OutfitItemDisplayMode,
+) {
+  if (mode === 'inside') return false
+  if (mode === 'side') return true
+  return hasOuter
+}
+
 export interface OutfitItemPlacementDefaults {
   positionX: number
   positionY: number
@@ -91,8 +136,12 @@ export interface OutfitItemPlacementDefaults {
 export function getOutfitItemPlacementDefaults(
   item: Item,
   hasOuter: boolean,
+  displayMode: OutfitItemDisplayMode = 'auto',
 ): OutfitItemPlacementDefaults {
-  const rule = resolveRule(item, hasOuter)
+  const rule = resolveRule(
+    item,
+    hasOuterForDisplayMode(hasOuter, displayMode),
+  )
   return {
     positionX: rule?.defaultPositionX ?? 0,
     positionY: rule?.defaultPositionY ?? 0,
@@ -191,13 +240,24 @@ export function composeOutfitLayers(
 
   const layers = compositionItems
     .map((item) => {
-      const rule = resolveRule(item, hasOuter)
+      const placement = placementFor(outfit, item.id)
+      const displayMode = getOutfitItemDisplayMode(item, placement)
+      const rule = resolveRule(
+        item,
+        hasOuterForDisplayMode(hasOuter, displayMode),
+      )
       if (!rule) return null
 
-      const placement = placementFor(outfit, item.id)
-      const slotName = (
-        (placement?.slot && slotAliases[placement.slot]) ?? rule.slot
-      ) as keyof typeof compositionConfig.slots
+      const savedSlot = placement?.slot
+        ? (slotAliases[placement.slot] ??
+          (placement.slot in compositionConfig.slots
+            ? (placement.slot as keyof typeof compositionConfig.slots)
+            : undefined))
+        : undefined
+      const slotName =
+        displayMode === 'side'
+          ? 'side-top'
+          : (savedSlot ?? rule.slot)
       const slot = compositionConfig.slots[slotName]
       const itemScale = placement?.itemScale ?? rule.defaultScale
       const targetWidth =

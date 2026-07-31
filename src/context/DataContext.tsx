@@ -14,7 +14,7 @@ import type {
   ItemCreateInput,
   ItemImageUploadInput,
   ItemWriteInput,
-  OutfitItemPositionInput,
+  OutfitItemPlacementInput,
   WeatherForecastRequest,
   WeatherForecastResponse,
   WeatherLocationInput,
@@ -40,7 +40,7 @@ interface DataState {
     rainOk: boolean,
     longWalkOk: boolean,
   ) => Promise<void>
-  updateOutfitItemPosition: (input: OutfitItemPositionInput) => Promise<void>
+  updateOutfitItemPlacement: (input: OutfitItemPlacementInput) => Promise<void>
   saveDefaultWeatherLocation: (input: WeatherLocationInput) => Promise<void>
   fetchWeatherForecast: (
     input: WeatherForecastRequest,
@@ -111,11 +111,11 @@ export function DataProvider({
     [refresh],
   )
 
-  const updateOutfitItemPosition = useCallback(
-    async (input: OutfitItemPositionInput) => {
+  const updateOutfitItemPlacement = useCallback(
+    async (input: OutfitItemPlacementInput) => {
       setError(null)
       try {
-        await repository.updateOutfitItemPosition(input)
+        await repository.updateOutfitItemPlacement(input)
         setData((current) => {
           if (!current) return current
 
@@ -130,11 +130,11 @@ export function DataProvider({
               )
               const nextPlacement = {
                 itemId: input.itemId,
-                slot: null,
+                slot: input.slot,
                 positionX: input.positionX,
                 positionY: input.positionY,
                 itemScale: input.itemScale,
-                zIndex: null,
+                zIndex: input.zIndex,
               }
 
               return {
@@ -143,10 +143,12 @@ export function DataProvider({
                   ? placements.map((placement) =>
                       placement.itemId === input.itemId
                         ? {
-                            ...placement,
-                            positionX: input.positionX,
-                            positionY: input.positionY,
-                            itemScale: input.itemScale,
+                          ...placement,
+                          slot: input.slot,
+                          positionX: input.positionX,
+                          positionY: input.positionY,
+                          itemScale: input.itemScale,
+                          zIndex: input.zIndex,
                           }
                         : placement,
                     )
@@ -232,7 +234,7 @@ export function DataProvider({
         mutate(() => repository.setItemRetired(itemId, retired)),
       updateItemSuitability: (itemId, rainOk, longWalkOk) =>
         mutate(() => repository.updateItemSuitability(itemId, rainOk, longWalkOk)),
-      updateOutfitItemPosition,
+      updateOutfitItemPlacement,
       saveDefaultWeatherLocation: (input) =>
         mutate(() => repository.saveDefaultWeatherLocation(input)),
       fetchWeatherForecast: (input) => repository.fetchWeatherForecast(input),
@@ -249,7 +251,7 @@ export function DataProvider({
       refresh,
       repository,
       updateItem,
-      updateOutfitItemPosition,
+      updateOutfitItemPlacement,
     ],
   )
 

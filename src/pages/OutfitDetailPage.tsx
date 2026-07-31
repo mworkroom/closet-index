@@ -50,7 +50,7 @@ export function OutfitDetailPage() {
     loading,
     error,
     refresh,
-    updateOutfitItemPosition,
+    updateOutfitItemPlacement,
   } = useClosetData()
   const outfit = data?.outfits.find((entry) => entry.id === outfitId)
   const items =
@@ -68,10 +68,11 @@ export function OutfitDetailPage() {
     data?.places.find((place) => place.id === id)?.name ?? null
   const transportName = (id: string | null) =>
     data?.transportModes.find((mode) => mode.id === id)?.name ?? null
-  const canAdjustPositions =
+  const hasCompleteCutoutSet =
     Boolean(outfit) &&
     items.length === outfit?.itemIds.length &&
     items.every((item) => Boolean(item.image))
+  const canAdjustPositions = Boolean(outfit) && items.some((item) => item.image)
 
   return (
     <AppShell
@@ -187,7 +188,7 @@ export function OutfitDetailPage() {
           )}
 
           <section className="identity-card identity-card--outfit">
-            {canAdjustPositions ? (
+            {hasCompleteCutoutSet ? (
               <LayeredOutfitPreview
                 outfit={outfit}
                 items={data.items}
@@ -326,7 +327,7 @@ export function OutfitDetailPage() {
               <OutfitPositionEditor
                 outfit={outfit}
                 items={data.items}
-                onSave={updateOutfitItemPosition}
+                onSave={updateOutfitItemPlacement}
               />
             </details>
           )}

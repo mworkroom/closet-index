@@ -120,15 +120,17 @@ describe('DemoRepository wear log contract', () => {
     })
   })
 
-  it('Outfit 구성 아이템의 위치와 크기를 저장한다', async () => {
+  it('Outfit 구성 아이템의 표시 방식·위치·크기를 저장한다', async () => {
     const repository = new DemoRepository()
 
-    await repository.updateOutfitItemPosition({
+    await repository.updateOutfitItemPlacement({
       outfitId: 'outfit-favorite',
       itemId: 'item-pants',
+      slot: 'top',
       positionX: 0,
       positionY: -40,
       itemScale: 1.1,
+      zIndex: 0,
     })
 
     const data = await repository.load()
@@ -137,10 +139,11 @@ describe('DemoRepository wear log contract', () => {
         .find((outfit) => outfit.id === 'outfit-favorite')
         ?.itemPlacements?.find((placement) => placement.itemId === 'item-pants'),
     ).toMatchObject({
+      slot: 'top',
       positionX: 0,
       positionY: -40,
       itemScale: 1.1,
-      zIndex: null,
+      zIndex: 0,
     })
   })
 

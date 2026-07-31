@@ -8,7 +8,7 @@ import type {
   Outfit,
   OutfitCloneInput,
   OutfitCreateInput,
-  OutfitItemPositionInput,
+  OutfitItemPlacementInput,
   WeatherForecastRequest,
   WeatherForecastResponse,
   WeatherLocation,
@@ -35,7 +35,7 @@ export interface ClosetRepository {
   createOutfit(input: OutfitCreateInput): Promise<Outfit>
   cloneOutfit(input: OutfitCloneInput): Promise<Outfit>
   setOutfitArchived(outfitId: string, archived: boolean): Promise<void>
-  updateOutfitItemPosition(input: OutfitItemPositionInput): Promise<void>
+  updateOutfitItemPlacement(input: OutfitItemPlacementInput): Promise<void>
   saveDefaultWeatherLocation(
     input: WeatherLocationInput,
   ): Promise<WeatherLocation>

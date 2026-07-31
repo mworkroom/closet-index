@@ -27,12 +27,14 @@ export interface OutfitItemPlacement {
   zIndex: number | null
 }
 
-export interface OutfitItemPositionInput {
+export interface OutfitItemPlacementInput {
   outfitId: string
   itemId: string
+  slot: string | null
   positionX: number
   positionY: number
   itemScale: number
+  zIndex: number | null
 }
 
 export interface ItemWriteInput {

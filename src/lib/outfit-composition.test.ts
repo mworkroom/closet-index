@@ -157,6 +157,86 @@ describe('browser outfit composition v4', () => {
     expect(mainTee!.top).toBeCloseTo(202)
   })
 
+  it('lets one outfit override a T-shirt from automatic side placement to inside the outer', () => {
+    const tee = item('tee', 'Top-T-shirts', 1108, 1213)
+    const outer = item('outer', 'Outer-Jacket', 1028, 1147)
+    const automatic: Outfit = {
+      id: 'automatic',
+      displayName: null,
+      rating: null,
+      itemIds: [tee.id, outer.id],
+    }
+    const inside: Outfit = {
+      ...automatic,
+      id: 'inside',
+      itemPlacements: [
+        {
+          itemId: tee.id,
+          slot: 'top',
+          positionX: null,
+          positionY: null,
+          itemScale: null,
+          zIndex: 50,
+        },
+      ],
+    }
+
+    const automaticTee = composeOutfitLayers(automatic, [tee, outer]).find(
+      (layer) => layer.item.id === tee.id,
+    )!
+    const insideTee = composeOutfitLayers(inside, [tee, outer]).find(
+      (layer) => layer.item.id === tee.id,
+    )!
+
+    expect(automaticTee.zIndex).toBe(0)
+    expect(insideTee.zIndex).toBe(50)
+    expect(insideTee.width).toBeGreaterThan(automaticTee.width)
+    expect(insideTee.left).toBeLessThan(automaticTee.left)
+  })
+
+  it('lets one outfit separate innerwear to the side without changing its category', () => {
+    const innerwear = item(
+      'innerwear',
+      'Top-T-shirts-innerwear',
+      1108,
+      1213,
+    )
+    const outer = item('outer', 'Outer-Jacket', 1028, 1147)
+    const automatic: Outfit = {
+      id: 'automatic',
+      displayName: null,
+      rating: null,
+      itemIds: [innerwear.id, outer.id],
+    }
+    const side: Outfit = {
+      ...automatic,
+      id: 'side',
+      itemPlacements: [
+        {
+          itemId: innerwear.id,
+          slot: 'top',
+          positionX: null,
+          positionY: null,
+          itemScale: null,
+          zIndex: 0,
+        },
+      ],
+    }
+
+    const automaticInnerwear = composeOutfitLayers(automatic, [
+      innerwear,
+      outer,
+    ]).find((layer) => layer.item.id === innerwear.id)!
+    const sideInnerwear = composeOutfitLayers(side, [
+      innerwear,
+      outer,
+    ]).find((layer) => layer.item.id === innerwear.id)!
+
+    expect(automaticInnerwear.zIndex).toBe(40)
+    expect(sideInnerwear.zIndex).toBe(0)
+    expect(sideInnerwear.left).toBeGreaterThan(automaticInnerwear.left)
+  })
+
   it('normalizes portrait outerwear against the approved visible-height cap', () => {
     const cardigan = item('cardigan', 'Outer-Cardigan', 1600, 916)
     const jacket = item('jacket', 'Outer-Jacket', 1028, 1147)

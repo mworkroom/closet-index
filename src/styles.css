@@ -1776,6 +1776,65 @@ button:disabled {
   font-variant-numeric: tabular-nums;
 }
 
+.position-editor__display-modes {
+  display: grid;
+  width: min(100%, 330px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.position-editor__display-modes legend {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin-bottom: 2px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-align: center;
+}
+
+.position-editor__display-modes > label {
+  position: relative;
+  grid-row: 2;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.position-editor__display-modes input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.position-editor__display-modes span {
+  display: grid;
+  min-height: 38px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 750;
+  text-align: center;
+}
+
+.position-editor__display-modes input:checked + span {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.position-editor__display-modes input:focus-visible + span {
+  outline: 3px solid color-mix(in srgb, var(--ink) 28%, transparent);
+  outline-offset: 2px;
+}
+
 .position-editor__control-pad {
   display: grid;
   grid-template-columns: 48px auto 48px;
@@ -1821,6 +1880,41 @@ button:disabled {
 
 .position-editor__reset {
   background: var(--surface);
+}
+
+@media (min-width: 761px) {
+  .position-editor {
+    grid-template-columns: minmax(0, 390px) minmax(0, 1fr);
+    grid-template-areas:
+      'heading heading'
+      'note note'
+      'preview controls'
+      'items items';
+    align-items: start;
+  }
+
+  .position-editor > .section-heading {
+    grid-area: heading;
+  }
+
+  .position-editor__note {
+    grid-area: note;
+  }
+
+  .position-editor__preview {
+    grid-area: preview;
+    width: 100%;
+    margin-inline: 0;
+  }
+
+  .position-editor__controls {
+    grid-area: controls;
+    align-self: stretch;
+  }
+
+  .position-editor__items {
+    grid-area: items;
+  }
 }
 
 .metric-grid {

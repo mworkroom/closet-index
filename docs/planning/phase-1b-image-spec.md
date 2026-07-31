@@ -223,6 +223,7 @@ override:
 scale       기본 크기에 곱할 보정값
 position_x  좌우 이동
 position_y  상하 이동
+slot        착장별 표시 위치
 z_index     레이어 순서
 ```
 
@@ -260,9 +261,11 @@ Top-T-shirts-innerwear
 양말
 ```
 
-- `Top-T-shirts-innerwear`는 왼쪽 `main-innerwear`에 배치하고, 하의·원피스보다 위이면서 앞·뒤 아우터보다 아래에 둔다.
-- 이너웨어는 아우터 뒤에 깔고, 하의가 시작되기 전 좁은 구간에서만 하단이 보이게 한다.
-- `Top-T-shirts`는 아우터와 함께 등장할 때만 오른쪽 `side-top`으로 보내고 전체 합성의 최하위 레이어로 내린다. 아우터가 없으면 왼쪽 `main-upper`의 일반 상의 크기와 레이어를 사용한다.
+- `Top-T-shirts-innerwear`는 기본적으로 왼쪽 `main-innerwear`에 배치하고, 하의·원피스보다 위이면서 앞·뒤 아우터보다 아래에 둔다.
+- 이너웨어 기본값은 아우터 뒤에 깔고, 하의가 시작되기 전 좁은 구간에서만 하단이 보이게 한다.
+- `Top-T-shirts`는 기본적으로 아우터와 함께 등장할 때 오른쪽 `side-top`으로 보내고 전체 합성의 최하위 레이어로 내린다. 아우터가 없으면 왼쪽 `main-upper`의 일반 상의 크기와 레이어를 사용한다.
+- 같은 T-shirt도 Outfit에 따라 달라질 수 있으므로 relation별 표시 방식을 `자동`, `아우터 안`, `옆에 분리` 중에서 선택할 수 있다. `자동`은 위 category 기본값을 사용하고, `아우터 안`은 주열에서 아우터보다 아래에, `옆에 분리`는 오른쪽 보조열에 표시한다.
+- 표시 방식은 Item category를 바꾸지 않고 `closet_outfit_items.slot`·`z_index`에 저장한다. 방식 변경 시 해당 방식의 기본 위치·크기를 먼저 적용한 뒤 `position_x`·`position_y`·`scale`로 미세 조정한다.
 - 다른 일반 상의는 기본적으로 `main-upper`를 사용한다.
 - 여러 상체 Item이 앞뒤로 겹치면 `outer-front`, `outer-back`, `main-top` composition role로 같은 `main-upper` slot을 공유한다.
 - 원피스는 하의 slot이 아니라 상체부터 하단까지 이어지는 `main-dress`를 사용한다.

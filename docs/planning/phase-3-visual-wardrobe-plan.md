@@ -28,7 +28,7 @@ Phase 3는 다음 구현을 그대로 이어받는다.
 - Supabase가 Closet Index의 쓰기 원본이며 Notion은 읽기 전용 보관본이다.
 - Item, Outfit, Outfit relation, Wear Log는 UUID로 연결된다.
 - Outfit은 변경되지 않는 하나의 Item 조합이다.
-- 기존 Outfit의 위치·크기 보정은 가능하지만 Item 구성 변경은 새 Outfit 생성으로 처리한다.
+- 기존 Outfit의 표시 방식·위치·크기 보정은 가능하지만 Item 구성 변경은 새 Outfit 생성으로 처리한다.
 - Item cutout과 Outfit preview는 private `closet-images` Storage에 저장한다.
 - 앱은 ready metadata만 읽고 signed URL 만료·객체 오류 시 스와치 fallback을 유지한다.
 - 누끼는 alpha trim, 2.5% 안전 여백, 카테고리 슬롯, composition v4 규칙으로 합성한다.
@@ -127,9 +127,9 @@ Phase 3는 다음 구현을 그대로 이어받는다.
 Outfit의 Item 조합은 저장 후 불변이다.
 
 - 이름과 평가 변경은 가능하다.
-- Item 위치·크기 변경은 가능하다.
+- Item 표시 방식·위치·크기 변경은 가능하다.
 - Item 추가·제거·교체는 기존 Outfit을 수정하지 않고 `이 착장으로 새로 만들기`로 처리한다.
-- 복제 화면은 기존 Item과 위치·크기를 초기값으로 복사하지만 새 UUID를 사용한다.
+- 복제 화면은 기존 Item과 표시 방식·위치·크기를 초기값으로 복사하지만 새 UUID를 사용한다.
 - 새 조합 저장 전에 완전히 같은 Item UUID 집합의 Outfit이 있는지 확인한다.
 - 같은 조합이 있으면 기존 Outfit을 보여 주고, J가 확인한 경우에만 별도 Outfit 저장을 허용한다.
 - Outfit 이름은 선택이며 고유값이 아니다.
@@ -143,7 +143,7 @@ Outfit의 Item 조합은 저장 후 불변이다.
 현재 선택 Item 요약
 → 실시간 착장 미리보기
 → Item 검색·필터·추가
-→ 선택 Item별 제거·위치·크기
+→ 선택 Item별 제거·표시 방식·위치·크기
 → 이름과 저장 검토
 ```
 
@@ -268,7 +268,7 @@ Phase 3는 기존 테이블을 우선 재사용한다.
 - 이미지 pending 생성·ready 전환·오류 기록 계약
 - preview pending 생성·ready 전환·stale 처리 계약
 
-`closet_outfit_items`의 Item 관계를 임의 update·delete하는 넓은 권한은 주지 않는다. 기존 위치·크기 update 권한은 그대로 유지한다.
+`closet_outfit_items`의 Item 관계를 임의 update·delete하는 넓은 권한은 주지 않는다. 기존 위치·크기와 T-shirt 표시 방식에 필요한 `slot`·`z_index`만 column-level update 권한으로 허용하고 workspace member RLS를 유지한다.
 
 ### 6.3 트랜잭션 경계
 
@@ -458,6 +458,7 @@ Storage 객체와 database transaction은 하나로 묶을 수 없으므로 이�
 - `Socks`는 `Acc`에 포함하고 독립 `Innerwear` Item은 선택 대상에서 제외하되 Statistics 집계에는 유지
 - Item 추가·제거와 중복 선택 차단
 - composition v4 실시간 미리보기
+- T-shirt 계열 Item별 `자동`·`아우터 안`·`옆에 분리` 표시 방식 선택
 - Item별 위치·크기 조정
 - 동일 Item 조합 경고
 - 새 Outfit과 relation의 원자적 저장

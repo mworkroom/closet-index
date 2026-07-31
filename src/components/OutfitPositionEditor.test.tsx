@@ -77,16 +77,18 @@ describe('OutfitPositionEditor', () => {
       screen.getByText('좌우 0px · 상하 -4px · 크기 105%'),
     ).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: '이 조정 저장' }))
+    await user.click(screen.getByRole('button', { name: '이 설정 저장' }))
     expect(onSave).toHaveBeenCalledWith({
       outfitId: 'outfit',
       itemId: 'skirt',
+      slot: null,
       positionX: 0,
       positionY: -4,
       itemScale: 1.05,
+      zIndex: null,
     })
     expect(await screen.findByRole('status')).toHaveTextContent(
-      '위치와 크기를 저장했습니다.',
+      '표시 방식과 위치를 저장했습니다.',
     )
 
     await user.click(
@@ -253,5 +255,81 @@ describe('OutfitPositionEditor', () => {
     expect(
       screen.getByText('좌우 0px · 상하 0px · 크기 100%'),
     ).toBeInTheDocument()
+  })
+
+  it('previews and saves a T-shirt inside the outer or separated to the side', async () => {
+    const user = userEvent.setup()
+    const tee = item('tee', '티셔츠', 'Top-T-shirts')
+    const outer = item('outer', '재킷', 'Outer-Jacket')
+    const outfit: Outfit = {
+      id: 'outfit',
+      displayName: null,
+      rating: null,
+      itemIds: [tee.id, outer.id],
+    }
+    const onSave = vi.fn(async () => undefined)
+
+    render(
+      <OutfitPositionEditor
+        outfit={outfit}
+        items={[tee, outer]}
+        onSave={onSave}
+      />,
+    )
+
+    const preview = screen.getByRole('img', {
+      name: /조정 가능한 착장 미리보기/,
+    })
+    const automatic = screen.getByRole('radio', { name: '자동' })
+    const inside = screen.getByRole('radio', { name: '아우터 안' })
+    const side = screen.getByRole('radio', { name: '옆에 분리' })
+    const moveUp = screen.getByRole('button', {
+      name: '티셔츠 위로 4px 이동',
+    })
+    expect(
+      moveUp.compareDocumentPosition(automatic) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(automatic).toBeChecked()
+    const automaticWidth = Number.parseFloat(
+      preview.querySelectorAll('img')[0].style.width,
+    )
+
+    await user.click(inside)
+    expect(inside).toBeChecked()
+    expect(
+      screen.getByText('좌우 0px · 상하 52px · 크기 90%'),
+    ).toBeInTheDocument()
+    const insideWidth = Number.parseFloat(
+      preview.querySelectorAll('img')[0].style.width,
+    )
+    expect(insideWidth).toBeGreaterThan(automaticWidth)
+
+    await user.click(screen.getByRole('button', { name: '이 설정 저장' }))
+    expect(onSave).toHaveBeenLastCalledWith({
+      outfitId: 'outfit',
+      itemId: 'tee',
+      slot: 'top',
+      positionX: 0,
+      positionY: 52,
+      itemScale: 0.9,
+      zIndex: 50,
+    })
+
+    await user.click(side)
+    expect(side).toBeChecked()
+    expect(
+      screen.getByText('좌우 0px · 상하 0px · 크기 100%'),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '이 설정 저장' }))
+    expect(onSave).toHaveBeenLastCalledWith({
+      outfitId: 'outfit',
+      itemId: 'tee',
+      slot: 'top',
+      positionX: 0,
+      positionY: 0,
+      itemScale: 1,
+      zIndex: 0,
+    })
   })
 })

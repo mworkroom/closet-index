@@ -31,7 +31,7 @@ const appData: AppData = {
 }
 
 function PositionProbe() {
-  const { data, loading, updateOutfitItemPosition } = useClosetData()
+  const { data, loading, updateOutfitItemPlacement } = useClosetData()
   const placement = data?.outfits[0]?.itemPlacements?.[0]
 
   return (
@@ -39,18 +39,20 @@ function PositionProbe() {
       <span>{loading ? 'loading' : 'ready'}</span>
       <span>
         {placement
-          ? `${placement.positionX},${placement.positionY},${placement.itemScale}`
+          ? `${placement.slot},${placement.positionX},${placement.positionY},${placement.itemScale},${placement.zIndex}`
           : 'no-placement'}
       </span>
       <button
         type="button"
         onClick={() =>
-          void updateOutfitItemPosition({
+          void updateOutfitItemPlacement({
             outfitId: 'outfit',
             itemId: 'item',
+            slot: 'top',
             positionX: 4,
             positionY: -8,
             itemScale: 1.15,
+            zIndex: 0,
           })
         }
       >
@@ -74,7 +76,7 @@ describe('DataProvider outfit placement updates', () => {
       createOutfit: vi.fn(),
       cloneOutfit: vi.fn(),
       setOutfitArchived: vi.fn(async () => undefined),
-      updateOutfitItemPosition: vi.fn(async () => undefined),
+      updateOutfitItemPlacement: vi.fn(async () => undefined),
       saveDefaultWeatherLocation: vi.fn(),
       fetchWeatherForecast: vi.fn(),
       createWearLog: vi.fn(),
@@ -88,20 +90,22 @@ describe('DataProvider outfit placement updates', () => {
       </DataProvider>,
     )
 
-    expect(await screen.findByText('0,0,1')).toBeInTheDocument()
+    expect(await screen.findByText('main-bottom,0,0,1,10')).toBeInTheDocument()
     expect(repository.load).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole('button', { name: 'save' }))
 
-    expect(await screen.findByText('4,-8,1.15')).toBeInTheDocument()
+    expect(await screen.findByText('top,4,-8,1.15,0')).toBeInTheDocument()
     expect(screen.getByText('ready')).toBeInTheDocument()
     expect(repository.load).toHaveBeenCalledTimes(1)
-    expect(repository.updateOutfitItemPosition).toHaveBeenCalledWith({
+    expect(repository.updateOutfitItemPlacement).toHaveBeenCalledWith({
       outfitId: 'outfit',
       itemId: 'item',
+      slot: 'top',
       positionX: 4,
       positionY: -8,
       itemScale: 1.15,
+      zIndex: 0,
     })
   })
 })

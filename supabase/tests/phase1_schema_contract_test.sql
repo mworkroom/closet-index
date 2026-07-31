@@ -248,13 +248,19 @@ select ok(
 );
 
 select ok(
-  not has_column_privilege(
+  has_column_privilege(
+    'authenticated',
+    'public.closet_outfit_items',
+    'slot',
+    'update'
+  )
+  and has_column_privilege(
     'authenticated',
     'public.closet_outfit_items',
     'z_index',
     'update'
   ),
-  'position and scale editing does not grant layer updates'
+  'authenticated users can update outfit item display slot and layer'
 );
 
 select ok(

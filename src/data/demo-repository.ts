@@ -7,7 +7,7 @@ import type {
   Outfit,
   OutfitCloneInput,
   OutfitCreateInput,
-  OutfitItemPositionInput,
+  OutfitItemPlacementInput,
   WeatherForecastRequest,
   WeatherForecastResponse,
   WeatherLocation,
@@ -158,7 +158,7 @@ export class DemoRepository implements ClosetRepository {
     writeData(data)
   }
 
-  async updateOutfitItemPosition(input: OutfitItemPositionInput) {
+  async updateOutfitItemPlacement(input: OutfitItemPlacementInput) {
     const data = readData()
     const outfit = data.outfits.find((entry) => entry.id === input.outfitId)
     if (!outfit || !outfit.itemIds.includes(input.itemId)) {
@@ -170,17 +170,19 @@ export class DemoRepository implements ClosetRepository {
       (placement) => placement.itemId === input.itemId,
     )
     if (existing) {
+      existing.slot = input.slot
       existing.positionX = input.positionX
       existing.positionY = input.positionY
       existing.itemScale = input.itemScale
+      existing.zIndex = input.zIndex
     } else {
       outfit.itemPlacements.push({
         itemId: input.itemId,
-        slot: null,
+        slot: input.slot,
         positionX: input.positionX,
         positionY: input.positionY,
         itemScale: input.itemScale,
-        zIndex: null,
+        zIndex: input.zIndex,
       })
     }
     writeData(data)

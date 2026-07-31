@@ -11,9 +11,15 @@ import { useEffect, useMemo, useState } from 'react'
 import type {
   Item,
   Outfit,
-  OutfitItemPositionInput,
+  OutfitItemPlacementInput,
 } from '../lib/types'
-import { getOutfitItemPlacementDefaults } from '../lib/outfit-composition'
+import {
+  getOutfitItemDisplayMode,
+  getOutfitItemDisplayPlacement,
+  getOutfitItemPlacementDefaults,
+  supportsOutfitItemDisplayMode,
+  type OutfitItemDisplayMode,
+} from '../lib/outfit-composition'
 import { ItemVisual } from './ItemVisual'
 import { LayeredOutfitPreview } from './LayeredOutfitPreview'
 
@@ -26,12 +32,13 @@ interface Position {
   x: number
   y: number
   scale: number
+  displayMode: OutfitItemDisplayMode
 }
 
 interface OutfitPositionEditorProps {
   outfit: Outfit
   items: Item[]
-  onSave: (input: OutfitItemPositionInput) => Promise<void>
+  onSave: (input: OutfitItemPlacementInput) => Promise<void>
 }
 
 function hasVisibleOuter(items: Item[]) {
@@ -48,15 +55,21 @@ function positionFrom(
   const placement = outfit.itemPlacements?.find(
     (entry) => entry.itemId === item.id,
   )
-  const defaults = getOutfitItemPlacementDefaults(item, hasOuter)
+  const displayMode = getOutfitItemDisplayMode(item, placement)
+  const defaults = getOutfitItemPlacementDefaults(
+    item,
+    hasOuter,
+    displayMode,
+  )
   return {
     x: placement?.positionX ?? defaults.positionX,
     y: placement?.positionY ?? defaults.positionY,
     scale: placement?.itemScale ?? defaults.itemScale,
+    displayMode,
   }
 }
 
-function positionsFrom(outfit: Outfit, items: Item[]) {
+function positionsFrom(outfit: Outfit, items: Item[]): Map<string, Position> {
   const hasOuter = hasVisibleOuter(items)
   return new Map(
     outfit.itemIds.map((itemId) => {
@@ -65,7 +78,7 @@ function positionsFrom(outfit: Outfit, items: Item[]) {
         itemId,
         item
           ? positionFrom(outfit, item, hasOuter)
-          : { x: 0, y: 0, scale: 1 },
+          : { x: 0, y: 0, scale: 1, displayMode: 'auto' as const },
       ] as const
     }),
   )
@@ -82,6 +95,8 @@ function placementRevision(outfit: Outfit) {
         placement?.positionX ?? 'null',
         placement?.positionY ?? 'null',
         placement?.itemScale ?? 'null',
+        placement?.slot ?? 'null',
+        placement?.zIndex ?? 'null',
       ].join(':')
     })
     .join('|')
@@ -120,28 +135,45 @@ export function OutfitPositionEditor({
   }, [editableItems, selectedId])
 
   const selectedItem = editableItems.find((item) => item.id === selectedId)
+  const canChooseDisplayMode = Boolean(
+    selectedItem && supportsOutfitItemDisplayMode(selectedItem),
+  )
   const selectedDefaults = selectedItem
     ? positionFrom(outfit, selectedItem, hasOuter)
-    : { x: 0, y: 0, scale: 1 }
+    : { x: 0, y: 0, scale: 1, displayMode: 'auto' as const }
   const position = positions.get(selectedId) ?? selectedDefaults
   const dirty =
     position.x !== selectedDefaults.x ||
     position.y !== selectedDefaults.y ||
-    position.scale !== selectedDefaults.scale
+    position.scale !== selectedDefaults.scale ||
+    position.displayMode !== selectedDefaults.displayMode
   const previewOutfit: Outfit = {
     ...outfit,
     itemPlacements: outfit.itemIds.map((itemId) => {
+      const item = items.find((entry) => entry.id === itemId)
       const original = outfit.itemPlacements?.find(
         (entry) => entry.itemId === itemId,
       )
-      const current = positions.get(itemId) ?? { x: 0, y: 0, scale: 1 }
+      const current = positions.get(itemId) ?? {
+        x: 0,
+        y: 0,
+        scale: 1,
+        displayMode: 'auto' as const,
+      }
+      const displayPlacement =
+        item && supportsOutfitItemDisplayMode(item)
+          ? getOutfitItemDisplayPlacement(item, current.displayMode)
+          : {
+              slot: original?.slot ?? null,
+              zIndex: original?.zIndex ?? null,
+            }
       return {
         itemId,
-        slot: original?.slot ?? null,
+        slot: displayPlacement.slot,
         positionX: current.x,
         positionY: current.y,
         itemScale: current.scale,
-        zIndex: original?.zIndex ?? null,
+        zIndex: displayPlacement.zIndex,
       }
     }),
   }
@@ -152,7 +184,12 @@ export function OutfitPositionEditor({
     setSaveError(null)
     setPositions((current) => {
       const next = new Map(current)
-      const previous = next.get(selectedId) ?? { x: 0, y: 0, scale: 1 }
+      const previous = next.get(selectedId) ?? {
+        x: 0,
+        y: 0,
+        scale: 1,
+        displayMode: 'auto' as const,
+      }
       next.set(selectedId, {
         ...previous,
         x: previous.x + delta.x,
@@ -168,7 +205,12 @@ export function OutfitPositionEditor({
     setSaveError(null)
     setPositions((current) => {
       const next = new Map(current)
-      const previous = next.get(selectedId) ?? { x: 0, y: 0, scale: 1 }
+      const previous = next.get(selectedId) ?? {
+        x: 0,
+        y: 0,
+        scale: 1,
+        displayMode: 'auto' as const,
+      }
       const scale = Math.min(
         MAX_SCALE,
         Math.max(MIN_SCALE, Number((previous.scale + delta).toFixed(2))),
@@ -184,11 +226,37 @@ export function OutfitPositionEditor({
     setSaveError(null)
     setPositions((current) => {
       const next = new Map(current)
-      const defaults = getOutfitItemPlacementDefaults(selectedItem, hasOuter)
+      const defaults = getOutfitItemPlacementDefaults(
+        selectedItem,
+        hasOuter,
+        position.displayMode,
+      )
       next.set(selectedId, {
         x: defaults.positionX,
         y: defaults.positionY,
         scale: defaults.itemScale,
+        displayMode: position.displayMode,
+      })
+      return next
+    })
+  }
+
+  const changeDisplayMode = (displayMode: OutfitItemDisplayMode) => {
+    if (!selectedId || !selectedItem) return
+    setSaved(false)
+    setSaveError(null)
+    const defaults = getOutfitItemPlacementDefaults(
+      selectedItem,
+      hasOuter,
+      displayMode,
+    )
+    setPositions((current) => {
+      const next = new Map(current)
+      next.set(selectedId, {
+        x: defaults.positionX,
+        y: defaults.positionY,
+        scale: defaults.itemScale,
+        displayMode,
       })
       return next
     })
@@ -200,17 +268,34 @@ export function OutfitPositionEditor({
     setSaved(false)
     setSaveError(null)
     try {
+      const displayPlacement = supportsOutfitItemDisplayMode(selectedItem)
+        ? getOutfitItemDisplayPlacement(
+            selectedItem,
+            position.displayMode,
+          )
+        : {
+            slot:
+              outfit.itemPlacements?.find(
+                (entry) => entry.itemId === selectedItem.id,
+              )?.slot ?? null,
+            zIndex:
+              outfit.itemPlacements?.find(
+                (entry) => entry.itemId === selectedItem.id,
+              )?.zIndex ?? null,
+          }
       await onSave({
         outfitId: outfit.id,
         itemId: selectedItem.id,
+        slot: displayPlacement.slot,
         positionX: position.x,
         positionY: position.y,
         itemScale: position.scale,
+        zIndex: displayPlacement.zIndex,
       })
       setSaved(true)
     } catch (cause) {
       setSaveError(
-        cause instanceof Error ? cause.message : '위치를 저장하지 못했습니다.',
+        cause instanceof Error ? cause.message : '설정을 저장하지 못했습니다.',
       )
     } finally {
       setSaving(false)
@@ -229,8 +314,8 @@ export function OutfitPositionEditor({
         <span className="count">위치 4px · 크기 5%</span>
       </div>
       <p className="position-editor__note">
-        아이템을 고른 뒤 화살표로 움직이거나 −/+로 크기를 조절해 주세요.
-        레이어 순서는 바뀌지 않습니다.
+        아이템을 고른 뒤 표시 방식·위치·크기를 조절해 주세요. T-shirt
+        계열은 착장마다 아우터 안에 겹치거나 옆에 분리할 수 있습니다.
       </p>
 
       <LayeredOutfitPreview
@@ -308,17 +393,40 @@ export function OutfitPositionEditor({
               <Plus size={26} aria-hidden="true" />
             </button>
           </div>
+          {canChooseDisplayMode && (
+            <fieldset className="position-editor__display-modes">
+              <legend>표시 방식</legend>
+              {(
+                [
+                  ['auto', '자동'],
+                  ['inside', '아우터 안'],
+                  ['side', '옆에 분리'],
+                ] as const
+              ).map(([value, label]) => (
+                <label key={value}>
+                  <input
+                    type="radio"
+                    name={`display-mode-${selectedItem.id}`}
+                    value={value}
+                    checked={position.displayMode === value}
+                    onChange={() => changeDisplayMode(value)}
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </fieldset>
+          )}
           <button
             type="button"
             className="button button--primary button--wide"
             disabled={!dirty || saving}
             onClick={() => void save()}
           >
-            {saving ? '저장 중…' : '이 조정 저장'}
+            {saving ? '저장 중…' : '이 설정 저장'}
           </button>
           {saved && (
             <p className="success-message" role="status">
-              위치와 크기를 저장했습니다.
+              표시 방식과 위치를 저장했습니다.
             </p>
           )}
           {saveError && (

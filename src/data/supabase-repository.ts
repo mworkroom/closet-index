@@ -15,7 +15,7 @@ import type {
   OutfitCloneInput,
   OutfitCreateInput,
   OutfitItemWriteInput,
-  OutfitItemPositionInput,
+  OutfitItemPlacementInput,
   ThermalFeeling,
   WeatherForecastRequest,
   WeatherForecastResponse,
@@ -731,18 +731,20 @@ export class SupabaseRepository implements ClosetRepository {
     if (error) throw error
   }
 
-  async updateOutfitItemPosition(input: OutfitItemPositionInput) {
+  async updateOutfitItemPlacement(input: OutfitItemPlacementInput) {
     const { data, error } = await this.client
       .from('closet_outfit_items')
       .update({
+        slot: input.slot,
         position_x: input.positionX,
         position_y: input.positionY,
         scale: input.itemScale,
+        z_index: input.zIndex,
       })
       .eq('workspace_id', this.workspaceId)
       .eq('outfit_id', input.outfitId)
       .eq('item_id', input.itemId)
-      .select('outfit_id,item_id,position_x,position_y,scale')
+      .select('outfit_id,item_id,slot,position_x,position_y,scale,z_index')
       .maybeSingle()
 
     if (error) throw error

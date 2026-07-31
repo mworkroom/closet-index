@@ -237,8 +237,11 @@ describe('Phase 1B screen visuals', () => {
       }),
     ).not.toBeInTheDocument()
     expect(preview.closest('.outfit-visual--hero')).toBeInTheDocument()
+    const cardiganLink = screen.getByRole('link', { name: /블루 가디건/ })
     expect(
-      screen.getByRole('img', { name: '블루 가디건 아이템 이미지' }),
+      within(cardiganLink).getByRole('img', {
+        name: '블루 가디건 아이템 이미지',
+      }),
     ).toBeInTheDocument()
 
     const knitLink = screen.getByRole('link', { name: /아이보리 니트/ })
