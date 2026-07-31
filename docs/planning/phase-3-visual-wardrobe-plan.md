@@ -1,7 +1,7 @@
 # Closet Index Phase 3 Visual Wardrobe Expansion Plan
 
 - 작성일: 2026-07-29
-- 상태: P3-0 완료, P3-1 로컬 구현 시작
+- 상태: P3-0~P3-6 완료, P3-7 공개 마무리 검증 중
 - 목표 릴리스: Phase 3 Visual Wardrobe Expansion
 - 선행 상태: Phase 2 구현·공개·실제 Wear Log 경로 검증 완료
 - 관련 문서: [Roadmap](./roadmap.md), [Product Plan](./product-plan.md), [Phase 1B Plan](./phase-1b-plan.md), [Image Spec](./phase-1b-image-spec.md), [Phase 2 Weather Plan](./phase-2-weather-plan.md)
@@ -529,6 +529,10 @@ Storage 객체와 database transaction은 하나로 묶을 수 없으므로 이�
 - 로컬 TypeScript 검사, 전체 Vitest 44개 파일·195개 테스트와 production build가 통과했고, GitHub Actions 격리 Supabase 실행 `30667343590`에서 전체 migration과 P3-1·P3-3·P3-6 pgTAP 3개 파일·70개 계약이 모두 통과했다.
 - production에는 migration version `20260731220215`와 `closet-outfit-preview` Function version 1을 적용했다. Function은 `ACTIVE`·`verify_jwt=true`이고 무인증 POST는 401로 거절됐다. 적용 전후 주요 수량이 유지됐으며 Preview audit의 고아 metadata·누락 ready object·고아 object는 모두 0이었다.
 - P3-6 웹 코드를 main에 fast-forward 통합했고 GitHub Pages 실행 `30669399088`이 성공했다. 실제 공개 HTML·JS·CSS와 P3-6 Function slug·source fingerprint 포함을 확인했다. authenticated preview 생성·재생성과 browser runtime의 PC·모바일 렌더링 QA만 P3-7 공개 상호작용 검증으로 남겼다.
+- J가 공개 앱에서 Outfit `34cf66af-29b2-800b-93a4-ed26f7b2dd2a`의 Preview를 실제 생성했다. Function begin·finalize POST가 모두 200이었고, 900×1200·28,572B WebP와 현재 composition fingerprint가 `ready`로 저장됐다.
+- 최종 읽기 전용 대조에서 Preview metadata 2개가 모두 ready였고 pending·error·stale, 누락 ready object와 고아 preview object는 모두 0이었다.
+- Preview 일괄 생성과 목록 우선 표시는 보류한다. J의 실제 사용은 공유 이미지보다 Closet·Lookbook·Calendar 탐색이 중심이고, 인식 가능한 작은 누끼와 실시간 composition으로 충분하므로 같은 Item 픽셀을 Outfit마다 중복 저장하지 않는다.
+- Calendar는 저장 Preview metadata 유무와 관계없이 연결된 Outfit의 현재 누끼 composition 또는 기존 fallback을 thumbnail로 표시한다.
 
 완료 조건:
 
@@ -557,6 +561,14 @@ Storage 객체와 database transaction은 하나로 묶을 수 없으므로 이�
 - 새 Outfit이 HOME·LOOKBOOK·Wear Log에서 정확히 연결되는지 확인
 
 실제 검증은 반복 외출 횟수를 완료 조건으로 사용하지 않는다. 한 번의 통제된 생성·복제·표시 경로와 자동 경계 테스트로 Phase 3 구현을 판정하고, 이후 사용성은 비차단 관찰로 남긴다.
+
+구현 상태 (2026-08-01):
+
+- J가 production에서 Item 등록·cutout 등록 및 교체, Outfit 생성, 설정 저장 후 새로고침 유지, 새 Outfit 연결을 직접 확인했다.
+- HOME 추천은 Lookbook과 같은 계절 범위를 사용하고, 일반 추천과 시험 착장을 한 번에 3개씩만 추가 표시하도록 정리했다.
+- 저장 Preview는 안전한 선택적 cache 계약으로 유지하되 일괄 생성·공유 이미지·목록 우선 사용은 현재 제품 범위에서 보류했다.
+- Calendar는 Preview가 없는 Outfit도 실시간 composition thumbnail을 표시하도록 fallback 경로를 연결했다.
+- 공개 배포 전 전체 회귀와 artifact 검증, 공개 Pages 확인을 마지막 차단 조건으로 둔다.
 
 배포 검증:
 

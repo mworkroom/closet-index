@@ -13,12 +13,14 @@ import { AppShell } from '../components/AppShell'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { OutfitCard } from '../components/OutfitCard'
 import { useClosetData } from '../context/DataContext'
+import { useSeasonScope } from '../context/SeasonScopeContext'
 import type { WeatherRecommendationProvenance } from '../lib/navigation'
 import { sortPlacesForSelection } from '../lib/place-options'
 import {
   partitionRecommendations,
   recommendOutfits,
 } from '../lib/recommendation'
+import { outfitMatchesSeasonScope } from '../lib/seasons'
 import { recommendationInputFromWeather } from '../lib/weather-recommendation'
 import type {
   ConditionChoice,
@@ -67,6 +69,7 @@ interface HomeSessionState {
 
 const HOME_SESSION_KEY = 'closet-index:home-weather:v2'
 const HOME_LOCAL_STORAGE_KEY = 'closet-index:home-weather:v3'
+const RECOMMENDATION_PAGE_SIZE = 3
 
 function kstDate(daysFromToday = 0) {
   const now = Date.now() + 9 * 60 * 60 * 1000
@@ -272,6 +275,7 @@ export function HomePage() {
     refresh,
     fetchWeatherForecast,
   } = useClosetData()
+  const { activeSeasons } = useSeasonScope()
   const [initialState] = useState(readHomeSessionState)
   const [tempOut, setTempOut] = useState(initialState.tempOut)
   const [tempBack, setTempBack] = useState(initialState.tempBack)
@@ -307,8 +311,12 @@ export function HomePage() {
   const [weatherError, setWeatherError] = useState<string | null>(null)
   const [weatherStatus, setWeatherStatus] = useState<string | null>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
-  const [showAll, setShowAll] = useState(false)
-  const [showAllTrials, setShowAllTrials] = useState(false)
+  const [visibleRecommendationCount, setVisibleRecommendationCount] = useState(
+    RECOMMENDATION_PAGE_SIZE,
+  )
+  const [visibleTrialCount, setVisibleTrialCount] = useState(
+    RECOMMENDATION_PAGE_SIZE,
+  )
 
   const defaultWeatherLocation = useMemo(
     () =>
@@ -382,9 +390,18 @@ export function HomePage() {
     recommendations,
     trialRecommendations,
   } = useMemo(() => {
-    const results = data && submitted ? recommendOutfits(data, submitted) : []
+    const scopedData = data
+      ? {
+          ...data,
+          outfits: data.outfits.filter((outfit) =>
+            outfitMatchesSeasonScope(outfit, data.items, activeSeasons),
+          ),
+        }
+      : null
+    const results =
+      scopedData && submitted ? recommendOutfits(scopedData, submitted) : []
     return partitionRecommendations(results)
-  }, [data, submitted])
+  }, [activeSeasons, data, submitted])
 
   const markManualEdit = () => {
     setInputSource((current) =>
@@ -393,9 +410,14 @@ export function HomePage() {
   }
 
   const resetRecommendationLists = () => {
-    setShowAll(false)
-    setShowAllTrials(false)
+    setVisibleRecommendationCount(RECOMMENDATION_PAGE_SIZE)
+    setVisibleTrialCount(RECOMMENDATION_PAGE_SIZE)
   }
+
+  useEffect(() => {
+    setVisibleRecommendationCount(RECOMMENDATION_PAGE_SIZE)
+    setVisibleTrialCount(RECOMMENDATION_PAGE_SIZE)
+  }, [activeSeasons])
 
   const loadWeather = async () => {
     if (!currentWeatherRequest) {
@@ -914,7 +936,7 @@ export function HomePage() {
             ) : (
               <div className="card-list">
                 {recommendations
-                  .slice(0, showAll ? recommendations.length : 3)
+                  .slice(0, visibleRecommendationCount)
                   .map((recommendation) => (
                     <OutfitCard
                       key={recommendation.outfit.id}
@@ -929,13 +951,23 @@ export function HomePage() {
                       }}
                     />
                   ))}
-                {!showAll && recommendations.length > 3 && (
+                {recommendations.length > visibleRecommendationCount && (
                   <button
                     className="button button--secondary button--wide"
                     type="button"
-                    onClick={() => setShowAll(true)}
+                    onClick={() =>
+                      setVisibleRecommendationCount((current) =>
+                        Math.min(
+                          current + RECOMMENDATION_PAGE_SIZE,
+                          recommendations.length,
+                        ),
+                      )
+                    }
                   >
-                    나머지 {recommendations.length - 3}개 더 보기
+                    {Math.min(
+                      RECOMMENDATION_PAGE_SIZE,
+                      recommendations.length - visibleRecommendationCount,
+                    )}개 더 보기
                   </button>
                 )}
               </div>
@@ -966,7 +998,7 @@ export function HomePage() {
 
               <div className="card-list">
                 {trialRecommendations
-                  .slice(0, showAllTrials ? trialRecommendations.length : 3)
+                  .slice(0, visibleTrialCount)
                   .map((recommendation) => (
                     <OutfitCard
                       key={recommendation.outfit.id}
@@ -981,13 +1013,23 @@ export function HomePage() {
                       }}
                     />
                   ))}
-                {!showAllTrials && trialRecommendations.length > 3 && (
+                {trialRecommendations.length > visibleTrialCount && (
                   <button
                     className="button button--secondary button--wide"
                     type="button"
-                    onClick={() => setShowAllTrials(true)}
+                    onClick={() =>
+                      setVisibleTrialCount((current) =>
+                        Math.min(
+                          current + RECOMMENDATION_PAGE_SIZE,
+                          trialRecommendations.length,
+                        ),
+                      )
+                    }
                   >
-                    나머지 {trialRecommendations.length - 3}개 더 보기
+                    {Math.min(
+                      RECOMMENDATION_PAGE_SIZE,
+                      trialRecommendations.length - visibleTrialCount,
+                    )}개 더 보기
                   </button>
                 )}
               </div>

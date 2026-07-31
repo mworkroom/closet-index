@@ -23,9 +23,11 @@ function renderCloset() {
 function renderHome() {
   return render(
     <MemoryRouter>
-      <DataProvider repository={new DemoRepository()}>
-        <HomePage />
-      </DataProvider>
+      <SeasonScopeProvider>
+        <DataProvider repository={new DemoRepository()}>
+          <HomePage />
+        </DataProvider>
+      </SeasonScopeProvider>
     </MemoryRouter>,
   )
 }

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { DataProvider } from '../context/DataContext'
+import { SeasonScopeProvider } from '../context/SeasonScopeContext'
 import { DemoRepository } from '../data/demo-repository'
 import { HomePage } from './HomePage'
 import { OutfitDetailPage } from './OutfitDetailPage'
@@ -25,17 +26,19 @@ describe('Phase 2 weather recommendation flow', () => {
 
     render(
       <MemoryRouter initialEntries={['/']}>
-        <DataProvider repository={repository}>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route
-              path="/outfits/:outfitId"
-              element={<OutfitDetailPage />}
-            />
-            <Route path="/wear/:outfitId" element={<WearLogPage />} />
-            <Route path="/calendar" element={<div>calendar</div>} />
-          </Routes>
-        </DataProvider>
+        <SeasonScopeProvider>
+          <DataProvider repository={repository}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route
+                path="/outfits/:outfitId"
+                element={<OutfitDetailPage />}
+              />
+              <Route path="/wear/:outfitId" element={<WearLogPage />} />
+              <Route path="/calendar" element={<div>calendar</div>} />
+            </Routes>
+          </DataProvider>
+        </SeasonScopeProvider>
       </MemoryRouter>,
     )
 
@@ -90,11 +93,13 @@ describe('Phase 2 weather recommendation flow', () => {
 
     render(
       <MemoryRouter initialEntries={['/']}>
-        <DataProvider repository={repository}>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-          </Routes>
-        </DataProvider>
+        <SeasonScopeProvider>
+          <DataProvider repository={repository}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+            </Routes>
+          </DataProvider>
+        </SeasonScopeProvider>
       </MemoryRouter>,
     )
 

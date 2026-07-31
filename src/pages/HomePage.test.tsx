@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { DataProvider } from '../context/DataContext'
+import { SeasonScopeProvider } from '../context/SeasonScopeContext'
 import { DemoRepository } from '../data/demo-repository'
 import { HomePage } from './HomePage'
 
@@ -19,9 +20,11 @@ describe('HomePage condition choices', () => {
   it('비와 오래 걷기는 해당 없음과 해당만 제공한다', async () => {
     render(
       <MemoryRouter>
-        <DataProvider repository={new DemoRepository()}>
-          <HomePage />
-        </DataProvider>
+        <SeasonScopeProvider>
+          <DataProvider repository={new DemoRepository()}>
+            <HomePage />
+          </DataProvider>
+        </SeasonScopeProvider>
       </MemoryRouter>,
     )
 
@@ -41,9 +44,11 @@ describe('HomePage condition choices', () => {
   it('위치를 날씨 아이콘 옆에 표시하고 저녁 외출 시각을 기본 선택한다', async () => {
     render(
       <MemoryRouter>
-        <DataProvider repository={new DemoRepository()}>
-          <HomePage />
-        </DataProvider>
+        <SeasonScopeProvider>
+          <DataProvider repository={new DemoRepository()}>
+            <HomePage />
+          </DataProvider>
+        </SeasonScopeProvider>
       </MemoryRouter>,
     )
 
@@ -70,9 +75,11 @@ describe('HomePage condition choices', () => {
     const renderPage = () =>
       render(
         <MemoryRouter>
-          <DataProvider repository={new DemoRepository()}>
-            <HomePage />
-          </DataProvider>
+          <SeasonScopeProvider>
+            <DataProvider repository={new DemoRepository()}>
+              <HomePage />
+            </DataProvider>
+          </SeasonScopeProvider>
         </MemoryRouter>,
       )
 

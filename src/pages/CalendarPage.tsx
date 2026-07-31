@@ -79,7 +79,7 @@ export function CalendarPage() {
                   const place = data.places.find((entry) => entry.id === log.placeId)
                   return (
                     <article className="record-card" key={log.id}>
-                      {outfit?.preview && (
+                      {outfit && (
                         <OutfitVisual
                           outfit={outfit}
                           items={data.items}

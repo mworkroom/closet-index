@@ -408,7 +408,7 @@ describe('Phase 1B screen visuals', () => {
     }
   })
 
-  it('Calendar는 preview metadata가 있는 Outfit에만 thumbnail을 추가한다', async () => {
+  it('Calendar는 저장 preview가 없어도 Outfit thumbnail을 표시한다', async () => {
     const { unmount } = renderRoute(
       '/calendar?date=2026-05-03',
       '/calendar',
@@ -431,6 +431,11 @@ describe('Phase 1B screen visuals', () => {
     )
 
     await screen.findByText('가볍게 걷는 날')
-    expect(document.querySelector('.record-card__preview')).not.toBeInTheDocument()
+    expect(document.querySelector('.record-card__preview')).toBeInTheDocument()
+    expect(
+      screen.getByRole('img', {
+        name: '가볍게 걷는 날 조정 가능한 착장 미리보기',
+      }),
+    ).toBeInTheDocument()
   })
 })

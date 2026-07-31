@@ -188,4 +188,8 @@ Phase 3 쓰기가 이미 발생했다면 column 제거와 인덱스 복원을 �
    - Preview audit 결과 ready 1개, pending·error·stale 0개였고 고아 metadata·누락 ready object·고아 object도 모두 0개였다.
    - 기존 수동 Preview 1개는 새 source fingerprint가 없으므로 현재 composition을 추측해 backfill하지 않고 공개 앱에서 재생성한다.
 
-P3-6 웹 코드는 main에 fast-forward 통합했고 GitHub Pages 실행 `30669399088`의 build·artifact 검증·deploy가 모두 통과했다. 실제 공개 HTML은 JS `index-BlzTTZra.js`와 CSS `index-80jPsnSb.css`를 가리키며 두 자산 모두 200이고, JS에 `closet-outfit-preview`와 source fingerprint 코드가 포함돼 있다. Browser runtime의 로컬 asset 경로 오류로 authenticated signed upload, 실제 Preview 생성·재생성·stale 전환과 PC·모바일 UI 확인은 아직 남아 있다.
+P3-6 웹 코드는 main에 fast-forward 통합했고 GitHub Pages 실행 `30669399088`의 build·artifact 검증·deploy가 모두 통과했다. 실제 공개 HTML은 JS `index-BlzTTZra.js`와 CSS `index-80jPsnSb.css`를 가리키며 두 자산 모두 200이고, JS에 `closet-outfit-preview`와 source fingerprint 코드가 포함돼 있다.
+
+J가 공개 앱에서 Outfit `34cf66af-29b2-800b-93a4-ed26f7b2dd2a`의 Preview 생성을 실행했다. 인증 Function의 begin·finalize POST는 모두 200이었고, production에는 900×1200·28,572B WebP와 64자리 source fingerprint가 있는 ready metadata가 저장됐다. 이후 읽기 전용 점검에서 workspace Preview는 ready 2개, pending·error·stale 0개였으며 누락 ready object와 고아 preview object도 0개였다.
+
+Preview는 안전한 선택적 cache로 유지하지만 일괄 생성하거나 Lookbook·Calendar의 우선 이미지로 사용하지 않는다. J의 사용 목적은 공유 이미지가 아니라 자주 보는 작은 thumbnail이며, 기존 누끼 전체가 약 38MB인 상황에서 Outfit별 900×1200 이미지를 중복 저장할 실익이 낮기 때문이다. Calendar는 Preview metadata가 없어도 현재 누끼 composition을 표시하고, Preview 대량 생성·공유·내보내기는 보류한다.
