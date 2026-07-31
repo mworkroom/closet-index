@@ -40,6 +40,24 @@ describe('recommendOutfits', () => {
     expect(results.map((result) => result.outfit.id)).not.toContain('outfit-error')
   })
 
+  it('보관된 Outfit은 기존 착용 기록이 있어도 추천에서 제외한다', () => {
+    const data: AppData = structuredClone(demoData)
+    const archived = data.outfits.find(
+      (outfit) => outfit.id === 'outfit-favorite',
+    )
+    if (!archived) throw new Error('fixture missing')
+    archived.archivedAt = '2026-07-31T12:00:00+09:00'
+
+    const results = recommendOutfits(data, baseInput)
+
+    expect(results.map((result) => result.outfit.id)).not.toContain(
+      'outfit-favorite',
+    )
+    expect(
+      data.wearLogs.filter((log) => log.outfitId === 'outfit-favorite'),
+    ).toHaveLength(2)
+  })
+
   it('Rating이 OK여도 Retired 아이템을 하나라도 포함하면 추천하지 않는다', () => {
     const data: AppData = structuredClone(demoData)
     data.outfits.push({

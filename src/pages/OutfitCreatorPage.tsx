@@ -1,6 +1,6 @@
 import { Check, Plus, Search, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { ItemVisual } from '../components/ItemVisual'
 import { OutfitDraftPositionEditor } from '../components/OutfitDraftPositionEditor'
@@ -15,12 +15,14 @@ import {
   type ItemCategoryFilterGroupId,
 } from '../lib/item-categories'
 import {
+  getOutfitItemDisplayMode,
   getOutfitItemDisplayPlacement,
   getOutfitItemPlacementDefaults,
   supportsOutfitItemDisplayMode,
   type OutfitItemDisplayMode,
 } from '../lib/outfit-composition'
 import { sortItems } from '../lib/items'
+import { outfitLabel } from '../lib/outfits'
 import {
   itemMatchesSeasonScope,
   SEASONS,
@@ -93,6 +95,8 @@ function buildDraftOutfit(
 
 export function OutfitCreatorPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const sourceOutfitId = searchParams.get('source')
   const {
     data,
     loading,
@@ -117,6 +121,43 @@ export function OutfitCreatorPage() {
   const [matches, setMatches] = useState<MatchingOutfit[]>([])
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [sourceApplied, setSourceApplied] = useState(!sourceOutfitId)
+  const [sourceError, setSourceError] = useState<string | null>(null)
+
+  const sourceOutfit = sourceOutfitId
+    ? data?.outfits.find((outfit) => outfit.id === sourceOutfitId) ?? null
+    : null
+
+  useEffect(() => {
+    if (!data || sourceApplied || !sourceOutfitId) return
+    if (!sourceOutfit) {
+      setSourceError('복제할 원본 Outfit을 찾을 수 없습니다.')
+      setSourceApplied(true)
+      return
+    }
+
+    const placements = new Map<string, DraftPlacement>()
+    for (const itemId of sourceOutfit.itemIds) {
+      const item = data.items.find((entry) => entry.id === itemId)
+      const placement = sourceOutfit.itemPlacements?.find(
+        (entry) => entry.itemId === itemId,
+      )
+      if (!item) continue
+      placements.set(itemId, {
+        displayMode: getOutfitItemDisplayMode(item, placement),
+        positionX: placement?.positionX ?? undefined,
+        positionY: placement?.positionY ?? undefined,
+        itemScale: placement?.itemScale ?? undefined,
+        slot: placement?.slot ?? null,
+        zIndex: placement?.zIndex ?? null,
+      })
+    }
+
+    setSelectedIds([...sourceOutfit.itemIds])
+    setDraftPlacements(placements)
+    setDisplayName(sourceOutfit.displayName ?? '')
+    setSourceApplied(true)
+  }, [data, sourceApplied, sourceOutfit, sourceOutfitId])
 
   const colors = useMemo(
     () =>
@@ -274,6 +315,25 @@ export function OutfitCreatorPage() {
       {error && <ErrorState message={error} onRetry={() => void refresh()} />}
       {data && (
         <>
+          {sourceOutfit && sourceApplied && (
+            <section className="outfit-creator__source" role="status">
+              <span>
+                <strong>원본 Outfit에서 복제 중</strong>
+                <small>
+                  Item과 배치만 초깃값으로 복사했습니다. 원본의 평가와 착용
+                  기록은 바뀌지 않습니다.
+                </small>
+              </span>
+              <Link to={`/outfits/${sourceOutfit.id}`}>
+                {outfitLabel(sourceOutfit, data.items)} 보기
+              </Link>
+            </section>
+          )}
+          {sourceError && (
+            <p className="form-error" role="alert">
+              {sourceError}
+            </p>
+          )}
           <section className="section outfit-creator__selected">
             <div className="section-heading">
               <h2>현재 선택</h2>

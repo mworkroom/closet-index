@@ -86,6 +86,23 @@ function CreateOutfitProbe() {
   )
 }
 
+function ArchiveOutfitProbe() {
+  const { data, setOutfitArchived } = useClosetData()
+  const outfit = data?.outfits[0]
+
+  return (
+    <>
+      <span>{outfit?.archivedAt ? 'archived' : 'active'}</span>
+      <button
+        type="button"
+        onClick={() => void setOutfitArchived('outfit', true)}
+      >
+        archive
+      </button>
+    </>
+  )
+}
+
 describe('DataProvider outfit placement updates', () => {
   it('updates the loaded outfit without reloading all app data', async () => {
     const user = userEvent.setup()
@@ -174,5 +191,40 @@ describe('DataProvider outfit placement updates', () => {
     expect(await screen.findByText('outfit,new-outfit')).toBeInTheDocument()
     expect(repository.load).toHaveBeenCalledTimes(1)
     expect(repository.createOutfit).toHaveBeenCalledTimes(1)
+  })
+
+  it('updates an Outfit archive state without reloading Wear Logs or relations', async () => {
+    const user = userEvent.setup()
+    const repository: ClosetRepository = {
+      load: vi.fn(async () => structuredClone(appData)),
+      createItem: vi.fn(),
+      updateItem: vi.fn(),
+      replaceItemImage: vi.fn(async () => undefined),
+      setItemRetired: vi.fn(async () => undefined),
+      updateItemSuitability: vi.fn(async () => undefined),
+      findMatchingOutfits: vi.fn(),
+      createOutfit: vi.fn(),
+      cloneOutfit: vi.fn(),
+      setOutfitArchived: vi.fn(async () => undefined),
+      updateOutfitItemPlacement: vi.fn(async () => undefined),
+      saveDefaultWeatherLocation: vi.fn(),
+      fetchWeatherForecast: vi.fn(),
+      createWearLog: vi.fn(),
+      updateWearLog: vi.fn(),
+      deleteWearLog: vi.fn(async () => undefined),
+    }
+
+    render(
+      <DataProvider repository={repository}>
+        <ArchiveOutfitProbe />
+      </DataProvider>,
+    )
+
+    expect(await screen.findByText('active')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'archive' }))
+
+    expect(await screen.findByText('archived')).toBeInTheDocument()
+    expect(repository.setOutfitArchived).toHaveBeenCalledWith('outfit', true)
+    expect(repository.load).toHaveBeenCalledTimes(1)
   })
 })

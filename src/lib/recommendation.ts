@@ -415,6 +415,7 @@ export function recommendOutfits(
   input: RecommendationInput,
 ): RecommendationResult[] {
   const available = data.outfits.filter((outfit) => {
+    if (outfit.archivedAt) return false
     if (outfit.rating === 'error') return false
     const items = outfit.itemIds
       .map((id) => data.items.find((item) => item.id === id))

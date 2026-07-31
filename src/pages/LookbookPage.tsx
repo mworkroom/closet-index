@@ -48,6 +48,7 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
           .map((id) => data.items.find((item) => item.id === id))
           .filter((item): item is (typeof data.items)[number] => Boolean(item))
         const unavailable =
+          Boolean(outfit.archivedAt) ||
           outfit.rating === 'error' ||
           items.length !== outfit.itemIds.length ||
           items.some((item) => item.retired)
@@ -202,7 +203,7 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
               checked={includeUnavailable}
               onChange={(event) => setIncludeUnavailable(event.target.checked)}
             />
-            Error·Retired 포함
+            Error·Retired·보관 포함
           </label>
         </div>
       </section>

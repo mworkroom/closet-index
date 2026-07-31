@@ -7,9 +7,12 @@ import { SeasonScopeProvider } from '../context/SeasonScopeContext'
 import { DemoRepository } from '../data/demo-repository'
 import { OutfitCreatorPage } from './OutfitCreatorPage'
 
-function renderCreator(repository: DemoRepository) {
+function renderCreator(
+  repository: DemoRepository,
+  initialEntry = '/outfits/new',
+) {
   return render(
-    <MemoryRouter initialEntries={['/outfits/new']}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <SeasonScopeProvider>
         <DataProvider repository={repository}>
           <Routes>
@@ -147,5 +150,70 @@ describe('Outfit creator', () => {
     expect(
       screen.getByRole('button', { name: '테스트 양말 추가' }),
     ).toBeInTheDocument()
+  })
+
+  it('원본 Outfit의 Item과 placement를 초안으로 복사하고 새 UUID로 저장한다', async () => {
+    const user = userEvent.setup()
+    const repository = new DemoRepository()
+    const createOutfit = vi.spyOn(repository, 'createOutfit')
+    await repository.updateOutfitItemPlacement({
+      outfitId: 'outfit-favorite',
+      itemId: 'item-cardigan',
+      slot: 'outer',
+      positionX: 12,
+      positionY: -48,
+      itemScale: 0.95,
+      zIndex: 60,
+    })
+    const sourceBefore = structuredClone(
+      (await repository.load()).outfits.find(
+        (outfit) => outfit.id === 'outfit-favorite',
+      ),
+    )
+    if (sourceBefore) sourceBefore.archivedAt ??= null
+
+    renderCreator(repository, '/outfits/new?source=outfit-favorite')
+
+    expect(
+      await screen.findByText('원본 Outfit에서 복제 중'),
+    ).toBeInTheDocument()
+    expect(screen.getAllByText('4개')).toHaveLength(2)
+    await user.click(
+      screen.getAllByRole('button', { name: '블랙 팬츠 선택 해제' })[0],
+    )
+    await user.click(screen.getByRole('button', { name: '새 Outfit 저장' }))
+
+    expect(await screen.findByText('저장 완료')).toBeInTheDocument()
+    expect(createOutfit).toHaveBeenCalledTimes(1)
+    expect(createOutfit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: expect.not.stringMatching(/^outfit-favorite$/),
+        allowDuplicate: false,
+        items: expect.not.arrayContaining([
+          expect.objectContaining({ itemId: 'item-pants' }),
+        ]),
+      }),
+    )
+    const sourceCardiganPlacement = sourceBefore?.itemPlacements?.find(
+      (placement) => placement.itemId === 'item-cardigan',
+    )
+    if (!sourceCardiganPlacement) throw new Error('source placement missing')
+    expect(createOutfit.mock.calls[0][0].items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          itemId: 'item-cardigan',
+          slot: sourceCardiganPlacement.slot,
+          positionX: sourceCardiganPlacement.positionX,
+          positionY: sourceCardiganPlacement.positionY,
+          itemScale: sourceCardiganPlacement.itemScale,
+          zIndex: sourceCardiganPlacement.zIndex,
+        }),
+      ]),
+    )
+    expect(
+      (await repository.load()).outfits.find(
+        (outfit) => outfit.id === 'outfit-favorite',
+      ),
+    ).toEqual(sourceBefore)
   })
 })

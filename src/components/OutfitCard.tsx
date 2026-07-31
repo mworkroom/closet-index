@@ -32,7 +32,10 @@ export function OutfitCard({
   const homeOkCount = isTrial
     ? similarMatch?.okObservationCount
     : recommendation?.okObservationCount
-  const accessibleLabel = `${outfitLabel(outfit, data.items)} 착장 상세 보기`
+  const accessibleLabel = `${outfit.archivedAt ? '보관된 ' : ''}${outfitLabel(
+    outfit,
+    data.items,
+  )} 착장 상세 보기`
 
   return (
     <Link
@@ -102,6 +105,7 @@ export function OutfitCard({
         </div>
       ) : layout === 'grid' ? (
         <div className="outfit-card__grid-summary" aria-hidden="true">
+          {outfit.archivedAt && <strong>보관됨</strong>}
           <span>착용 {stats.wearCount}회</span>
           <span>
             {stats.lastWornOn

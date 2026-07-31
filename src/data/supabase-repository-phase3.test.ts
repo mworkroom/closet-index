@@ -177,6 +177,31 @@ describe('SupabaseRepository Phase 3 writes', () => {
     expect(builder.eq).toHaveBeenNthCalledWith(2, 'workspace_id', 'workspace')
   })
 
+  it('archives an Outfit through the workspace-scoped lifecycle fields', async () => {
+    const builder: Record<string, ReturnType<typeof vi.fn>> = {}
+    for (const method of ['update', 'eq', 'select']) {
+      builder[method] = vi.fn(() => builder)
+    }
+    builder.maybeSingle = vi.fn(async () => ({
+      data: { id: 'outfit-existing' },
+      error: null,
+    }))
+    const client = {
+      from: vi.fn(() => builder),
+    } as unknown as SupabaseClient
+    const repository = new SupabaseRepository(client, 'workspace')
+
+    await repository.setOutfitArchived('outfit-existing', true)
+
+    expect(client.from).toHaveBeenCalledWith('closet_outfits')
+    expect(builder.update).toHaveBeenCalledWith({
+      archived_at: expect.any(String),
+      updated_at: expect.any(String),
+    })
+    expect(builder.eq).toHaveBeenNthCalledWith(1, 'id', 'outfit-existing')
+    expect(builder.eq).toHaveBeenNthCalledWith(2, 'workspace_id', 'workspace')
+  })
+
   it('uploads an optimized cutout with a signed ticket and finalizes it', async () => {
     const invoke = vi
       .fn()

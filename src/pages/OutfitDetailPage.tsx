@@ -1,4 +1,5 @@
 import {
+  Archive,
   AlertTriangle,
   BusFront,
   CarFront,
@@ -6,11 +7,14 @@ import {
   ChevronDown,
   CircleHelp,
   CloudRain,
+  Copy,
   Footprints,
   MapPin,
+  RotateCcw,
   Thermometer,
   TrainFront,
 } from 'lucide-react'
+import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { ItemVisual } from '../components/ItemVisual'
@@ -50,8 +54,11 @@ export function OutfitDetailPage() {
     loading,
     error,
     refresh,
+    setOutfitArchived,
     updateOutfitItemPlacement,
   } = useClosetData()
+  const [archiveConfirming, setArchiveConfirming] = useState(false)
+  const [archiveSaving, setArchiveSaving] = useState(false)
   const outfit = data?.outfits.find((entry) => entry.id === outfitId)
   const items =
     outfit && data
@@ -74,6 +81,19 @@ export function OutfitDetailPage() {
     items.every((item) => Boolean(item.image))
   const canAdjustPositions = Boolean(outfit) && items.some((item) => item.image)
 
+  const changeArchived = async (archived: boolean) => {
+    if (!outfit || archiveSaving) return
+    setArchiveSaving(true)
+    try {
+      await setOutfitArchived(outfit.id, archived)
+      setArchiveConfirming(false)
+    } catch {
+      // DataContext에서 공통 오류 메시지를 표시한다.
+    } finally {
+      setArchiveSaving(false)
+    }
+  }
+
   return (
     <AppShell
       title="착장 상세"
@@ -88,6 +108,26 @@ export function OutfitDetailPage() {
       )}
       {data && outfit && (
         <>
+          {outfit.archivedAt && (
+            <section className="outfit-archive-notice" role="status">
+              <span>
+                <strong>보관된 Outfit</strong>
+                <small>
+                  기본 Lookbook과 추천에서는 숨겨져 있습니다. 기존 착용 기록은
+                  그대로 유지됩니다.
+                </small>
+              </span>
+              <button
+                type="button"
+                className="button button--secondary"
+                disabled={archiveSaving}
+                onClick={() => void changeArchived(false)}
+              >
+                <RotateCcw size={17} aria-hidden="true" />
+                {archiveSaving ? '복원 중…' : '복원하기'}
+              </button>
+            </section>
+          )}
           {navigationState.recommendation && (
             <section className="recommendation-detail">
               <div className="recommendation-detail__heading">
@@ -243,6 +283,60 @@ export function OutfitDetailPage() {
             </div>
           </section>
 
+          <section className="section outfit-management">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">MANAGE</p>
+                <h2>착장 관리</h2>
+              </div>
+            </div>
+            <Link
+              className="button button--secondary button--wide"
+              to={`/outfits/new?source=${encodeURIComponent(outfit.id)}`}
+            >
+              <Copy size={17} aria-hidden="true" />
+              이 착장으로 새로 만들기
+            </Link>
+            {!outfit.archivedAt && (
+              <button
+                type="button"
+                className="button button--secondary button--wide"
+                disabled={archiveSaving}
+                onClick={() => setArchiveConfirming(true)}
+              >
+                <Archive size={17} aria-hidden="true" />
+                보관하기
+              </button>
+            )}
+            {archiveConfirming && !outfit.archivedAt && (
+              <div className="outfit-management__confirmation" role="alert">
+                <strong>이 Outfit을 보관할까요?</strong>
+                <p>
+                  기본 Lookbook과 추천에서만 숨깁니다. 평가와 기존 착용 기록은
+                  삭제하지 않으며 언제든 복원할 수 있습니다.
+                </p>
+                <div>
+                  <button
+                    type="button"
+                    className="button button--secondary"
+                    disabled={archiveSaving}
+                    onClick={() => setArchiveConfirming(false)}
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="button"
+                    className="button button--secondary"
+                    disabled={archiveSaving}
+                    onClick={() => void changeArchived(true)}
+                  >
+                    {archiveSaving ? '보관 중…' : '보관 확인'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+
           <section className="section">
             <div className="section-heading">
               <h2>착용 기록</h2>
@@ -296,24 +390,26 @@ export function OutfitDetailPage() {
             )}
           </section>
 
-          <div
-            className={
-              canAdjustPositions
-                ? 'sticky-action sticky-action--after-position-editor'
-                : 'sticky-action'
-            }
-          >
-            <Link
-              className="button button--primary button--wide"
-              to={`/wear/${outfit.id}`}
-              state={{
-                input: navigationState.input,
-                weather: navigationState.weather,
-              }}
+          {!outfit.archivedAt && (
+            <div
+              className={
+                canAdjustPositions
+                  ? 'sticky-action sticky-action--after-position-editor'
+                  : 'sticky-action'
+              }
             >
-              오늘 입기
-            </Link>
-          </div>
+              <Link
+                className="button button--primary button--wide"
+                to={`/wear/${outfit.id}`}
+                state={{
+                  input: navigationState.input,
+                  weather: navigationState.weather,
+                }}
+              >
+                오늘 입기
+              </Link>
+            </div>
+          )}
 
           {canAdjustPositions && (
             <details className="position-editor-disclosure">

@@ -491,6 +491,17 @@ Storage 객체와 database transaction은 하나로 묶을 수 없으므로 이�
 - Item 추가·제거 뒤 새 UUID로 저장
 - 기존 Outfit과 새 Outfit의 독립성 테스트
 
+구현 상태 (2026-07-31):
+
+- Outfit 상세에 `이 착장으로 새로 만들기`를 추가하고 원본 Outfit ID를 query parameter로 새 Outfit 만들기 화면에 전달한다.
+- 복제 화면은 원본의 Item 순서, relation placement와 T-shirt 표시 방식을 로컬 draft 초깃값으로 복사하되 새 UUID를 미리 생성한다.
+- Item 추가·제거·배치 조정 뒤에는 기존 `create_closet_outfit` transaction으로 새 Outfit과 relation을 저장하며 원본 relation·평가·Wear Log는 수정하지 않는다.
+- 원본과 같은 Item 집합을 그대로 저장하려는 경우 P3-4의 동일 조합 경고와 명시적 확인 절차를 그대로 적용한다.
+- 상세 화면에 별도 확인이 필요한 보관과 즉시 복원을 연결했다. 보관은 `archived_at`만 변경하며 `Error` 평가나 Wear Log를 재사용하지 않는다.
+- 보관 Outfit은 기본 LOOKBOOK과 추천에서 제외하고 `Error·Retired·보관 포함`을 켠 경우에만 LOOKBOOK에서 다시 열어 복원할 수 있다.
+- Demo·Supabase repository, Context, 복제 초안, 원본 독립성, Wear Log 유지, 추천 제외와 LOOKBOOK 필터 회귀 테스트를 추가했다.
+- PC 1200px와 모바일 375px Demo Browser에서 복제 저장, 보관·필터 표시·복원, 가로 overflow와 콘솔 오류 부재를 확인했다. production 배포와 실제 계정의 보관·복원 검증은 P3-7 전 확인으로 남겨 둔다.
+
 완료 조건:
 
 - 원본 Outfit의 relation·평가·Wear Log가 변하지 않는다.

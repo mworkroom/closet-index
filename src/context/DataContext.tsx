@@ -45,6 +45,7 @@ interface DataState {
   ) => Promise<void>
   findMatchingOutfits: (itemIds: string[]) => Promise<MatchingOutfit[]>
   createOutfit: (input: OutfitCreateInput) => Promise<Outfit>
+  setOutfitArchived: (outfitId: string, archived: boolean) => Promise<void>
   updateOutfitItemPlacement: (input: OutfitItemPlacementInput) => Promise<void>
   saveDefaultWeatherLocation: (input: WeatherLocationInput) => Promise<void>
   fetchWeatherForecast: (
@@ -204,6 +205,36 @@ export function DataProvider({
     [repository],
   )
 
+  const setOutfitArchived = useCallback(
+    async (outfitId: string, archived: boolean) => {
+      setError(null)
+      try {
+        await repository.setOutfitArchived(outfitId, archived)
+        setData((current) =>
+          current
+            ? {
+                ...current,
+                outfits: current.outfits.map((outfit) =>
+                  outfit.id === outfitId
+                    ? {
+                        ...outfit,
+                        archivedAt: archived ? new Date().toISOString() : null,
+                      }
+                    : outfit,
+                ),
+              }
+            : current,
+        )
+      } catch (cause) {
+        const message =
+          cause instanceof Error ? cause.message : 'Outfit 상태를 바꾸지 못했습니다.'
+        setError(message)
+        throw cause
+      }
+    },
+    [repository],
+  )
+
   const createItem = useCallback(
     async (input: ItemCreateInput) => {
       setError(null)
@@ -274,6 +305,7 @@ export function DataProvider({
         mutate(() => repository.updateItemSuitability(itemId, rainOk, longWalkOk)),
       findMatchingOutfits,
       createOutfit,
+      setOutfitArchived,
       updateOutfitItemPlacement,
       saveDefaultWeatherLocation: (input) =>
         mutate(() => repository.saveDefaultWeatherLocation(input)),
@@ -292,6 +324,7 @@ export function DataProvider({
       mutate,
       refresh,
       repository,
+      setOutfitArchived,
       updateItem,
       updateOutfitItemPlacement,
     ],
