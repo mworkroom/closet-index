@@ -319,16 +319,16 @@ describe('OutfitPositionEditor', () => {
     await user.click(side)
     expect(side).toBeChecked()
     expect(
-      screen.getByText('좌우 0px · 상하 0px · 크기 100%'),
+      screen.getByText('좌우 -100px · 상하 64px · 크기 115%'),
     ).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '이 설정 저장' }))
     expect(onSave).toHaveBeenLastCalledWith({
       outfitId: 'outfit',
       itemId: 'tee',
       slot: 'top',
-      positionX: 0,
-      positionY: 0,
-      itemScale: 1,
+      positionX: -100,
+      positionY: 64,
+      itemScale: 1.15,
       zIndex: 0,
     })
   })

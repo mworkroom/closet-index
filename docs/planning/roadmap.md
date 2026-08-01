@@ -182,6 +182,8 @@ J가 직접 온도를 확인하고 평균을 계산하던 과정을 자동화한
 
 ## Phase 4 — Maintenance & Insights
 
+- 상세 실행 계획: [Phase 4 Maintenance & Insights Plan](./phase-4-maintenance-insights-plan.md)
+
 ### 목표
 
 현재 Notion에서 사용하던 유지관리와 통계를 앱의 사용 흐름에 맞게 확장한다.
@@ -200,8 +202,9 @@ Phase 4 기능은 실제 v1.0 사용에서 필요성이 확인된 항목부터 �
 
 ## 지금 다음으로 할 일
 
-1. [완료] Phase 2 자동 테스트·공개 Pages·PC/모바일 추천 적용·첫 실제 weather Wear Log provenance 검증
-2. [완료] Phase 3 Visual Wardrobe Expansion 상세 계획 수립
-3. Phase 3 P3-0의 이미지 입력·삭제·원격 검증 범위를 J와 확인
-4. 원격 schema·RLS·Storage 상태를 읽기 전용으로 대조한 뒤 P3-1 쓰기 계약을 시작
-5. 추가 날씨 실사용은 Phase 3를 막지 않는 장기 관찰로 계속
+1. [완료] Phase 2 Weather Automation 구현·검증·공개
+2. [완료] Phase 3 Visual Wardrobe Expansion 구현·검증·공개
+3. [완료] Phase 4 Maintenance & Insights 상세 계획 수립
+4. Phase 4 P4-0에서 production 통계·Replacement Line 기준선을 읽기 전용으로 확인
+5. 실제 데이터 분포를 바탕으로 통계 기간, 장기 미착용, 최근 반복 기준을 J와 확정
+6. 확정된 계산 계약부터 P4-1을 시작하고 세탁·알림은 별도 착수 조건까지 보류

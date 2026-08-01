@@ -144,6 +144,26 @@
     },
     {
       "match": "prefix",
+      "value": "Outer-Coat",
+      "slot": "main-upper",
+      "zIndex": 60,
+      "visualScale": 1,
+      "visualHeight": 500,
+      "defaultPositionY": 52,
+      "defaultScale": 1.5
+    },
+    {
+      "match": "prefix",
+      "value": "Outer-Vest",
+      "slot": "main-upper",
+      "zIndex": 60,
+      "visualScale": 1,
+      "visualHeight": 500,
+      "defaultPositionY": 52,
+      "defaultScale": 0.75
+    },
+    {
+      "match": "prefix",
       "value": "Outer",
       "slot": "main-upper",
       "zIndex": 60,
@@ -169,6 +189,9 @@
       "visualScaleWhenOuter": 0.45,
       "visualScaleWithoutOuter": 0.85,
       "visualHeightWithoutOuter": 440,
+      "defaultPositionXWhenOuter": -100,
+      "defaultPositionYWhenOuter": 64,
+      "defaultScaleWhenOuter": 1.15,
       "defaultPositionYWithoutOuter": 52,
       "defaultScaleWithoutOuter": 0.9
     },
@@ -225,6 +248,7 @@
       "slot": "main-socks",
       "zIndex": 10,
       "visualScale": 0.2,
+      "defaultPositionY": 28,
       "defaultScale": 1.5
     }
   ]

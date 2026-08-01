@@ -37,7 +37,7 @@ function item(
 }
 
 describe('browser outfit composition v4', () => {
-  it('uses the shared scarf position and sock scale defaults', () => {
+  it('uses the shared scarf position and sock placement defaults', () => {
     expect(
       getOutfitItemPlacementDefaults(item('scarf', 'Acc-Neck'), false),
     ).toMatchObject({
@@ -47,7 +47,7 @@ describe('browser outfit composition v4', () => {
     expect(
       getOutfitItemPlacementDefaults(item('socks', 'Socks'), false),
     ).toMatchObject({
-      positionY: 0,
+      positionY: 28,
       itemScale: 1.5,
     })
     expect(
@@ -57,6 +57,44 @@ describe('browser outfit composition v4', () => {
       positionY: 0,
       itemScale: 0.7,
     })
+  })
+
+  it('uses approved coat and median adjusted vest scale defaults', () => {
+    expect(
+      getOutfitItemPlacementDefaults(item('coat', 'Outer-Coat'), false),
+    ).toMatchObject({ itemScale: 1.5 })
+    expect(
+      getOutfitItemPlacementDefaults(item('vest', 'Outer-Vest'), false),
+    ).toMatchObject({ itemScale: 0.75 })
+    expect(
+      getOutfitItemPlacementDefaults(
+        item('made-vest', 'Outer-Vest-made'),
+        false,
+      ),
+    ).toMatchObject({ itemScale: 0.75 })
+  })
+
+  it('uses the approved placement for every separated T-shirt', () => {
+    const expected = {
+      positionX: -100,
+      positionY: 64,
+      itemScale: 1.15,
+    }
+
+    expect(
+      getOutfitItemPlacementDefaults(
+        item('tee', 'Top-T-shirts'),
+        true,
+        'side',
+      ),
+    ).toEqual(expected)
+    expect(
+      getOutfitItemPlacementDefaults(
+        item('innerwear', 'Top-T-shirts-innerwear'),
+        true,
+        'side',
+      ),
+    ).toEqual(expected)
   })
 
   it('places a waist accessory over the top and bottom without changing its ratio', () => {
@@ -235,6 +273,8 @@ describe('browser outfit composition v4', () => {
     expect(automaticInnerwear.zIndex).toBe(40)
     expect(sideInnerwear.zIndex).toBe(0)
     expect(sideInnerwear.left).toBeGreaterThan(automaticInnerwear.left)
+    expect(sideInnerwear.left).toBeCloseTo(469.575)
+    expect(sideInnerwear.top).toBeCloseTo(234)
   })
 
   it('normalizes portrait outerwear against the approved visible-height cap', () => {

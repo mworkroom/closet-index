@@ -56,10 +56,20 @@ function conditionalNumber(
   return typeof value === 'number' ? value : undefined
 }
 
-function resolveRule(item: Item, hasOuter: boolean) {
-  const rule = compositionConfig.categoryRules.find((candidate) =>
-    matchesCategory(candidate, item.category),
-  )
+function resolveRule(
+  item: Item,
+  hasOuter: boolean,
+  useSeparatedTopDefaults = false,
+) {
+  const rule = useSeparatedTopDefaults
+    ? compositionConfig.categoryRules.find(
+        (candidate) =>
+          candidate.value === 'Top-T-shirts' &&
+          matchesCategory(candidate, item.category),
+      )
+    : compositionConfig.categoryRules.find((candidate) =>
+        matchesCategory(candidate, item.category),
+      )
   if (!rule) return null
 
   const conditionalSlot = hasOuter ? 'slotWhenOuter' : 'slotWithoutOuter'
@@ -141,6 +151,7 @@ export function getOutfitItemPlacementDefaults(
   const rule = resolveRule(
     item,
     hasOuterForDisplayMode(hasOuter, displayMode),
+    displayMode === 'side',
   )
   return {
     positionX: rule?.defaultPositionX ?? 0,
@@ -245,6 +256,7 @@ export function composeOutfitLayers(
       const rule = resolveRule(
         item,
         hasOuterForDisplayMode(hasOuter, displayMode),
+        displayMode === 'side',
       )
       if (!rule) return null
 

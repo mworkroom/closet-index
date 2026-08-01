@@ -14,7 +14,7 @@ data/notion-snapshot*.json
 data/notion-color-icons/
 scripts/notion-source.json
 scripts/color-map.json
-
+Closet_Image_Batch/
 
 # Keep example CSVs only if intentionally needed
 
