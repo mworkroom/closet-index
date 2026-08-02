@@ -1,523 +1,575 @@
-# Closet Index Phase 4 Maintenance & Insights Plan
+# Closet Index Phase 4 Statistics & Replacement Lineage Plan
 
-- 작성일: 2026-08-01
-- 상태: 계획 완료, P4-0 착수 전
-- 목표 릴리스: Phase 4 Maintenance & Insights
-- 선행 상태: Phase 3 Visual Wardrobe Expansion 구현·검증·공개 완료
+- 최초 작성일: 2026-08-01
+- 최종 수정일: 2026-08-02
+- 상태: 전면 개정 완료, P4-0 착수 전
+- 목표 릴리스: Phase 4 Statistics & Replacement Lineage
+- 선행 상태: Phase 3 구현·검증·공개 완료, Phase 3.5 로컬 구현·검증 완료 및 공개 배포 전
 - 관련 문서: [Roadmap](./roadmap.md), [Product Plan](./product-plan.md), [Phase 3 Plan](./phase-3-visual-wardrobe-plan.md), [Phase 1 Data & Security Spec](./phase-1-data-security-spec.md)
 
 ## 1. 목표
 
-Phase 4의 목표는 옷을 등록하고 착장을 고르는 흐름 다음에 쌓인 데이터를, 실제 옷장 유지관리 판단에 사용할 수 있게 만드는 것이다.
+Phase 4의 목표는 Wear Log와 기존 Replacement Line 데이터를 다음 두 질문에 답할 수 있는 제품 기능으로 바꾸는 것이다.
+
+1. 현재 보유한 각 Item을 실제로 얼마나, 어느 달에 활용했는가?
+2. 같은 역할을 맡은 Item이 무엇에서 무엇으로 이어졌으며, 어느 가지가 살아남았는가?
 
 ```text
-Wear Log와 Item 상태 확인
-→ 세부 카테고리·착용 패턴·상황별 통계 계산
-→ 오래 안 입음·최근 반복 같은 관리 신호 확인
-→ Item·Outfit·Replacement Line 원본으로 이동
-→ 필요한 상태만 안전하게 정리
+Wear Log
+→ Item 활용률·착용 횟수·실제 착용 월 계산
+→ 통계에서 실제 Item 목록과 상세로 이동
+
+Notion Replacement Line·Replaces
+→ 기존 Line과 무방향 연결 확인
+→ 사람이 방향·시작점·가지·선택 이유 검토
+→ 확인된 Replacement Lineage 저장·탐색
 ```
 
-Phase 4는 통계 숫자를 많이 만드는 단계가 아니다. J가 `무엇을 자주 입는지`, `무엇을 거의 쓰지 않는지`, `어떤 종류를 이미 충분히 보유했는지`, `어떤 아이템이 같은 역할을 이어받았는지`를 빠르게 이해하고 다음 행동으로 연결하는 단계다.
+Phase 4는 숫자가 많은 범용 대시보드를 만드는 단계가 아니다. Item 관리와 대체품 판단에 실제로 쓰이는 통계, 그리고 J가 취향과 생필품 재고의 변화를 이해할 수 있는 계보에 집중한다.
 
-## 2. 현재 기준선
+## 2. Phase 경계
 
-Phase 4는 다음 구현과 제품 결정을 그대로 이어받는다.
+이번 개정에서 다음 경계를 확정한다.
 
-- Supabase가 쓰기 원본이며 Notion은 읽기 전용 보관본이다.
+| Phase | 범위 | Phase 4와의 관계 |
+|---|---|---|
+| Phase 4 | 각종 Item 통계와 Replacement Line | 이번 문서의 구현 범위 |
+| Phase 5 | 추천 알고리즘 | 장소·교통수단·HVAC·Item 체감은 추천 근거로 사용 |
+| Phase 6 | 세탁·교체·재구매 주기 | 세탁 원본 사건, 속옷 교체, 기본 Item 재구매, 세일 레이더 |
+
+다음 기능은 Phase 4 완료 조건에 포함하지 않는다.
+
+- 장소·교통수단 자체의 독립 통계
+- 전체 Outfit 순위와 별도의 Outfit 통계 대시보드
+- 장소 Profile, 실제 HVAC 관측, Item 체감 학습
+- 세탁 기록, 세탁 알림, 구매주기·재구매 알림
+- 임의의 장기 미착용·최근 반복 임계값
+
+Favorite는 More에서 관리하고, Item과 연결된 Outfit은 Item 상세의 기존 흐름으로 확인한다. 장소와 교통수단은 통계 카드가 아니라 Phase 5 추천 근거로 사용한다.
+
+## 3. 현재 기준선
+
+### 3.1 공통 제품 원칙
+
+- Supabase가 현재 쓰기 원본이며 Notion은 읽기 전용 보관본이다.
 - Item, Outfit, Outfit relation, Wear Log는 UUID로 연결된다.
-- 기존 Outfit의 Item 구성은 바꾸지 않는다. 다른 조합은 복제 또는 새 Outfit으로 저장한다.
-- Outfit relation의 위치·크기·표시 방식은 Item 구성과 별개로 수정할 수 있다.
-- Closet과 Outfit 생성 UI는 `Outer, Top, Bottom, Dress, Shoes, Bag, Acc` 상위 그룹을 사용한다.
-- Socks는 탐색 UI에서 `Acc`에 포함한다.
-- 기존 세부 카테고리는 삭제하지 않고 Statistics의 태그성 분류로 사용한다.
-- 독립 `Innerwear` Item은 Closet에서 제외하고 Statistics에서만 확인한다.
-- Closet과 Lookbook에는 착용 기록 0건을 찾는 `Unworn` 필터가 있다.
-- HOME 추천은 직접 또는 부분 온도 근거가 있는 Outfit만 표시한다.
-- 기본 Statistics는 전체 Wear Log·Outfit·Item 수, 세부 카테고리별 보유 수, Outfit·Item별 착용 순위를 제공한다.
-- Replacement Line 53개와 Item relation 165개가 Phase 1 이전 당시 보존됐지만 현재 UI에는 노출되지 않는다.
-- 저장 Outfit Preview는 선택적 cache다. Lookbook·Calendar는 Item cutout 실시간 합성을 유지하며 Preview 일괄 생성은 보류한다.
-- 고해상도 원본 이미지를 원격에 장기 보관하지 않고, 작은 화면에서 Item을 알아볼 수 있는 품질을 우선한다.
+- 기존 Outfit의 Item 구성은 바꾸지 않는다. Item이 하나라도 달라지면 복제하거나 새 Outfit으로 저장한다.
+- 저장 Outfit Preview는 선택적 cache이며 통계 구현을 위해 새로 일괄 생성하지 않는다.
+- 고해상도 원본 이미지를 원격에 장기 보관하지 않고 작은 화면에서 Item을 알아볼 수 있는 품질을 우선한다.
 
-## 3. 릴리스 전략
+### 3.2 Item Statistics 원본
 
-Roadmap의 Phase 4 항목은 모두 후보였으며, 실제 v1.0 사용에서 필요성이 확인된 기능부터 선택하기로 했다. 따라서 한 번에 세탁·교체·알림·오프라인까지 묶지 않고 세 단계로 나눈다.
+- 현재 Notion Wardrobe에는 451개 Item이 있다.
+- `Acquired Date`는 구매 Item의 구매일과 직접 만든 Item의 완성일을 합친 기존 원본 값이다.
+- 451개 중 442개에는 취득일이 있고 9개에는 취득일이 없다.
+- Wear Log가 Item을 직접 저장하는 대신 고정 Outfit을 가리키므로, Item 착용은 Wear Log의 Outfit 구성으로 계산한다.
+- 같은 날짜에 같은 Outfit을 여러 번 기록한 Wear Log는 각각 유효한 착용 기록이다.
 
-### 3.1 Phase 4 Core — 이번 구현 범위
+### 3.3 Replacement Line 원본
 
-- Statistics 정보 구조 개편
-- 세부 카테고리·착용량·활용률·상황별 통계
-- 장기 미착용·최근 반복 착용 관리 신호
-- 통계 결과에서 관련 Item·Outfit 목록으로 이동
-- Replacement Line 읽기 전용 탐색과 데이터 품질 확인
+현재 확인된 기준선은 다음과 같다.
+
+- Replacement Line: 53개
+- Line membership: 165개
+- Line에 속한 고유 Item: 163개
+- 복수 Line에 속한 Item: 2개
+- 빈 Line: 1개
+- 단일 Item Line: 10개
+- 복수 Item Line: 42개
+- 한 Line의 최대 Item 수: 10개
+- `Replaces` 값이 있는 Item: 81개
+- `Replaces` relation entry: 98개
+- 실제 고유 연결: 49개 무방향 pair
+- 자기 자신을 연결한 관계: 0개
+
+98개 entry는 98개의 방향 있는 edge가 아니다. Notion self-relation 하나가 양쪽 Item에 대칭으로 표시된 결과이므로, 49개의 무방향 Legacy Link로 해석한다.
+
+```text
+Notion 표시
+A의 Replaces: B
+B의 Replaces: A
+
+실제 원본 의미
+A — B  1개 무방향 연결
+```
+
+연결을 2개 가진 Item도 다중 parent라고 단정할 수 없다. `A — B — C` 연쇄에서 가운데 B의 연결 수가 2일 수 있다. 현재 Legacy Link만으로는 가지, 합류, 복수 자식이 존재한다고 확정할 수 없다.
+
+49개 pair는 연결된 두 Item이 적어도 하나의 Replacement Line을 공유한다. 기존 이주 설정은 Line의 `Name`, `Items`, `Style Identity`를 보존했지만 `Replaces` 자체는 아직 앱 데이터로 추출하지 않았다.
+
+## 4. 제품 결정
+
+### 4.1 Item 중심 통계
+
+Statistics는 다음 질문에 집중한다.
+
+- 현재 보유 Item 가운데 선택 기간에 실제로 사용한 비율은 얼마인가?
+- 가장 많이 입은 Item은 무엇인가?
+- 한 번도 입지 않은 Item은 무엇인가?
+- 현재 보유 Item 가운데 선택 연도에 입지 않은 것은 무엇인가?
+- 이 Item을 실제로 주로 입은 달은 언제인가?
+- 어떤 Item은 1월부터 12월까지 연중 쓰이는가?
+
+각 숫자는 가능하면 실제 Closet 목록 또는 Item 상세로 연결한다. 목록 미리보기는 최대 4개를 기본으로 하고, 나머지는 `더 보기`에서 확인한다.
+
+### 4.2 카테고리 의미
+
+착용 통계의 대상 카테고리는 다음 규칙으로 계산한다.
+
+```text
+Outer / Top / Bottom / Dress / Shoes / Bag 그룹
+OR category가 "-made"로 끝남
+→ Item ID로 중복 제거
+```
+
+- 독립 `Innerwear`는 말 그대로 속옷이며 Outfit 구성과 Wear Log 착용 통계에서 제외한다.
+- 독립 `Innerwear`가 존재하는 목적은 구매 후 경과 기간과 교체·재구매 주기 관리다. 이 기능은 Phase 6에서 구현한다.
+- `Top-T-shirts-innerwear`는 Outfit에 실제로 포함되는 Top이므로 Phase 4 착용 통계에 포함한다.
+- 흰 티셔츠 같은 기본 Item은 Phase 4의 착용량·월별 분포와 Replacement Line을 사용하고, Phase 6에서는 구매 후 경과 기간까지 더해 재구매 판단에 사용한다.
+- 통계를 위해 기존 category 저장값을 합치거나 다시 쓰지 않는다.
+
+### 4.3 기간·계절 필터
+
+- 기간은 `Lifetime` 또는 달력 연도를 선택할 수 있다.
+- 복수 계절은 OR 조건으로 계산한다.
+- 여러 선택 계절과 겹치는 Item도 한 번만 집계한다.
+- 계절 필터는 Item의 저장된 계절 태그를 사용한다. 착용일의 월을 임의로 계절로 변환하지 않는다.
+- 월별 실제 착용 분포는 계절 태그가 아니라 Wear Log의 실제 날짜를 사용한다.
+- Statistics의 필터 상태는 HOME과 Closet의 필터를 덮어쓰지 않고 독립적으로 보존한다.
+
+### 4.4 실제 착용 분포와 모바일 그래프
+
+Item의 실제 착용 분포는 전체 Wear Log를 1월부터 12월까지 월별로 합산한 값이다. 최근 12개월 rolling이나 선택 연도만의 12칸이 아니다.
+
+```text
+해당 Item이 포함된 Outfit의 모든 Wear Log
+→ Wear Log 하나마다 해당 Item을 1회 집계
+→ 연도와 관계없이 month 1~12로 그룹화
+→ 월별 실제 착용 횟수 12개 생성
+```
+
+예를 들어 2023년 1월 2회, 2024년 1월 3회, 2025년 1월 1회 착용했다면 1월 막대는 6회다.
+
+UI 명칭은 `Heatmap` 대신 `월별 착용 분포`를 사용한다. 모바일에서는 12개월을 세로 목록으로 만들지 않고 다음 저높이 그래프를 사용한다.
+
+```text
+횟수     6        3   1                    5
+        █        █   █                    █
+        █        █   █                    █
+        █        █   █                    █
+월      1  2  3  4  5  6  7  8  9 10 11 12
+```
+
+- 1월부터 12월까지 12개 열을 한 줄에 동일한 폭으로 배치한다.
+- 각 월의 막대는 아래에서 위로 자라는 세로 막대다.
+- 모든 달을 모바일 viewport 안에 표시하고 이 그래프 자체에 가로 스크롤을 만들지 않는다.
+- 그래프 높이는 고정된 낮은 영역으로 제한해 Item 상세의 세로 길이를 절약한다.
+- 막대 높이는 해당 Item의 최대 월 착용 횟수를 기준으로 상대 표시하되 실제 횟수도 확인할 수 있어야 한다.
+- 0회인 달도 축에서 생략하지 않는다.
+- 12개월 모두 1회 이상 기록이 있으면 `연중 착용 · 12/12개월`을 표시한다.
+- 막대의 색이나 높이만으로 의미를 전달하지 않고 각 월과 횟수의 접근성 이름을 제공한다.
+- 그래프 근처에 전체 기록 기간과 총 착용 횟수를 표시해 짧은 관측 기간을 연중 미착용으로 오해하지 않게 한다.
+
+### 4.5 Replacement Lineage 의미
+
+Replacement Lineage는 구매일 순서로 자동 생성되는 목록이 아니다. 같은 역할을 맡은 Item 사이에서 J가 확인한 대체 관계와 취향 변화의 기록이다.
+
+- 구매일과 Retired 상태는 방향 검토의 힌트일 뿐 자동 판정 기준이 아니다.
+- 세대 `G0`, `G1`, `G2`는 확인된 방향 edge에서 계산한 graph depth다.
+- 같은 해 구매했어도 parent·child가 될 수 있고, 구매 연도가 달라도 같은 세대 또는 병렬 후보일 수 있다.
+- 모든 세대의 Item thumbnail은 같은 크기로 표시한다.
+- 실제로 확인된 가지가 있을 때만 가지 UI를 표시한다.
+- Style Identity는 여러 Line을 묶어 보는 관리용 label로 유지하며 별도 테이블이나 독립 편집 시스템으로 확대하지 않는다.
+
+## 5. 범위
+
+### 5.1 포함
+
+- Lifetime·연도·카테고리·계절 기준의 Item Statistics
+- 현재 보유 Item 활용률
+- Most Worn, Never Worn, 선택 연도 미착용
+- 카테고리별 Active 보유 현황
+- Item별 1~12월 실제 착용 분포
+- 통계 숫자에서 최대 4개 미리보기와 전체 Item 목록으로 이동
+- 53개 Line과 165개 membership 읽기 전용 Overview
+- Active/Retired, Active 수, 최근 Active 취득일 표시
+- Style Identity 그룹과 빈 Line·단일 Item·복수 Line 소속 경고
+- 49개 무방향 Legacy Link 추출과 방향 검토
+- 시작점, predecessor·successor, 가지 이름, 선택 이유 편집
+- 확인된 방향 edge의 DAG 저장, 순환 차단, 원자 저장
+- Line 병합·보관·대표 Line 관리
 - 모바일 성능·접근성·RLS 검증
 
-### 3.2 Phase 4 Maintenance — Core 검증 후 선택
+### 5.2 제외
 
-- Replacement Line 생성·이름 수정·Item 연결 편집
-- 교체 순서를 표현할 데이터가 필요할 경우 별도 순서 계약 추가
-- Retired와 교체 계보를 연결한 관리 흐름
-
-### 3.3 Phase 4 Automation — 규칙 확정 후 선택
-
-- 세탁 기록
-- 세탁 필요 상태 또는 알림
-- 앱 내부 알림
-- 제한적 오프라인 사용
-
-`Phase 4 Core`는 독립적으로 배포하고 종료할 수 있다. Maintenance와 Automation은 후보 기능을 전부 구현해야 한다는 이유만으로 자동 착수하지 않는다.
-
-## 4. 범위
-
-### 4.1 포함
-
-- Statistics 첫 화면을 요약과 분석 진입점 중심으로 재구성
-- 전체 기간과 선택 기간을 구분할 수 있는 통계 기준
-- 상위 카테고리와 기존 세부 카테고리를 함께 사용하는 보유 통계
-- Active·Retired·Unworn 상태별 Item 수
-- Outfit·Item 착용 횟수, 최근 착용일, 기간 내 착용 비중
-- 장소·교통수단·계절별 착용 통계
-- 최근 반복 착용 Outfit·Item 목록
-- 장기 미착용 Item·Outfit 목록
-- 통계 카드에서 필터된 실제 목록 또는 상세 화면으로 이동
-- Replacement Line 이름·Style Identity·연결 Item 확인
-- Replacement Line의 relation 누락·Style Identity 누락 상태 표시
-- 클라이언트 계산과 DB 집계의 원본·기준일·기간 표시
-- workspace membership 기반 RLS와 읽기/쓰기 권한 분리
-
-### 4.2 조건부 포함
-
-다음 기능은 P4-0 결정과 Core 실사용 결과가 있어야 구현한다.
-
-- Replacement Line 생성·편집
-- 교체 관계의 명시적 순서 저장
-- 세탁 이벤트 저장 테이블
-- Item별 세탁 주기 또는 착용 후 세탁 필요 판정
-- 앱 내부 알림 배지
-- 브라우저 알림 또는 홈 화면 위젯
-- 제한적 오프라인 cache와 지연 동기화
-
-### 4.3 제외
-
+- 장소·교통수단 독립 통계
+- Statistics의 전체 Outfit 순위와 별도 Outfit 분석 화면
+- Favorite를 Statistics에 중복 배치하는 작업
+- 장기 미착용·최근 반복의 임의 임계값 또는 경고
+- 장소 Profile, HVAC, Item 체감 관측과 추천 순위 변경
+- 세탁 기록과 세탁 필요 판정
+- 독립 Innerwear와 기본 Item의 교체·재구매 알림
+- 세일 레이더, 브라우저 푸시, 위젯, Cron
 - AI 구매 추천 또는 자동 스타일 평가
-- 소셜 비교, 공유 통계, 공개 프로필
-- Outfit 공유 이미지·내보내기
-- Outfit Preview 일괄 생성 또는 목록 우선 표시
 - Retired Item과 과거 Wear Log의 물리 삭제
 - 과거 Outfit의 Item relation 직접 변경
-- 저장값과 계산값을 구분하지 않는 점수화
-- 근거가 불명확한 `옷장 건강 점수` 같은 단일 종합 점수
-- 외부 서비스에 의존하는 푸시 알림을 Core 완료 조건으로 삼는 작업
-- 완전 자동 세탁 관리
+- 근거가 불명확한 단일 옷장 점수
 
-## 5. 제품 결정
+## 6. Statistics 계산 계약
 
-### 5.1 상위 카테고리와 세부 카테고리의 역할
+### 6.1 활용률
 
-- Closet과 Outfit 구성은 현재의 7개 상위 그룹을 유지한다.
-- Statistics는 원본 세부 카테고리를 보유 종류 태그로 사용한다.
-- 예: `Top` 전체 수를 먼저 보여주고 그 안에서 Cardigan, T-shirts 등 세부 분포를 확인한다.
-- Socks는 상위 요약에서 `Acc`, 세부 통계에서 원본 Socks 카테고리로 표시한다.
-- 독립 Innerwear는 상위 탐색에서는 숨기지만 Statistics의 별도 그룹에서 집계한다.
-- 통계를 위해 기존 Item category 값을 합치거나 다시 쓰지 않는다.
+```text
+대상 Item
+= 현재 Active
++ 대상 카테고리
++ 선택 계절 중 하나 이상과 겹침
++ 선택 기간 종료일까지 취득
 
-### 5.2 통계는 행동으로 이어져야 한다
+사용 Item
+= 대상 Item 중 선택 기간에 Wear Log가 1건 이상 존재
 
-각 통계는 가능한 경우 숫자만 표시하지 않고 관련 목록으로 연결한다.
+활용률
+= 사용 Item 수 ÷ 대상 Item 수
+```
 
-- `Unworn 51개` → 해당 Item 목록
-- `최근 반복 Outfit 4개` → 해당 Outfit 목록
-- `Cardigan 12개` → Cardigan Item 목록
-- `지하철 60%` → 선택 기간의 지하철 Wear Log 또는 Outfit 목록
+- 달력 연도는 1월 1일부터 12월 31일까지를 포함한다.
+- 현재 연도는 오늘까지의 Wear Log를 사용한다.
+- 복수 계절과 복수 category에 걸친 Item은 Item ID로 중복 제거한다.
+- 과거 연도를 선택했을 때 화면 명칭은 `현재 보유 옷의 YYYY년 활용률`로 표시한다.
+- 현재 `retired_on`이 없으므로 과거 연도 당시의 옷장 상태를 복원했다고 표현하지 않는다.
+- 현재 Retired지만 선택 연도에 착용한 Item은 Most Worn 기록에는 나올 수 있으나 현재 보유 옷 활용률 분모에는 들어가지 않는다.
 
-필터된 결과가 0개면 정상 빈 상태와 적용 중인 기준을 함께 표시한다.
+### 6.2 취득일 미상
 
-### 5.3 저장값과 계산값
+- 현재 연도와 Lifetime의 Never Worn에는 취득일 미상 Item도 포함한다.
+- 과거 연도 활용률과 해당 연도 미착용 분모에서는 취득일 미상 Item을 제외한다.
+- 화면에는 `취득일 미상 N개 제외`를 표시한다.
+- 기간 중 새로 취득한 미착용 Item에는 취득일을 함께 표시해 연초부터 방치한 Item처럼 보이지 않게 한다.
+- 취득일을 임의로 추정하거나 채우지 않는다.
 
-- Wear Log, Item 상태, category, place, transport, Replacement Line relation은 저장값이다.
-- 착용 횟수, 마지막 착용일, 활용률, 최근 반복, 장기 미착용은 계산값이다.
-- 화면에는 계산 기준일과 기간을 표시한다.
-- `착용하지 않았다`와 `기록이 없다`를 가능한 범위에서 구분한다. Wear Log가 없는 기간을 실제 미착용으로 과장하지 않는다.
-- 계산 규칙은 순수 함수와 fixture로 검증하고, DB View 또는 RPC를 사용할 경우 같은 결과를 계약 테스트로 대조한다.
+### 6.3 주요 결과
 
-### 5.4 최근 반복과 장기 미착용
+- `활용률`: 현재 Active 대상 Item 중 선택 기간 사용 Item의 비율
+- `Most Worn`: 선택 기간의 실제 Item 착용 횟수 순위
+- `Never Worn`: Lifetime Wear Log가 0건인 현재 대상 Item
+- `해당 연도 미착용`: 해당 연도 말까지 취득한 현재 대상 Item 중 그 연도 Wear Log가 0건인 Item
+- `보유 현황`: 대상 category별 현재 Active Item 수
+- `월별 착용 분포`: Item별 전체 Wear Log의 1~12월 합계
 
-- 두 상태는 경고나 잘못으로 표현하지 않고 관리용 신호로 표현한다.
-- `Unworn`은 전체 Wear Log 0건이라는 기존 정의를 유지한다.
-- `장기 미착용`은 과거 착용은 있으나 기준일 이전 일정 기간 동안 기록이 없는 상태다.
-- `최근 반복`은 선택한 최근 기간에 같은 Item 또는 Outfit이 여러 번 등장한 상태다.
-- 정확한 기간과 횟수는 P4-0에서 실제 기록 분포를 보고 확정한다. 구현자가 임의의 30일·90일·1년 값을 영구 규칙으로 정하지 않는다.
-- 계절 밖 Item을 장기 미착용으로 압박하지 않도록 계절 범위를 함께 적용할 수 있어야 한다.
+모든 결과에는 기간, 상태, 제외 규칙과 계산 원본을 확인할 수 있는 설명을 제공한다. `착용하지 않았다`와 `기록이 없다`를 동일한 사실로 과장하지 않는다.
 
-### 5.5 Replacement Line
+## 7. 화면 구조
 
-- 현재 relation에는 명시적 교체 순서가 없다. 연결 순서가 확인되지 않은 상태에서 화살표 계보를 추정하지 않는다.
-- Core에서는 이름·Style Identity·연결 Item과 각 Item의 Active/Retired 상태를 한 그룹으로 보여준다.
-- Item이 0개인 Line과 Style Identity가 없는 Line은 삭제하지 않고 확인 필요 상태로 표시한다.
-- 편집 기능은 실제 사용 사례를 확인한 뒤 연다. 단순 relation 편집으로 충분한지, 교체 순서·현재 대표 Item 필드가 필요한지 먼저 결정한다.
-
-### 5.6 세탁과 알림
-
-- `착용했다 = 세탁했다`로 추정하지 않는다.
-- 세탁 기록의 단위가 Item인지, 여러 Item을 묶은 세탁 1회인지 먼저 정한다.
-- 손세탁·드라이클리닝·세탁 제외처럼 필요한 사건 종류를 실제 사례로 확인한다.
-- 알림은 세탁 데이터가 신뢰할 수 있을 때만 추가한다.
-- 첫 알림은 서버 Cron이나 푸시보다 앱을 열었을 때 보이는 내부 관리 신호를 우선 검토한다.
-- Supabase Free Plan에서 추가 상시 작업과 egress가 필요한 구조는 비용·쿼터를 먼저 확인한다.
-
-### 5.7 이미지와 Preview
-
-- Phase 4 통계는 기존 Item cutout과 작은 thumbnail만 사용한다.
-- 통계 구현을 이유로 Outfit Preview를 새로 일괄 생성하지 않는다.
-- 목록에는 필요한 이미지만 지연 로드하고, 숫자 요약에는 이미지를 요청하지 않는다.
-- 이미지가 없어도 스와치·이름·분류로 모든 통계와 관리 기능을 사용할 수 있어야 한다.
-
-## 6. 화면 구조
-
-### 6.1 Statistics 홈
+### 7.1 Statistics 홈
 
 ```text
 MORE → Statistics
 → 기간 선택
-→ 요약
-→ 보유 현황
-→ 착용 분석
-→ 관리 신호
-→ 상황별 분석
+→ 계절·카테고리 선택
+→ 활용률
+→ Most Worn
+→ Never Worn / 해당 연도 미착용
+→ 카테고리 보유 현황
+→ Replacement Lines 진입
 ```
 
-첫 화면은 다음 순서를 기본으로 한다.
+- 각 Item 결과는 최대 4개만 먼저 표시한다.
+- 숫자나 `더 보기`를 누르면 같은 조건의 Closet 목록으로 이동한다.
+- 뒤로 가면 Statistics의 기간·필터·스크롤 위치를 복원한다.
+- 빈 결과에는 적용 중인 기간·계절·카테고리 기준을 함께 표시한다.
 
-1. 선택 기간, Wear Log 수, 착용한 Outfit 수, 착용한 Item 수
-2. `보유 현황`: 상위·세부 카테고리, Active·Retired·Unworn
-3. `착용 분석`: 많이 입은 Outfit·Item, 착용 비중
-4. `관리 신호`: 최근 반복, 장기 미착용
-5. `상황별 분석`: 계절, 장소, 교통수단
-6. `Replacement Lines` 진입
+### 7.2 Item 상세
 
-모바일에서는 모든 상세 순위를 한 번에 렌더링하지 않고 각 영역의 상위 일부와 `더 보기`를 사용한다.
+- 월별 착용 분포 세로 막대 그래프
+- 총 착용 횟수와 기록 기간
+- `연중 착용` 여부와 착용 월 수
+- 현재 Item이 속한 Replacement Line 진입점
+- 기존 Outfit 및 Wear Log 상세 흐름 유지
 
-### 6.2 통계 상세 목록
-
-- Statistics에서 선택한 조건을 유지한다.
-- Item 결과는 Closet 카드 또는 간결한 순위 목록을 재사용한다.
-- Outfit 결과는 Lookbook 카드 또는 간결한 순위 목록을 재사용한다.
-- 원본 화면의 전체 필터 상태를 덮어쓰지 않도록 통계 전용 query parameter 또는 route state를 사용한다.
-- 뒤로 가면 이전 기간과 스크롤 위치를 복원한다.
-
-### 6.3 Replacement Lines
+### 7.3 Replacement Line Overview
 
 ```text
 MORE → Statistics → Replacement Lines
+→ Style Identity 그룹
 → Line 목록
-→ 이름·Style Identity·연결 Item 수 확인
-→ Line 상세
-→ 연결 Item의 이미지·이름·카테고리·Active/Retired 확인
+→ Active/Retired·membership·Legacy Link 상태
+→ Line 상세 또는 검토 시작
 ```
 
-Core에서는 읽기 전용임을 명확히 표시한다. 관계 순서가 없으면 `과거 → 현재`처럼 보이는 시각 표현을 사용하지 않는다.
+Line 목록에는 다음을 표시한다.
 
-### 6.4 조건부 관리 화면
+- Line 이름과 Style Identity
+- Active Item 수와 전체 Item 수
+- 가장 최근 Active Item의 취득일
+- 빈 Line, 단일 Item Line, 복수 Line 소속 Item
+- Legacy Link 검토 진행률
+- `needs_review` 또는 `confirmed` 상태
 
-Replacement Line 편집이나 세탁 기록을 열 경우 Statistics에 억지로 끼워 넣지 않고 More 아래 독립 관리 화면으로 분리할 수 있다. 읽기 분석과 쓰기 작업의 책임을 분리한다.
+### 7.4 Line 상세와 계보
 
-## 7. 데이터와 보안
+- 검토 전에는 연결선을 무방향으로 표시하고 화살표·세대를 추정하지 않는다.
+- 검토 후에는 확인된 시작점과 edge로 세대와 가지를 계산한다.
+- 모바일은 위에서 아래로 이어지는 계보를 기본으로 한다.
+- parent, child, 손자 세대의 thumbnail을 모두 같은 크기로 표시한다.
+- 가지가 갈라질 때 연결선과 가지 이름을 함께 표시하되 Item 카드 크기는 줄이지 않는다.
+- 구매일, Active/Retired, 선택 이유는 Item 카드 또는 펼침 상세에서 확인한다.
 
-### 7.1 Core 데이터 원본
+## 8. Replacement Line 정리 흐름
 
-가능한 한 기존 데이터를 사용한다.
+### 8.1 P4-2A Line Overview
+
+먼저 쓰기 기능 없이 기존 원본을 이해한다.
+
+- 53개 Line과 165개 membership을 원격 기준선과 대조
+- Line별 Active/Retired와 Active 수 표시
+- Style Identity별 그룹
+- 빈 Line·단일 Item·복수 Line 소속 표시
+- 49개 Legacy Link를 화살표 없는 연결선으로 표시
+- 취득일과 Retired 상태를 참고 정보로 표시
+
+Notion의 기존 `Active Count`, `Newest Active Age`, `Risk Threshold`, `멸종 관리` Formula를 그대로 복제하지 않는다. 다만 Active Item 수는 Line의 현재 생존 상태를 이해하는 직접 근거이므로 Overview에 포함한다.
+
+### 8.2 P4-2B Legacy Link Review
+
+각 무방향 pair를 다음 흐름으로 검토한다.
+
+```text
+Item A — Item B
+→ 두 Item을 같은 크기로 비교
+→ 취득일·상태·기존 Line 확인
+→ 관계 선택
+→ 선택 이유 기록
+→ 다음 미검토 pair
+```
+
+관계 선택지는 다음 의미를 구분한다.
+
+- `A → B`: A가 이전 Item, B가 후속 Item
+- `B → A`: B가 이전 Item, A가 후속 Item
+- `동등·병렬 후보`: 서로 직접 parent·child로 저장하지 않음
+- `대체 관계 아님`: Legacy Link를 계보 edge로 변환하지 않음
+
+방향을 선택한 경우에만 directed edge를 만든다. 동등·병렬 후보와 대체 관계 아님도 검토 완료 결과로 보존해 같은 질문이 다시 나타나지 않게 한다.
+
+### 8.3 P4-2C Lineage Editing
+
+Legacy Link 검토 뒤 다음 편집을 연다.
+
+- 시작점 지정
+- predecessor·successor 추가·변경
+- 가지 이름과 선택 이유 기록
+- 순환 연결 차단
+- Line 병합·보관
+- 대표 Line 지정
+- membership 변경 시 관련 Line을 `needs_review`로 되돌림
+- 여러 edge 변경을 중간 상태 없이 원자 저장
+
+확인 완료 조건은 다음과 같다.
+
+> 모든 Item은 시작점으로 지정되거나 하나 이상의 incoming predecessor edge를 가져야 하며, 각 연결 구성요소에는 최소 한 개의 시작점이 있어야 한다.
+
+DAG를 수용하는 데이터 구조는 준비하되 가지 이름 상속, 합류 배지, 복잡한 branch 전용 UI는 실제 가지나 합류 사례가 확인된 뒤 확장한다.
+
+## 9. 데이터와 보안
+
+### 9.1 기존 원본
 
 - `closet_items`
 - `closet_outfits`
 - `closet_outfit_items`
 - `closet_wear_logs`
-- `closet_places`
-- `closet_transport_modes`
 - `closet_replacement_lines`
 - `closet_replacement_line_items`
 
-Core 통계만을 위해 Wear Log나 Item에 중복 집계값을 저장하지 않는다.
+Item Statistics만을 위해 Wear Log나 Item에 중복 집계값을 저장하지 않는다. 현재 규모에서는 authenticated snapshot과 순수 계산 모듈로 먼저 검증하고, 실제 모바일 측정에서 문제가 있을 때만 RLS를 통과하는 View 또는 RPC를 검토한다.
 
-### 7.2 계산 위치
+### 9.2 Legacy Link와 directed edge
 
-현재 데이터 규모에서는 먼저 기존 authenticated snapshot과 순수 계산 모듈로 정확성을 검증한다. 다음 조건이 확인될 때만 DB 집계로 옮긴다.
+- 49개 무방향 pair는 Notion 원본 ID를 보존해 한 번만 가져온다.
+- pair의 Item 순서는 의미가 없으며 정규화된 고유 제약으로 중복을 막는다.
+- Legacy Link의 검토 상태와 선택 결과를 보존한다.
+- 확인된 predecessor·successor만 별도 directed edge로 저장한다.
+- edge에는 workspace, Line, 두 Item, 출처, 검토 상태를 추적할 수 있어야 한다.
+- 가지 이름과 선택 이유의 저장 위치는 P4-2B 실제 편집 예시를 확인한 뒤 edge 또는 branch 단위로 확정한다.
+- 구매일로 direction을 자동 seed하지 않는다.
 
-- 초기 로드 또는 기간 변경이 모바일에서 눈에 띄게 느리다.
-- 반복 계산 때문에 동일한 대용량 row를 자주 다시 전송한다.
-- egress 또는 메모리 사용이 실제 측정에서 문제가 된다.
+### 9.3 쓰기 안전성
 
-DB View를 추가하면 PostgreSQL 15 이상에서 `security_invoker = true`를 사용하고, 기존 workspace RLS를 통과하는지 검증한다. RPC가 필요하면 회원·workspace 소유권을 함수 내부에서도 검증하고 `SECURITY DEFINER`를 권한 오류 우회용으로 사용하지 않는다.
-
-### 7.3 Replacement Line 읽기
-
-- 현재 SELECT policy와 Data API grant를 원격에서 읽기 전용으로 확인한다.
-- repository가 현재 앱 snapshot에 Replacement Line과 relation을 포함하지 않는다면 별도 lazy query를 우선한다.
-- Statistics 진입만으로 사용하지 않는 relation까지 매번 전송하지 않는다.
-- Line과 Item이 같은 workspace에 속하는지 FK와 repository 경계에서 함께 검증한다.
-
-### 7.4 조건부 쓰기 계약
-
-Replacement Line 편집을 열 경우 다음을 지킨다.
-
-- authenticated frontend에 필요한 최소 INSERT·UPDATE·DELETE policy만 추가한다.
-- UPDATE에는 SELECT policy, `USING`, `WITH CHECK`를 모두 둔다.
-- Line과 Item relation의 workspace 일치를 보장한다.
-- 여러 Item relation 교체는 중간 상태가 노출되지 않도록 RPC 트랜잭션을 검토한다.
-- 영구 삭제보다 보관 상태를 우선한다. 기존 schema에 보관 필드가 없다면 실제 요구를 확인한 뒤 migration으로 추가한다.
+- P4-0과 P4-2A는 production을 변경하지 않는 읽기 전용 단계다.
+- 쓰기 schema와 RLS는 P4-2B 검토 UI 계약이 확정된 뒤 migration으로 추가한다.
+- authenticated frontend에는 필요한 최소 INSERT·UPDATE 권한만 연다.
+- Line과 Item의 workspace 일치를 DB와 repository 양쪽에서 검증한다.
+- directed edge는 self-edge와 cycle을 차단한다.
+- 여러 membership·edge 변경은 RPC 트랜잭션을 검토한다.
+- 영구 삭제보다 보관과 검토 결과 보존을 우선한다.
 - 원격 적용 전 pgTAP, Advisor, production 전후 count 검증을 수행한다.
 
-### 7.5 세탁 후보 모델
+## 10. 구현 단계
 
-P4-0에서 다음 두 모델을 비교하고 하나를 선택하기 전에는 migration을 만들지 않는다.
+### P4-0. Legacy Feature Audit와 원격 기준선
 
-1. Item별 사건: Item 하나에 세탁·드라이·관리 사건을 기록
-2. 세탁 묶음 + Item relation: 한 번의 세탁에 여러 Item을 연결
+목표: 구현 전에 기존 결정, 새 결정, 보류 기능과 실제 데이터 기준선을 확정한다.
 
-선택 기준은 실제 입력 수고, 같은 날 여러 Item 처리, 부분 세탁, 기록 수정, 통계 요구다. 어떤 모델이든 Wear Log를 변경하지 않고 별도 원본 사건으로 저장한다.
-
-## 8. 구현 단계
-
-### P4-0. 사용 규칙과 원격 기준선 확인
-
-목표: 후보 기능을 실제 데이터와 사용 습관에 맞게 줄이고, 원격 상태를 변경 없이 확인한다.
-
-작업:
-
-- [ ] production의 Item·Outfit·Wear Log·Place·Transport·Replacement Line 수량 재확인
-- [ ] Replacement Line 53개와 relation 165개가 현재도 일치하는지 확인
-- [ ] Item 없는 Line, Style Identity 없는 Line, 고아 relation 확인
-- [ ] Wear Log 날짜 분포와 계절·장소·교통수단 값의 실제 사용률 확인
-- [ ] 최근 반복과 장기 미착용 후보 기간별 결과 수를 읽기 전용으로 비교
-- [ ] Statistics에서 가장 먼저 보고 싶은 기간·지표를 J와 확정
-- [ ] Replacement Line 실제 사례 3~5개를 보고 관계 순서가 필요한지 판단
-- [ ] 세탁 기록이 필요한 실제 입력 사례와 최소 단위를 확인
-- [ ] Supabase changelog·현재 CLI·Data API·RLS·Advisor 기준 확인
+- [ ] production Item·Outfit·Wear Log 수량 재확인
+- [ ] 442개 취득일 있음·9개 미상 기준 재확인
+- [ ] 53개 Line·165개 membership·163개 고유 Item 기준 재확인
+- [ ] 빈 Line 1개·복수 Line Item 2개 등 품질 상태 재확인
+- [ ] 98개 reciprocal entry가 49개 무방향 pair인지 재현 가능한 audit 작성
+- [ ] 기존 Notion Formula·View 중 Phase 4에서 유지·재설계·보류할 개념 기록
+- [ ] production과 Notion 원본을 변경하지 않음
 
 완료 조건:
 
-- [ ] Core 지표 정의와 필터 기준이 문서화된다.
-- [ ] 임의의 미착용·반복 기준이 코드에 들어가지 않는다.
-- [ ] 조건부 기능별 착수/보류 결정이 기록된다.
-- [ ] production 데이터는 변경되지 않는다.
+- [ ] 이 문서의 수량과 production·Notion 원본이 일치한다.
+- [ ] 방향 있는 edge를 자동 생성하지 않는다.
+- [ ] Statistics 계산 입력과 제외 규칙이 fixture로 작성 가능할 만큼 명확하다.
 
-### P4-1. 통계 계산 계약
+### P4-1A. Item Statistics 계산 계약
 
-목표: UI와 무관한 계산 규칙을 먼저 고정한다.
+- [ ] Lifetime·달력 연도 기간 model
+- [ ] 복수 계절 OR와 Item ID 중복 제거
+- [ ] 대상 category와 독립 Innerwear 제외 규칙
+- [ ] 현재 보유 옷 활용률
+- [ ] Most Worn, Never Worn, 해당 연도 미착용
+- [ ] 취득일 미상 제외 수
+- [ ] Item별 전체 1~12월 착용 합계
+- [ ] 같은 날짜·같은 Outfit의 복수 Wear Log 보존
+- [ ] `Top-T-shirts-innerwear`, `-made`, Bags 중복 회귀 테스트
 
-작업:
+### P4-1B. Statistics와 Item 상세 UI
 
-- [ ] 기간 경계와 기준일을 받는 통계 query model 정의
-- [ ] 상위·세부 카테고리 집계 모듈 확장
-- [ ] 전체 보유·Active·Retired·Unworn 계산
-- [ ] 기간 내 Outfit·Item 착용 횟수와 비중 계산
-- [ ] 최근 반복·장기 미착용 판정 함수 구현
-- [ ] 장소·교통수단·계절 집계 구현
-- [ ] 같은 날짜의 여러 Wear Log와 같은 Outfit 반복 기록 보존
-- [ ] 독립 Innerwear와 Socks 집계 회귀 테스트
-- [ ] 전체 기간과 선택 기간이 섞이지 않는 fixture 검증
+- [ ] 기간·계절·카테고리 필터
+- [ ] 최대 4개 미리보기와 전체 Item 목록 이동
+- [ ] 과거 연도 활용률의 정확한 명칭과 제외 수 표시
+- [ ] Item 상세의 저높이 12개월 세로 막대 그래프
+- [ ] `연중 착용 · 12/12개월` 표시
+- [ ] 필터·스크롤 복원
+- [ ] 390px 모바일에서 12개월 전체 표시와 가로 overflow 부재 확인
 
-완료 조건:
+### P4-2A. Replacement Line Overview
 
-- [ ] 현재 기본 Statistics 결과와 새 계산의 공통 지표가 일치한다.
-- [ ] 날짜 경계·Retired·Unworn·누락 relation 사례가 테스트된다.
-- [ ] 모든 계산값의 입력 원본과 기준이 코드에서 추적 가능하다.
+- [ ] Replacement Line TypeScript model과 lazy repository query
+- [ ] Style Identity 그룹과 Line 목록
+- [ ] Active/Retired, Active 수, 최근 Active 취득일
+- [ ] 빈 Line·단일 Item·복수 Line 소속 경고
+- [ ] 49개 Legacy Link 무방향 표시
+- [ ] workspace 외 데이터 비노출 확인
 
-### P4-2. Statistics 정보 구조와 상세 탐색
+### P4-2B. Legacy Link Review
 
-목표: 숫자를 빠르게 읽고 실제 Item·Outfit으로 이동할 수 있게 한다.
+- [ ] 49개 pair review queue
+- [ ] 동일 크기 Item 비교 카드
+- [ ] 취득일·상태·Line 참고 정보
+- [ ] A→B, B→A, 동등·병렬, 대체 관계 아님 선택
+- [ ] 선택 이유 입력
+- [ ] 검토 진행률과 중단 후 복원
+- [ ] 확인된 선택만 저장하는 preview·confirm 단계
 
-작업:
+### P4-2C. Lineage Editing
 
-- [ ] Statistics 기간 선택과 요약 영역 구현
-- [ ] 상위·세부 카테고리 보유 현황 구현
-- [ ] Outfit·Item 착용 분석 구현
-- [ ] 관리 신호 영역 구현
-- [ ] 계절·장소·교통수단 분석 구현
-- [ ] 각 결과의 상세 목록 또는 원본 상세 연결
-- [ ] `더 보기` 점진 렌더링 적용
-- [ ] 로딩·빈 상태·오류·재시도 구현
-- [ ] 모바일 스크롤 복원과 PC 레이아웃 검증
+- [ ] directed edge schema·migration·RLS
+- [ ] 시작점과 predecessor·successor 편집
+- [ ] cycle·self-edge·workspace 불일치 차단
+- [ ] 가지 이름·선택 이유
+- [ ] Line 병합·보관·대표 Line
+- [ ] membership 변경 시 `needs_review`
+- [ ] 같은 크기 thumbnail의 세로형 Lineage UI
+- [ ] 실제 가지가 있는 fixture로 분기 렌더링
 
-완료 조건:
-
-- [ ] J가 세부 카테고리 보유 수를 Statistics에서 확인할 수 있다.
-- [ ] 통계 숫자를 눌러 그 숫자를 만든 실제 항목을 확인할 수 있다.
-- [ ] 작은 화면에서 전체 순위가 한꺼번에 렌더링되지 않는다.
-
-### P4-3. 관리 신호 실사용 조정
-
-목표: 장기 미착용과 최근 반복이 과도한 경고 없이 유용한지 확인한다.
-
-작업:
-
-- [ ] 계절 범위를 적용한 장기 미착용 결과 확인
-- [ ] Item 반복과 Outfit 반복을 구분
-- [ ] Unworn과 장기 미착용을 구분해 표시
-- [ ] 통계 기준일·기간·판정 이유 표시
-- [ ] 실제 데이터에서 오탐 사례 기록
-- [ ] 필요하면 기준을 설정에서 조정할지 결정
-
-완료 조건:
-
-- [ ] 서로 다른 세 상태를 혼동하지 않는다: 미착용, 오래 안 입음, 최근 반복.
-- [ ] 계절이 맞지 않는다는 이유만으로 관리 대상으로 과도하게 표시하지 않는다.
-- [ ] 결과에서 Item·Outfit 상세로 이동할 수 있다.
-
-### P4-4. Replacement Line 읽기 전용 UI
-
-목표: 이미 보존된 교체 데이터를 앱에서 안전하게 이해할 수 있게 한다.
-
-작업:
-
-- [ ] TypeScript model과 lazy repository query 추가
-- [ ] Line 목록·검색·빈 상태 구현
-- [ ] Line 상세와 연결 Item 카드 구현
-- [ ] Active·Retired·누락 상태 표시
-- [ ] Style Identity와 relation 품질 경고 표시
-- [ ] relation 순서가 없는 데이터에 계보 방향을 추정하지 않는 테스트
-- [ ] authenticated workspace 외 데이터 비노출 검증
-
-완료 조건:
-
-- [ ] 기존 Line과 relation 수량이 원격 기준선과 일치한다.
-- [ ] Item 0개와 Style Identity 누락 Line도 숨기거나 삭제하지 않는다.
-- [ ] 읽기 전용 UI가 Item·Outfit 기존 흐름을 변경하지 않는다.
-
-### P4-5. Replacement Line 편집 — 조건부
-
-착수 조건:
-
-- [ ] J가 앱에서 Line을 실제로 새로 만들거나 수정할 필요가 있다.
-- [ ] 연결 순서와 현재 대표 Item의 의미가 확정됐다.
-- [ ] 읽기 전용 UI에서 원본 관계가 충분히 검증됐다.
-
-작업 후보:
-
-- [ ] schema 보완과 migration
-- [ ] RLS·grant·원자적 쓰기 RPC
-- [ ] 생성·이름 수정·Item 연결·보관 UI
-- [ ] 중복 relation·다른 workspace Item 차단
-- [ ] pgTAP·Advisor·원격 count 검증
-
-### P4-6. 세탁 기록과 앱 내부 알림 — 조건부
-
-착수 조건:
-
-- [ ] 세탁 기록의 원본 단위가 확정됐다.
-- [ ] J가 실제로 계속 입력할 수 있는 최소 흐름이 정해졌다.
-- [ ] 알림 기준이 Wear Log 추정이 아니라 세탁 원본에서 계산 가능하다.
-
-작업 후보:
-
-- [ ] 세탁 사건 schema·RLS·repository
-- [ ] Item 상세 또는 전용 빠른 기록 UI
-- [ ] 최근 세탁일·착용 후 미세탁 횟수 계산
-- [ ] 앱 내부 관리 배지
-- [ ] 수정·취소·중복 제출 복구
-
-브라우저 푸시·위젯·Cron은 이 단계의 실사용 후 별도 결정한다.
-
-### P4-7. 통합 검증과 공개 배포
-
-작업:
+### P4-3. 통합 검증과 공개
 
 - [ ] TypeScript 검사, 전체 Vitest, production build
-- [ ] 통계 계산 fixture와 현재 production 표본 대조
-- [ ] PC와 iPhone 크기에서 Statistics·상세·Replacement Line QA
-- [ ] 키보드 탐색, focus, label, 숫자만으로 의미를 전달하지 않는지 확인
-- [ ] 초기 데이터 요청량·이미지 요청량·렌더 시간을 전후 비교
-- [ ] schema 변경이 있으면 GitHub Actions 격리 pgTAP 실행
-- [ ] production 적용 전 migration·RLS·grant·Advisor 재검토
-- [ ] production 적용 후 count·정합성·인증 경로 확인
-- [ ] GitHub Pages 배포와 실제 공개 자산 확인
+- [ ] Item 통계와 production Wear Log 표본·전체 집계 대조
+- [ ] PC와 iPhone 크기에서 Statistics·Item 상세·Lineage QA
+- [ ] 키보드 탐색, focus, label, 그래프 접근성 확인
+- [ ] 초기 데이터·이미지 요청량과 렌더 시간 비교
+- [ ] schema 변경 시 격리 pgTAP, RLS, grant, Advisor 검증
+- [ ] production 적용 전후 Line·membership·edge count 검증
+- [ ] GitHub Pages 배포와 공개 asset·로그인 화면 확인
 
-완료 조건:
+## 11. 테스트 기준
 
-- [ ] 통계 수치가 원본 Wear Log와 표본 및 전체 집계에서 일치한다.
-- [ ] 다른 workspace의 데이터가 보이지 않는다.
-- [ ] 통계 페이지가 불필요한 Preview 일괄 요청을 만들지 않는다.
-- [ ] 기존 추천·Closet·Lookbook·Calendar·착용 기록 회귀가 없다.
+### 11.1 Item Statistics
 
-## 9. 테스트 기준
+- 기간 시작일·종료일 포함
+- 현재 연도와 과거 연도의 명칭·분모 차이
+- 취득일이 기간 전·기간 중·기간 후·미상인 Item
+- 복수 계절 OR와 Item 중복 제거
+- 독립 `Innerwear` 제외와 `Top-T-shirts-innerwear` 포함
+- `-made` category와 Bag 중복 제거
+- 같은 날짜의 같은 Outfit 복수 Wear Log
+- Item이 여러 Outfit에 포함된 경우의 착용 횟수
+- Retired Item의 과거 Most Worn 보존
+- Never Worn과 선택 연도 미착용 구분
+- 실제 Wear Log month 합계와 1~12월 0회 보존
+- 12개월 모두 착용한 Item의 `연중 착용` 표시
 
-### 9.1 계산
+### 11.2 Replacement Lineage
 
-- 기간 시작일·종료일 포함 여부
-- 같은 날짜의 같은 Outfit 복수 기록
-- Item이 여러 Outfit에 포함된 경우 Item 착용 횟수
-- Retired Item과 archived/Error Outfit의 과거 기록 보존
-- Wear Log 0건인 Unworn과 과거 기록이 있는 장기 미착용 구분
-- 계절 판단에서 제외되는 Shoes·Bag·Acc 처리
-- Socks의 Acc 상위 집계와 Socks 세부 집계
-- 독립 Innerwear의 Statistics 전용 집계
-- Place·Transport null과 실제 값 구분
+- 98 reciprocal entry를 49개 pair로 한 번만 가져옴
+- pair의 A/B 저장 순서와 무관한 중복 차단
+- 검토 전 화살표·세대 미표시
+- A→B와 B→A 방향 저장
+- 동등·병렬과 대체 관계 아님을 directed edge로 만들지 않음
+- 시작점과 incoming edge 완료 조건
+- self-edge와 cycle 차단
+- 단일 Item Line과 복수 연결 구성요소
+- 복수 Line 소속 Item과 Line 병합
+- 세대가 깊어져도 thumbnail 크기 유지
+- 실제 branch에서 연결선과 가지 이름 표시
 
-### 9.2 UI
+### 11.3 UI·보안
 
-- 기간·계절·상태 필터 조합
-- 통계 숫자와 상세 결과 수 일치
-- 더 보기 단위와 초기화
-- 뒤로 가기 시 필터·스크롤 복원
+- 390px에서 통계 그래프와 Lineage의 가로 overflow 없음
+- 12개 월 모두 tap·focus·screen reader 이름 제공
+- 긴 Item·Line·Style Identity·가지 이름
 - 빈 결과, 부분 데이터, 오류 후 재시도
-- 긴 Item·Outfit·Replacement Line 이름
-- 390px 모바일에서 가로 overflow 없음
-- PC에서 읽기 폭과 상세 탐색 유지
-
-### 9.3 데이터·보안
-
-- 비회원 거절
-- 다른 workspace row 거절
-- read-only 단계에서 frontend write 불가
+- 비회원과 다른 workspace row 거절
+- read-only 단계의 frontend write 불가
 - UPDATE를 열 경우 SELECT·USING·WITH CHECK 동작
-- Line과 Item workspace 불일치 차단
-- View 사용 시 `security_invoker`와 RLS 적용
-- RPC 사용 시 membership과 grant 범위
 - migration 재실행 안전성, FK, index, Advisor
 
-## 10. 위험과 대응
+## 12. 위험과 대응
 
 | 위험 | 대응 |
 |---|---|
-| 숫자는 많지만 실제 판단에 도움이 되지 않음 | 각 지표를 상세 목록과 행동으로 연결하고 Core 실사용 후 확장 |
-| 임의의 미착용 기간이 죄책감만 유발 | P4-0에서 실제 분포로 기준을 정하고 중립적인 관리 신호로 표현 |
-| 계절 밖 옷이 장기 미착용으로 과다 표시 | 계절 범위 필터와 판정 이유 제공 |
-| 기존 category를 UI 편의를 위해 덮어씀 | 저장값 유지, 상위 그룹은 표시 계산으로만 사용 |
-| Replacement Line 순서를 잘못 추정 | Core에서는 무방향 그룹으로 표시하고 명시적 순서가 필요할 때 schema 결정 |
-| Statistics 진입 때 전체 이미지·relation을 과다 요청 | 숫자 우선, 이미지 lazy load, Replacement Line lazy query |
-| frontend 집계가 느리거나 egress 증가 | 실제 측정 후 security-invoker View/RPC로 필요한 집계만 이전 |
-| View 또는 RPC가 RLS를 우회 | workspace 소유권 계약, pgTAP, Advisor, production 인증 검증 |
-| 세탁 입력이 번거로워 사용하지 않음 | migration 전에 실제 최소 입력 흐름을 확인하고 조건부 착수 |
-| 알림·Cron이 Free Plan 비용과 복잡도를 키움 | 앱 내부 계산 신호를 우선하고 외부 자동화는 사용 가치 확인 후 결정 |
+| 통계가 다시 긴 순위 목록이 됨 | Item 질문 5개와 최대 4개 미리보기에 집중하고 전체 목록은 별도 탐색 |
+| 지정 계절과 실제 착용 월을 혼동 | 계절 필터는 Item 태그, 월별 분포는 Wear Log 날짜로 명시적으로 분리 |
+| 12개월 그래프가 모바일 높이·폭을 차지 | 한 줄 12열의 고정 저높이 세로 막대, 가로 스크롤 금지 |
+| 막대의 상대 높이를 절대 착용량으로 오해 | 실제 월별 횟수, 총 착용 수, 기록 기간을 함께 표시 |
+| 독립 Innerwear가 착용률을 왜곡 | Outfit 통계에서 제외하고 Phase 6 구매주기 대상으로 명시 |
+| `Top-T-shirts-innerwear`까지 속옷으로 제외 | Top으로 포함하는 회귀 fixture 유지 |
+| 98개 entry를 98개 directed edge로 잘못 이전 | reciprocal pair audit와 49개 무방향 고유 제약 적용 |
+| 구매일이 세대를 자동 결정 | 구매일은 검토 힌트로만 표시하고 사람이 confirm |
+| 복잡한 가계도 UI를 실제 데이터보다 먼저 구현 | 동일 크기 chain을 기본으로 하고 확인된 branch fixture 뒤 확장 |
+| Line 편집 중 불완전한 graph 노출 | preview·confirm과 원자 저장, membership 변경 시 needs_review |
+| 추천·세탁 요구가 Phase 4에 다시 섞임 | Phase 5·6 경계를 Roadmap과 완료 정의에서 함께 유지 |
 
-## 11. 완료 정의
+## 13. 완료 정의
 
-### Phase 4 Core 완료
+### Phase 4 Statistics 완료
 
-- [ ] 기존 세부 카테고리를 Statistics에서 상위 그룹과 함께 확인할 수 있다.
-- [ ] 기간별 Outfit·Item 착용과 장소·교통수단·계절 분포를 확인할 수 있다.
-- [ ] Unworn·장기 미착용·최근 반복의 차이를 이해할 수 있다.
-- [ ] 모든 주요 숫자에서 관련 Item·Outfit 원본을 확인할 수 있다.
-- [ ] Replacement Line을 읽기 전용으로 확인하고 누락 상태를 찾을 수 있다.
-- [ ] 통계가 이미지나 Preview 준비 상태와 무관하게 동작한다.
-- [ ] 계산 결과가 production 원본 표본과 전체 집계에서 일치한다.
-- [ ] 모바일 성능·접근성·RLS 검증을 통과한다.
-- [ ] 기존 추천·기록·탐색 흐름에 회귀가 없다.
+- [ ] 현재 보유 Item의 Lifetime·연도별 활용률을 정확한 분모와 함께 확인할 수 있다.
+- [ ] Most Worn, Never Worn, 선택 연도 미착용과 실제 Item 목록을 확인할 수 있다.
+- [ ] 독립 Innerwear가 제외되고 `Top-T-shirts-innerwear`가 Top으로 포함된다.
+- [ ] Item 상세에서 실제 Wear Log 기반 1~12월 착용 분포를 한 줄 세로 막대 그래프로 확인할 수 있다.
+- [ ] 12개월 모두 입은 Item에 `연중 착용`이 표시된다.
+- [ ] 장소·교통수단·전체 Outfit 순위를 불필요한 독립 통계로 추가하지 않는다.
 
-### 조건부 확장 완료
+### Phase 4 Replacement Lineage 완료
 
-Replacement Line 편집, 세탁, 알림, 오프라인은 각각 착수 조건을 충족하고 별도 완료 기준을 통과했을 때만 Phase 4 결과에 추가한다. 구현하지 않기로 결정한 후보는 `미완료`가 아니라 근거가 기록된 `보류`로 남긴다.
+- [ ] 53개 Line과 165개 membership을 숨김이나 임의 삭제 없이 확인할 수 있다.
+- [ ] 98개 reciprocal entry가 49개 무방향 Legacy Link로 보존된다.
+- [ ] 각 Legacy Link의 방향·동등·제외 여부와 선택 이유를 앱에서 검토할 수 있다.
+- [ ] 확인된 edge만 방향 있는 계보로 저장되며 cycle과 workspace 불일치가 차단된다.
+- [ ] 각 연결 구성요소에 시작점이 있고 모든 Item이 시작점 또는 incoming edge를 가진다.
+- [ ] G0·G1·G2가 구매 연도가 아니라 확인된 graph depth로 표시된다.
+- [ ] 모든 세대의 thumbnail이 같은 크기이며 실제 가지가 있을 때만 branch를 표시한다.
+- [ ] Line 병합·보관·대표 Line과 재검토 상태가 안전하게 동작한다.
 
-## 12. P4-0에서 J와 확인할 값
+### Phase 4 전체 완료
 
-다음 값은 실제 분포와 사용 사례를 본 뒤 확정한다.
-
-1. Statistics의 기본 기간: 전체, 최근 1년, 올해 중 무엇을 먼저 보여줄지
-2. 장기 미착용의 기간과 계절 범위 적용 방식
-3. 최근 반복의 기간·횟수와 Item/Outfit 중 우선 단위
-4. 장소·교통수단·계절 통계에서 실제로 보고 싶은 질문
-5. Replacement Line에서 `현재 대표`, `이전 순서`가 필요한지
-6. Replacement Line을 앱에서 직접 편집할 필요가 있는지
-7. 세탁 기록을 실제로 남길 의향과 가장 짧은 입력 흐름
-8. 앱 내부 관리 신호만으로 충분한지, 알림이 실제로 필요한지
-
-P4-0에서는 위 값을 질문만으로 정하지 않고 production 데이터를 읽기 전용으로 집계한 후보 결과와 함께 결정한다.
+- [ ] 통계와 Lineage가 모바일 성능·접근성·RLS 검증을 통과한다.
+- [ ] 기존 HOME 추천, Closet, Lookbook, Calendar, Outfit 고정 구성, Wear Log 기록에 회귀가 없다.
+- [ ] Phase 5 추천 알고리즘과 Phase 6 관리 주기가 Phase 4 구현에 암묵적으로 섞이지 않는다.

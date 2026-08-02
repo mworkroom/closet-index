@@ -2,7 +2,7 @@
 
 - 최종 수정일: 2026-08-02
 - 문서 상태: 기준 문서
-- 현재 위치: Phase 3 완료, Phase 3.5 로컬 구현·검증 완료 및 공개 배포 전, Phase 4는 계획만 완료하고 P4-0 시작 전
+- 현재 위치: Phase 3 완료, Phase 3.5 로컬 구현·검증 완료 및 공개 배포 전, Phase 4 계획 개정 완료 및 P4-0 시작 전, Phase 5 초기 구상 기록 완료
 - 관련 문서: [Product Plan](./product-plan.md), [Phase 1 MVP Spec](./phase-1-mvp-spec.md), [Implementation Status](./phase-1-implementation-status.md), [Phase 2 Weather Plan](./phase-2-weather-plan.md), [Phase 3 Visual Wardrobe Plan](./phase-3-visual-wardrobe-plan.md), [Phase 3.5 Calendar & Navigation Upgrade](<./Phase 3.5 — Calendar & Navigation Upgrade.md>)
 
 ## 이 문서의 목적
@@ -36,6 +36,10 @@ MVP는 기능의 범위이고, Phase는 작업 순서이며, v1.0은 검증을 �
 - 앱 UI는 흰색·회색·검은색 중심으로 유지하고, 옷 이미지와 색상 스와치만 데이터 색상을 사용한다.
 - 전체 이미지 준비가 개발을 막지 않도록 현재 계절의 대표 착장부터 실제 옷 이미지를 적용한다.
 - 개인용 앱이며 Google 로그인으로 J의 계정만 허용한다.
+- Item 통계는 전체 Outfit 순위나 장소·교통수단 자체의 통계를 늘리기보다 실제 착용 Item과 월별 착용 분포를 보여주는 데 집중한다.
+- 독립 `Innerwear`는 Outfit 착용 통계에서 제외하고 구매·교체 주기로 관리하며, `Top-T-shirts-innerwear`는 착장에 포함되는 Top으로 집계한다.
+- Notion의 `Replaces` 98개 relation entry는 49개의 상호 대칭 무방향 연결이다. 구매일로 방향을 추정하지 않고 검토 후 계보 방향을 확정한다.
+- 추천 알고리즘은 통계와 분리해 Phase 5에서 다루고, 세탁·교체·재구매 주기 관리는 Phase 6에서 다룬다.
 
 ## 전체 단계
 
@@ -47,7 +51,9 @@ MVP는 기능의 범위이고, Phase는 작업 순서이며, v1.0은 검증을 �
 | Phase 2 | 날씨 자동화 | 출발·귀가 시각 기반 예보, 평균 온도와 경고 | 수동 온도 계산 없이 신뢰할 수 있는 후보가 나옴 |
 | Phase 3 | 시각 옷장 확장 | 이미지 범위 확대, 코디 만들기, 미리보기 생성 | 새 아이템과 새 착장을 앱 안에서 관리 가능함 |
 | Phase 3.5 | Calendar·내비게이션 개선 | 월요일 시작 월간 착장 달력, 전면 메뉴 재배치 | 한 달 착장을 한 화면에서 보고 기존 착장으로 바로 이동할 수 있음 |
-| Phase 4 | 유지관리·고급 통계 | 세탁, 교체 계보, 알림, 고급 통계 | 반복 관리 업무까지 앱에서 안정적으로 처리함 |
+| Phase 4 | 각종 통계·Replacement Line | Item 활용률, 월별 실제 착용 분포, Replacement Lineage | 실제 착용 패턴과 대체 계보를 앱에서 확인·정리할 수 있음 |
+| Phase 5 | 추천 알고리즘 | 기존 맥락 순위, 장소 HVAC Profile, Item 체감 관측 | 과거에 검증한 착장을 현재 장소·온도 맥락에 맞게 더 잘 고름 |
+| Phase 6 | 세탁·재구매 주기 관리 | 세탁 기록, 교체 주기, 재구매 알림, 세일 레이더 | 서로 다른 관리 주기를 신뢰할 수 있는 원본 기록으로 운영함 |
 
 ## Phase 0 — Discovery & Product Rules
 
@@ -205,25 +211,72 @@ Phase 4에 들어가기 전에 자주 쓰는 Calendar를 전면 메뉴로 옮기
 - 단일 기록은 기존 Outfit 상세로 바로 이동하고 복수 기록은 선택 후 이동한다.
 - 기존 Wear Log, 통계, URL, Supabase 데이터 계약이 유지된다.
 
-## Phase 4 — Maintenance & Insights
+## Phase 4 — Statistics & Replacement Lineage
 
-- 상세 실행 계획: [Phase 4 Maintenance & Insights Plan](./phase-4-maintenance-insights-plan.md)
+- 상세 실행 계획: [Phase 4 Statistics & Replacement Lineage Plan](./phase-4-maintenance-insights-plan.md)
 
 ### 목표
 
-현재 Notion에서 사용하던 유지관리와 통계를 앱의 사용 흐름에 맞게 확장한다.
+실제 Wear Log로 현재 옷의 활용도와 월별 착용 패턴을 확인하고, Notion에서 보존한 Replacement Line을 방향이 확인된 계보로 정리한다.
 
-### 후보 범위
+### 주요 범위
 
-- Replacement Line 관리 화면
-- 세탁 기록과 세탁 알림
-- 최근 반복 착용 방지
-- 장기 미착용 아이템
-- 교체 필요성·멸종 위험
-- 장소·교통수단·계절별 통계
-- 알림, 위젯, 제한적 오프라인 사용
+- 현재 Active Item의 기간별 활용률
+- Most Worn, Never Worn, 선택 연도 미착용 Item
+- 카테고리·계절 필터와 실제 Item 목록 연결
+- 전체 Wear Log를 월 기준으로 합산한 Item별 1~12월 실제 착용 분포
+- 1~12월을 한 줄에 배치하는 저높이 세로 막대 그래프
+- 53개 Replacement Line과 165개 membership 현황
+- 49개 무방향 Legacy Link의 방향 검토
+- 확인된 parent·child, 시작점, 가지 이름, 선택 이유 편집
+- 순환을 막는 DAG 저장과 Line 병합·보관·대표 Line 관리
 
-Phase 4 기능은 실제 v1.0 사용에서 필요성이 확인된 항목부터 선택한다.
+전체 Outfit 순위, 장소·교통수단 독립 통계, 임의의 장기 미착용·최근 반복 임계값은 Phase 4 핵심 범위에 넣지 않는다. 장소와 교통수단은 Phase 5 추천 근거로 사용하고, 세탁과 재구매 주기는 Phase 6에서 분리한다.
+
+## Phase 5 — Recommendation Intelligence
+
+- 초기 실행 계획: [Phase 5 Recommendation Intelligence Initial Plan](./phase-5-recommendation-intelligence-plan.md)
+
+### 목표
+
+과거에 실제로 입고 평가한 Outfit을 현재 온도·장소·이동 맥락에 맞게 다시 찾는 기존 추천 원칙을 확장한다.
+
+### 주요 범위
+
+- 같은 Outfit·장소·교통수단 조합의 반복 착용을 이용한 기존 맥락 순위
+- 같은 Outfit·장소 반복을 이용한 보조 근거
+- 특정 장소와 일반 장소 유형을 구분한 Place Profile
+- 예상 HVAC와 Wear Log의 당일 실제 HVAC 관측 분리
+- 직접 입력한 Item 체감과 Outfit에서 파생한 간접 근거의 provenance 구분
+- 기존 평균 온도 정렬과 출발·귀가 endpoint 경고 유지
+- 보완 Item이 실제로 추가되면 기존 Outfit을 바꾸지 않고 새 Outfit으로 검증
+
+### 완료 조건
+
+- 추천 결과가 장소·교통수단 자체의 통계가 아니라 구체적인 과거 착용 근거로 설명된다.
+- 수동 장소 Profile과 당일 실제 관측이 섞이지 않는다.
+- 기존 Outfit의 고정 Item 구성이 추천 학습 때문에 변경되지 않는다.
+
+## Phase 6 — Care & Replenishment
+
+### 목표
+
+착용 후 세탁과 구매 후 교체·재구매를 서로 다른 관리 주기로 기록하고, 필요한 시점에 부담이 적은 내부 알림을 제공한다.
+
+### 주요 범위
+
+- 마지막 세탁 이후 착용 횟수를 기준으로 한 세탁 주기
+- 구매일·경과 개월을 기준으로 한 독립 `Innerwear` 교체 주기
+- 흰 티셔츠 같은 기본 Item의 경과 기간·누적 착용·Replacement Line을 결합한 재구매 판단
+- 교체 시기 임박 신호와 세일 레이더
+- 새 대체품을 Replacement Line의 후속 Item으로 연결하는 흐름
+- 앱 내부 관리 신호를 우선한 알림
+
+### 완료 조건
+
+- 세탁 주기와 교체·재구매 주기가 같은 사건이나 같은 계산값으로 혼합되지 않는다.
+- Outfit에 들어가지 않는 독립 `Innerwear`도 Wear Log 없이 구매주기를 관리할 수 있다.
+- 알림의 근거가 구매일, 세탁 기록, 누적 착용 또는 확인된 Replacement Line으로 설명된다.
 
 ## 지금 다음으로 할 일
 
@@ -231,7 +284,10 @@ Phase 4 기능은 실제 v1.0 사용에서 필요성이 확인된 항목부터 �
 2. [완료] Phase 3 Visual Wardrobe Expansion 구현·검증·공개
 3. [로컬 완료] Phase 3.5 Calendar & Navigation Upgrade 구현·검증
 4. Phase 3.5를 실제 iPhone과 공개 환경에서 확인하고 배포 상태를 기록
-5. [완료] Phase 4 Maintenance & Insights 상세 계획 수립
-6. Phase 4 P4-0에서 production 통계·Replacement Line 기준선을 읽기 전용으로 확인
-7. 실제 데이터 분포를 바탕으로 통계 기간, 장기 미착용, 최근 반복 기준을 J와 확정
-8. 확정된 계산 계약부터 P4-1을 시작하고 세탁·알림은 별도 착수 조건까지 보류
+5. [완료] Phase 4 통계·Replacement Line 상세 계획 개정
+6. Phase 4 P4-0에서 production 통계와 53개 Line·165개 membership·49개 무방향 연결 기준선을 읽기 전용으로 재확인
+7. P4-1 Item Statistics 계산 계약과 모바일 월별 세로 막대 그래프 구현
+8. P4-2A Line Overview 뒤 P4-2B Legacy Link 방향 검토 흐름 구현
+9. 방향 검토 결과를 확인한 뒤 P4-2C Lineage Editing schema와 쓰기 권한 적용
+10. Phase 4 공개 검증 뒤 Phase 5 초기 계획을 현재 production 데이터로 갱신하고 P5-0 추천 근거 audit 시작
+11. Phase 6 세탁·교체·재구매 주기는 별도 원본 사건과 입력 흐름이 확정될 때 착수

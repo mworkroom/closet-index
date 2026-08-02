@@ -116,4 +116,16 @@ final result: passed
 - Findings: P0/P1/P2 없음.
 - Comparison history: 초기 Calendar wrapper 47.09×90.38px의 약 0.52:1 비율을 확인한 뒤 grid의 flex 확장을 제거하고 행을 92px로 고정했다. wrapper에 3:4 비율과 최대 48px 너비를 적용한 재비교에서 5주·6주 달력 모두 비율과 하단 여백이 정상임을 확인했다.
 
+## Follow-up QA — iPhone Month Picker and Thumbnail Density
+
+- Source reference: `C:\Users\Marion\Desktop\IMG_0745.PNG` (J가 7일·14일 썸네일을 목표 크기로 확대한 설명용 합성 캡처)
+- Five-week screenshot: `C:\Users\Marion\.codex\visualizations\2026\08\02\019fc014-d468-7f02-8c4c-87f87a47235a\calendar-final-iphone-touch-large-thumbnails-390x844.png`
+- Six-week screenshot: `C:\Users\Marion\.codex\visualizations\2026\08\02\019fc014-d468-7f02-8c4c-87f87a47235a\calendar-final-large-thumbnails-six-week-390x844.png`
+- Viewport and state: 390×844 CSS px, April 2026 5주 달력과 March 2026 6주 달력, demo data
+- Month picker check: 네이티브 month input의 범위를 가운데 전체 열이 아니라 보이는 `April 2026` 제목 영역 104.94px로 줄였다. 양쪽 44px 화살표와 선택기 사이에는 각각 약 78.7px가 남고 실제 교차 면적은 0이었다. 오른쪽 화살표 한 번으로 `March → April` 이동도 정상 동작했다.
+- Thumbnail check: 날짜 숫자의 20px 상자는 유지하되 착장 영역 시작점을 27px에서 24px로 올리고, wrapper 최대 너비를 48px에서 52px로 확대했다. 390px viewport의 실제 wrapper는 45.15×60.20px에서 49.15×65.20px로 약 8.9% 커졌으며 computed `aspect-ratio`는 계속 `3 / 4`였다.
+- Five/six-week check: 5주 grid는 460px이고 하단 메뉴까지 131.8px가 남았다. 6주 grid는 552px이고 39.8px가 남았으며 두 상태 모두 문서 높이가 viewport와 같은 844px라 추가 스크롤이 없었다.
+- Comparison history: 첫 시도에서는 행을 96px로 늘려 썸네일 공간을 확보했으나 6주 달력에 20px 추가 스크롤이 생겼다. 최종안은 행을 92px로 되돌리고 날짜 숫자 영역만 압축해 썸네일 확대와 무스크롤 조건을 함께 만족시켰다. `transform: scale()`은 인접 셀 침범과 터치 영역 불일치를 피하기 위해 사용하지 않았다.
+- Browser checks: 모든 Calendar 이미지 load 완료, 복수 착장 `+1` 배지 유지, framework overlay 없음, console warning·error 없음.
+
 final result: passed
