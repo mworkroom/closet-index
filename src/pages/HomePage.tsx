@@ -419,44 +419,13 @@ export function HomePage() {
     setVisibleTrialCount(RECOMMENDATION_PAGE_SIZE)
   }, [activeSeasons])
 
-  const loadWeather = async () => {
-    if (!currentWeatherRequest) {
-      setWeatherError('Settings에서 기본 날씨 위치를 먼저 저장해 주세요.')
-      return
-    }
-
-    setWeatherError(null)
-    setWeatherStatus(null)
-    if (
-      storedForecast &&
-      requestKey(storedForecast.request) === requestKey(currentWeatherRequest)
-    ) {
-      setWeatherStatus('이 탭에 저장된 같은 예보를 다시 사용했습니다.')
-      return
-    }
-
-    setWeatherLoading(true)
-    try {
-      const response = await fetchWeatherForecast(currentWeatherRequest)
-      setStoredForecast({ request: currentWeatherRequest, response })
-      setWeatherStatus('예보를 불러왔습니다. 확인 후 추천에 적용해 주세요.')
-    } catch (cause) {
-      setWeatherError(
-        cause instanceof Error
-          ? cause.message
-          : '날씨를 불러오지 못했습니다. 직접 입력으로 계속할 수 있습니다.',
-      )
-    } finally {
-      setWeatherLoading(false)
-    }
-  }
-
-  const applyForecast = () => {
-    if (!visibleForecast) return
-
+  const applyForecast = (
+    forecast: WeatherForecastResponse,
+    status = '기상청 예보를 추천 조건에 적용했습니다.',
+  ) => {
     let next: RecommendationInput
     try {
-      next = recommendationInputFromWeather(visibleForecast, {
+      next = recommendationInputFromWeather(forecast, {
         longWalkCondition,
         placeId: placeId || null,
         transportModeId: transportModeId || null,
@@ -474,13 +443,48 @@ export function HomePage() {
     setRainCondition(next.rainCondition === 'yes' ? 'yes' : 'no')
     setInputSource('weather')
     setSubmitted(next)
-    const provenance = weatherProvenance(visibleForecast, next)
+    const provenance = weatherProvenance(forecast, next)
     setWeatherBaseline(provenance)
     setSubmittedWeather(provenance)
     setValidationError(null)
     setWeatherError(null)
-    setWeatherStatus('기상청 예보를 추천 조건에 적용했습니다.')
+    setWeatherStatus(status)
     resetRecommendationLists()
+  }
+
+  const loadWeather = async () => {
+    if (!currentWeatherRequest) {
+      setWeatherError('Settings에서 기본 날씨 위치를 먼저 저장해 주세요.')
+      return
+    }
+
+    setWeatherError(null)
+    setWeatherStatus(null)
+    if (
+      storedForecast &&
+      requestKey(storedForecast.request) === requestKey(currentWeatherRequest)
+    ) {
+      applyForecast(
+        storedForecast.response,
+        '이 탭에 저장된 같은 예보를 추천 조건에 적용했습니다.',
+      )
+      return
+    }
+
+    setWeatherLoading(true)
+    try {
+      const response = await fetchWeatherForecast(currentWeatherRequest)
+      setStoredForecast({ request: currentWeatherRequest, response })
+      applyForecast(response)
+    } catch (cause) {
+      setWeatherError(
+        cause instanceof Error
+          ? cause.message
+          : '날씨를 불러오지 못했습니다. 직접 입력으로 계속할 수 있습니다.',
+      )
+    } finally {
+      setWeatherLoading(false)
+    }
   }
 
   const restoreForecast = () => {
@@ -611,7 +615,7 @@ export function HomePage() {
               </label>
             </div>
             <button
-              className="button button--secondary button--wide"
+              className="button button--primary button--wide"
               type="button"
               onClick={() => void loadWeather()}
               disabled={weatherLoading}
@@ -619,12 +623,12 @@ export function HomePage() {
               {weatherLoading ? (
                 <>
                   <span className="spinner spinner--small" aria-hidden="true" />
-                  불러오는 중
+                  날씨 불러오는 중
                 </>
               ) : (
                 <>
                   <RefreshCw size={18} aria-hidden="true" />
-                  날씨 불러오기
+                  날씨로 추천 보기
                 </>
               )}
             </button>
@@ -693,14 +697,6 @@ export function HomePage() {
             <p className="weather-result__issued">
               기상청 {formatForecastTime(visibleForecast.issuedAt)} 발표
             </p>
-            <button
-              className="button button--primary button--wide"
-              type="button"
-              onClick={applyForecast}
-              disabled={visibleForecast.departure.temperature === null}
-            >
-              이 날씨로 추천 보기
-            </button>
           </div>
         )}
 

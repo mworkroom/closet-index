@@ -57,7 +57,7 @@ describe('Item editor', () => {
       await screen.findByRole('textbox', { name: '이름 *' }),
       '네이비 셔츠',
     )
-    await user.type(
+    await user.selectOptions(
       screen.getByRole('combobox', { name: '카테고리 *' }),
       'Top-Shirts',
     )
@@ -92,35 +92,40 @@ describe('Item editor', () => {
     renderEditor(repository, '/closet/item-cardigan/edit')
 
     const name = await screen.findByRole('textbox', { name: '이름 *' })
+    const category = screen.getByRole('combobox', { name: '카테고리 *' })
+    expect(category).toHaveValue('Outer-Cardigan')
     await user.clear(name)
     await user.type(name, '수정한 카디건')
+    await user.selectOptions(category, 'Top-Knitwear')
     await user.click(screen.getByRole('button', { name: '변경 저장' }))
 
     expect(await screen.findByText('저장 완료')).toBeInTheDocument()
     expect(updateItem).toHaveBeenCalledTimes(1)
     expect(updateItem).toHaveBeenCalledWith(
       'item-cardigan',
-      expect.objectContaining({ name: '수정한 카디건' }),
+      expect.objectContaining({
+        name: '수정한 카디건',
+        category: 'Top-Knitwear',
+      }),
     )
   })
 
-  it('상세 화면에서 확인 절차를 거쳐 Retired로 전환한다', async () => {
+  it('정보 수정 화면에서 이미지 관리와 Retired 전환을 함께 제공한다', async () => {
     const user = userEvent.setup()
     const repository = new DemoRepository()
     const setItemRetired = vi.spyOn(repository, 'setItemRetired')
 
-    render(
-      <MemoryRouter initialEntries={['/closet/item-cardigan']}>
-        <DataProvider repository={repository}>
-          <Routes>
-            <Route path="/closet/:itemId" element={<ItemDetailPage />} />
-          </Routes>
-        </DataProvider>
-      </MemoryRouter>,
-    )
+    renderEditor(repository, '/closet/item-cardigan/edit')
+
+    expect(
+      await screen.findByRole('heading', { name: /Item 이미지 (추가|교체)/ }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: '상태 관리' }),
+    ).toBeInTheDocument()
 
     await user.click(
-      await screen.findByRole('button', { name: 'Retired로 전환' }),
+      screen.getByRole('button', { name: 'Retired로 전환' }),
     )
     expect(
       screen.getByText('이 Item을 Retired로 전환할까요?'),
@@ -132,7 +137,34 @@ describe('Item editor', () => {
 
     expect(setItemRetired).toHaveBeenCalledWith('item-cardigan', true)
     expect(
-      await screen.findByRole('heading', { name: 'Retired Item' }),
+      await screen.findByRole('button', { name: '사용 중으로 되돌리기' }),
     ).toBeInTheDocument()
+  })
+
+  it('상세 화면은 수정 패널 없이 사용 정보와 Outfit만 보여 준다', async () => {
+    const repository = new DemoRepository()
+
+    render(
+      <MemoryRouter initialEntries={['/closet/item-cardigan']}>
+        <DataProvider repository={repository}>
+          <Routes>
+            <Route path="/closet/:itemId" element={<ItemDetailPage />} />
+          </Routes>
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    expect(
+      await screen.findByRole('link', { name: '정보 수정' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('착용 횟수')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '포함된 Outfit' })).toBeInTheDocument()
+    expect(screen.queryByText('조건 적합성')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: /Item 이미지 (추가|교체)/ }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Retired로 전환' }),
+    ).not.toBeInTheDocument()
   })
 })

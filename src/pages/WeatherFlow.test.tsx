@@ -43,12 +43,9 @@ describe('Phase 2 weather recommendation flow', () => {
     )
 
     await screen.findByText('창4동')
-    await user.click(screen.getByRole('button', { name: '날씨 불러오기' }))
+    await user.click(screen.getByRole('button', { name: '날씨로 추천 보기' }))
     expect(await screen.findByText('24°C')).toBeVisible()
 
-    await user.click(
-      screen.getByRole('button', { name: '이 날씨로 추천 보기' }),
-    )
     const outfitLinks = await screen.findAllByRole('link', {
       name: /착장 상세 보기/,
     })
@@ -104,7 +101,7 @@ describe('Phase 2 weather recommendation flow', () => {
     )
 
     await screen.findByText('창4동')
-    await user.click(screen.getByRole('button', { name: '날씨 불러오기' }))
+    await user.click(screen.getByRole('button', { name: '날씨로 추천 보기' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       '날씨 API가 응답하지 않았습니다.',

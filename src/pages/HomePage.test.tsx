@@ -70,7 +70,7 @@ describe('HomePage condition choices', () => {
     ).toHaveValue('00:00')
   })
 
-  it('예보를 명시적으로 적용하고 같은 탭에서 추천 입력을 복원한다', async () => {
+  it('날씨 조회 한 번으로 추천하고 같은 탭에서 추천 입력을 복원한다', async () => {
     const user = userEvent.setup()
     const renderPage = () =>
       render(
@@ -86,15 +86,8 @@ describe('HomePage condition choices', () => {
     const first = renderPage()
     await screen.findByText('창4동')
 
-    await user.click(screen.getByRole('button', { name: '날씨 불러오기' }))
+    await user.click(screen.getByRole('button', { name: '날씨로 추천 보기' }))
     await screen.findByText('24°C')
-    expect(
-      screen.queryByRole('heading', { name: '추천 착장' }),
-    ).not.toBeInTheDocument()
-
-    await user.click(
-      screen.getByRole('button', { name: '이 날씨로 추천 보기' }),
-    )
 
     expect(screen.getByRole('spinbutton', { name: /출발 온도/ })).toHaveValue(
       24,

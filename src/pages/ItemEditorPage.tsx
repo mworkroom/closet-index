@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
+import { ItemImageEditor } from '../components/ItemImageEditor'
 import { ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
 import type { ItemWriteInput } from '../lib/types'
@@ -32,8 +33,15 @@ function normalizeComparable(value: string) {
 export function ItemEditorPage() {
   const { itemId } = useParams()
   const navigate = useNavigate()
-  const { data, loading, error, refresh, createItem, updateItem } =
-    useClosetData()
+  const {
+    data,
+    loading,
+    error,
+    refresh,
+    createItem,
+    updateItem,
+    setItemRetired,
+  } = useClosetData()
   const editingItem = itemId
     ? data?.items.find((item) => item.id === itemId)
     : undefined
@@ -45,6 +53,8 @@ export function ItemEditorPage() {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false)
+  const [retireConfirming, setRetireConfirming] = useState(false)
+  const [retireSaving, setRetireSaving] = useState(false)
 
   useEffect(() => {
     if (!itemId || !editingItem || initializedItemId === itemId) return
@@ -150,6 +160,19 @@ export function ItemEditorPage() {
     if (!saving) void save(false)
   }
 
+  const changeRetired = async (retired: boolean) => {
+    if (!editingItem) return
+    setRetireSaving(true)
+    try {
+      await setItemRetired(editingItem.id, retired)
+      setRetireConfirming(false)
+    } catch {
+      // DataContext owns the user-facing error state.
+    } finally {
+      setRetireSaving(false)
+    }
+  }
+
   if (
     (loading && !data) ||
     (itemId && editingItem && initializedItemId !== itemId)
@@ -213,18 +236,20 @@ export function ItemEditorPage() {
             </label>
             <label className="field">
               <span>카테고리 *</span>
-              <input
+              <select
                 value={form.category}
                 required
-                list="item-category-options"
-                autoComplete="off"
                 onChange={(event) => updateField('category', event.target.value)}
-              />
-              <datalist id="item-category-options">
+              >
+                <option value="" disabled>
+                  카테고리 선택
+                </option>
                 {categories.map((category) => (
-                  <option value={category} key={category} />
+                  <option value={category} key={category}>
+                    {category}
+                  </option>
                 ))}
-              </datalist>
+              </select>
             </label>
             <label className="field">
               <span>색상 카테고리</span>
@@ -314,6 +339,8 @@ export function ItemEditorPage() {
           </label>
         </section>
 
+        {editingItem && <ItemImageEditor item={editingItem} />}
+
         <section className="panel">
           <div className="section-heading">
             <div>
@@ -353,6 +380,64 @@ export function ItemEditorPage() {
               먼저 Item 정보를 저장한 뒤, 알아볼 수 있는 가벼운 누끼 이미지로
               연결합니다.
             </p>
+          </section>
+        )}
+
+        {editingItem && (
+          <section className="panel item-lifecycle-panel">
+            <div>
+              <p className="eyebrow">STATUS</p>
+              <h2>상태 관리</h2>
+            </div>
+            <p>
+              현재 상태: <strong>{editingItem.retired ? 'Retired' : '사용 중'}</strong>
+            </p>
+            <p>
+              {editingItem.retired
+                ? '목록의 Retired 포함 필터에서 계속 확인할 수 있습니다.'
+                : '더 이상 사용하지 않는 Item은 기록을 지우지 않고 Retired로 전환합니다.'}
+            </p>
+            {editingItem.retired ? (
+              <button
+                className="button button--secondary button--wide"
+                type="button"
+                disabled={retireSaving}
+                onClick={() => void changeRetired(false)}
+              >
+                {retireSaving ? '변경 중…' : '사용 중으로 되돌리기'}
+              </button>
+            ) : retireConfirming ? (
+              <div className="retire-confirmation" role="alert">
+                <strong>이 Item을 Retired로 전환할까요?</strong>
+                <p>기존 Outfit과 착용 기록은 그대로 유지됩니다.</p>
+                <div>
+                  <button
+                    className="button button--secondary"
+                    type="button"
+                    disabled={retireSaving}
+                    onClick={() => setRetireConfirming(false)}
+                  >
+                    취소
+                  </button>
+                  <button
+                    className="button button--primary"
+                    type="button"
+                    disabled={retireSaving}
+                    onClick={() => void changeRetired(true)}
+                  >
+                    {retireSaving ? '변경 중…' : 'Retired로 전환'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                className="button button--secondary button--wide"
+                type="button"
+                onClick={() => setRetireConfirming(true)}
+              >
+                Retired로 전환
+              </button>
+            )}
           </section>
         )}
 
