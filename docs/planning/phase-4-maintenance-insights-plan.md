@@ -1,11 +1,11 @@
 # Closet Index Phase 4 Statistics & Replacement Lineage Plan
 
 - 최초 작성일: 2026-08-01
-- 최종 수정일: 2026-08-02
-- 상태: 전면 개정 완료, P4-0 착수 전
+- 최종 수정일: 2026-08-03
+- 상태: P4-0·P4-1A·P4-1B·P4-2A·P4-2B 완료, production Legacy Link 검토 0/49·P4-2C 착수 전
 - 목표 릴리스: Phase 4 Statistics & Replacement Lineage
 - 선행 상태: Phase 3 구현·검증·공개 완료, Phase 3.5 로컬 구현·검증 완료 및 공개 배포 전
-- 관련 문서: [Roadmap](./roadmap.md), [Product Plan](./product-plan.md), [Phase 3 Plan](./phase-3-visual-wardrobe-plan.md), [Phase 1 Data & Security Spec](./phase-1-data-security-spec.md)
+- 관련 문서: [Roadmap](./roadmap.md), [Product Plan](./product-plan.md), [Phase 3 Plan](./phase-3-visual-wardrobe-plan.md), [Phase 1 Data & Security Spec](./phase-1-data-security-spec.md), [P4-0 Baseline Audit](./phase-4-p4-0-baseline-audit.md)
 
 ## 1. 목표
 
@@ -59,7 +59,9 @@ Favorite는 More에서 관리하고, Item과 연결된 Outfit은 Item 상세의 
 
 ### 3.2 Item Statistics 원본
 
-- 현재 Notion Wardrobe에는 451개 Item이 있다.
+- 2026-08-03 production과 Notion Wardrobe에는 각각 451개 Item이 있다.
+- production Outfit은 508개이며 Notion 연동 505개와 앱 생성 3개로 구성된다. 읽기 전용 Notion 보관본은 507개다.
+- production Wear Log는 783개이며 Notion 연동 782개와 앱 생성 1개로 구성된다. Notion 보관본도 총 783개지만 production에 없는 레거시 Log 1개가 있어 출처 구성은 다르다.
 - `Acquired Date`는 구매 Item의 구매일과 직접 만든 Item의 완성일을 합친 기존 원본 값이다.
 - 451개 중 442개에는 취득일이 있고 9개에는 취득일이 없다.
 - Wear Log가 Item을 직접 저장하는 대신 고정 Outfit을 가리키므로, Item 착용은 Wear Log의 Outfit 구성으로 계산한다.
@@ -398,7 +400,7 @@ Item Statistics만을 위해 Wear Log나 Item에 중복 집계값을 저장하�
 
 - P4-0과 P4-2A는 production을 변경하지 않는 읽기 전용 단계다.
 - 쓰기 schema와 RLS는 P4-2B 검토 UI 계약이 확정된 뒤 migration으로 추가한다.
-- authenticated frontend에는 필요한 최소 INSERT·UPDATE 권한만 연다.
+- authenticated frontend에는 Legacy Link table의 INSERT·UPDATE 권한을 열지 않고, membership과 pending 상태를 다시 검사하는 confirm 전용 RPC만 실행할 수 있게 한다.
 - Line과 Item의 workspace 일치를 DB와 repository 양쪽에서 검증한다.
 - directed edge는 self-edge와 cycle을 차단한다.
 - 여러 membership·edge 변경은 RPC 트랜잭션을 검토한다.
@@ -411,60 +413,64 @@ Item Statistics만을 위해 Wear Log나 Item에 중복 집계값을 저장하�
 
 목표: 구현 전에 기존 결정, 새 결정, 보류 기능과 실제 데이터 기준선을 확정한다.
 
-- [ ] production Item·Outfit·Wear Log 수량 재확인
-- [ ] 442개 취득일 있음·9개 미상 기준 재확인
-- [ ] 53개 Line·165개 membership·163개 고유 Item 기준 재확인
-- [ ] 빈 Line 1개·복수 Line Item 2개 등 품질 상태 재확인
-- [ ] 98개 reciprocal entry가 49개 무방향 pair인지 재현 가능한 audit 작성
-- [ ] 기존 Notion Formula·View 중 Phase 4에서 유지·재설계·보류할 개념 기록
-- [ ] production과 Notion 원본을 변경하지 않음
+- [x] production Item·Outfit·Wear Log 수량 재확인
+- [x] 442개 취득일 있음·9개 미상 기준 재확인
+- [x] 53개 Line·165개 membership·163개 고유 Item 기준 재확인
+- [x] 빈 Line 1개·복수 Line Item 2개 등 품질 상태 재확인
+- [x] 98개 reciprocal entry가 49개 무방향 pair인지 재현 가능한 audit 작성
+- [x] 기존 Notion Formula·View 중 Phase 4에서 유지·재설계·보류할 개념 기록
+- [x] production과 Notion 원본을 변경하지 않음
 
 완료 조건:
 
-- [ ] 이 문서의 수량과 production·Notion 원본이 일치한다.
-- [ ] 방향 있는 edge를 자동 생성하지 않는다.
-- [ ] Statistics 계산 입력과 제외 규칙이 fixture로 작성 가능할 만큼 명확하다.
+- [x] 이 문서가 production·Notion 원본의 수량과 알려진 출처 차이를 정확히 기록한다.
+- [x] 방향 있는 edge를 자동 생성하지 않는다.
+- [x] Statistics 계산 입력과 제외 규칙이 fixture로 작성 가능할 만큼 명확하다.
 
 ### P4-1A. Item Statistics 계산 계약
 
-- [ ] Lifetime·달력 연도 기간 model
-- [ ] 복수 계절 OR와 Item ID 중복 제거
-- [ ] 대상 category와 독립 Innerwear 제외 규칙
-- [ ] 현재 보유 옷 활용률
-- [ ] Most Worn, Never Worn, 해당 연도 미착용
-- [ ] 취득일 미상 제외 수
-- [ ] Item별 전체 1~12월 착용 합계
-- [ ] 같은 날짜·같은 Outfit의 복수 Wear Log 보존
-- [ ] `Top-T-shirts-innerwear`, `-made`, Bags 중복 회귀 테스트
+- [x] Lifetime·달력 연도 기간 model
+- [x] 복수 계절 OR와 Item ID 중복 제거
+- [x] 대상 category와 독립 Innerwear 제외 규칙
+- [x] 현재 보유 옷 활용률
+- [x] Most Worn, Never Worn, 해당 연도 미착용
+- [x] 취득일 미상 제외 수
+- [x] Item별 전체 1~12월 착용 합계
+- [x] 같은 날짜·같은 Outfit의 복수 Wear Log 보존
+- [x] `Top-T-shirts-innerwear`, `-made`, Bags 중복 회귀 테스트
 
 ### P4-1B. Statistics와 Item 상세 UI
 
-- [ ] 기간·계절·카테고리 필터
-- [ ] 최대 4개 미리보기와 전체 Item 목록 이동
-- [ ] 과거 연도 활용률의 정확한 명칭과 제외 수 표시
-- [ ] Item 상세의 저높이 12개월 세로 막대 그래프
-- [ ] `연중 착용 · 12/12개월` 표시
-- [ ] 필터·스크롤 복원
-- [ ] 390px 모바일에서 12개월 전체 표시와 가로 overflow 부재 확인
+- [x] 기간·계절·카테고리 필터
+- [x] 최대 4개 미리보기와 전체 Item 목록 이동
+- [x] 과거 연도 활용률의 정확한 명칭과 제외 수 표시
+- [x] Item 상세의 저높이 12개월 세로 막대 그래프
+- [x] `연중 착용 · 12/12개월` 표시
+- [x] 필터·스크롤 복원
+- [x] 390px 모바일에서 12개월 전체 표시와 가로 overflow 부재 확인
 
 ### P4-2A. Replacement Line Overview
 
-- [ ] Replacement Line TypeScript model과 lazy repository query
-- [ ] Style Identity 그룹과 Line 목록
-- [ ] Active/Retired, Active 수, 최근 Active 취득일
-- [ ] 빈 Line·단일 Item·복수 Line 소속 경고
-- [ ] 49개 Legacy Link 무방향 표시
-- [ ] workspace 외 데이터 비노출 확인
+- [x] Replacement Line TypeScript model과 lazy repository query
+- [x] Style Identity 그룹과 Line 목록
+- [x] Active/Retired, Active 수, 최근 Active 취득일
+- [x] 빈 Line·단일 Item·복수 Line 소속 경고
+- [x] 49개 Legacy Link 무방향 표시
+- [x] workspace 외 데이터 비노출 확인
+
+P4-2A 화면은 production에 추출된 49개 pair와 실제 검토 진행률을 읽으며, 검토 전 pair를 화살표 없는 Item A—Item B로 표시한다. Item ID를 정적 frontend asset에 넣거나 Line membership에서 관계를 추측하지 않고, P4-2B의 canonical pair schema·일회 추출·workspace RLS를 원본으로 사용한다.
 
 ### P4-2B. Legacy Link Review
 
-- [ ] 49개 pair review queue
-- [ ] 동일 크기 Item 비교 카드
-- [ ] 취득일·상태·Line 참고 정보
-- [ ] A→B, B→A, 동등·병렬, 대체 관계 아님 선택
-- [ ] 선택 이유 입력
-- [ ] 검토 진행률과 중단 후 복원
-- [ ] 확인된 선택만 저장하는 preview·confirm 단계
+- [x] 49개 pair review queue
+- [x] 동일 크기 Item 비교 카드
+- [x] 취득일·상태·Line 참고 정보
+- [x] A→B, B→A, 동등·병렬, 대체 관계 아님 선택
+- [x] 선택 이유 입력
+- [x] 검토 진행률과 중단 후 복원
+- [x] 확인된 선택만 저장하는 preview·confirm 단계
+
+P4-2B의 canonical pair schema, workspace RLS, confirm 전용 RPC, 49-pair importer와 검토 화면을 production에 적용하고 검증했다. 실제 49개 queue는 모두 pending이며, import는 검토 방향을 자동 선택하지 않았고 기존 행 삭제나 검토 결과 덮어쓰기를 하지 않았다. 첫 실제 pair는 읽기와 UI만 확인했으며 관계 선택·confirm은 사람의 검토 판단으로 남겼다.
 
 ### P4-2C. Lineage Editing
 
@@ -559,9 +565,9 @@ Item Statistics만을 위해 Wear Log나 Item에 중복 집계값을 저장하�
 
 ### Phase 4 Replacement Lineage 완료
 
-- [ ] 53개 Line과 165개 membership을 숨김이나 임의 삭제 없이 확인할 수 있다.
-- [ ] 98개 reciprocal entry가 49개 무방향 Legacy Link로 보존된다.
-- [ ] 각 Legacy Link의 방향·동등·제외 여부와 선택 이유를 앱에서 검토할 수 있다.
+- [x] 53개 Line과 165개 membership을 숨김이나 임의 삭제 없이 확인할 수 있다.
+- [x] 98개 reciprocal entry가 49개 무방향 Legacy Link로 보존된다.
+- [x] 각 Legacy Link의 방향·동등·제외 여부와 선택 이유를 앱에서 검토할 수 있다.
 - [ ] 확인된 edge만 방향 있는 계보로 저장되며 cycle과 workspace 불일치가 차단된다.
 - [ ] 각 연결 구성요소에 시작점이 있고 모든 Item이 시작점 또는 incoming edge를 가진다.
 - [ ] G0·G1·G2가 구매 연도가 아니라 확인된 graph depth로 표시된다.

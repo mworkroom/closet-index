@@ -14,7 +14,8 @@
       "seasons": "Seasons",
       "retired": "Retired",
       "memo": "Memo",
-      "acquiredOn": "Acquired Date"
+      "acquiredOn": "Acquired Date",
+      "replaces": "Replaces"
     },
     "outfits": {
       "name": "Name",

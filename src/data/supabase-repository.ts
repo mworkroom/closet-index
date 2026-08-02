@@ -8,6 +8,9 @@ import type {
   OutfitCreateInput,
   OutfitItemPlacementInput,
   OutfitPreviewUploadInput,
+  ReplacementLineSnapshot,
+  ReplacementLegacyLink,
+  ReplacementLegacyLinkReviewInput,
   WeatherForecastRequest,
   WeatherLocationInput,
   WearLogInput,
@@ -22,6 +25,7 @@ import {
   WeatherForecastRequestError,
 } from './supabase/weather'
 import { SupabaseWearLogRepository } from './supabase/wear-logs'
+import { SupabaseReplacementLineRepository } from './supabase/replacement-lines'
 
 export { collectAllPages, WeatherForecastRequestError }
 
@@ -31,6 +35,7 @@ export class SupabaseRepository implements ClosetRepository {
   private readonly outfits: SupabaseOutfitRepository
   private readonly weather: SupabaseWeatherRepository
   private readonly wearLogs: SupabaseWearLogRepository
+  private readonly replacementLines: SupabaseReplacementLineRepository
 
   constructor(client: SupabaseClient, workspaceId: string) {
     this.snapshot = new SupabaseSnapshotRepository(client, workspaceId)
@@ -38,10 +43,29 @@ export class SupabaseRepository implements ClosetRepository {
     this.outfits = new SupabaseOutfitRepository(client, workspaceId)
     this.weather = new SupabaseWeatherRepository(client, workspaceId)
     this.wearLogs = new SupabaseWearLogRepository(client, workspaceId)
+    this.replacementLines = new SupabaseReplacementLineRepository(
+      client,
+      workspaceId,
+    )
   }
 
   load(): Promise<AppData> {
     return this.snapshot.load()
+  }
+
+  loadReplacementLines(): Promise<ReplacementLineSnapshot> {
+    return this.replacementLines.load()
+  }
+
+  loadReplacementLegacyLinks(): Promise<ReplacementLegacyLink[]> {
+    return this.replacementLines.loadLegacyLinks()
+  }
+
+  reviewReplacementLegacyLink(
+    linkId: string,
+    input: ReplacementLegacyLinkReviewInput,
+  ): Promise<ReplacementLegacyLink> {
+    return this.replacementLines.reviewLegacyLink(linkId, input)
   }
 
   createItem(input: ItemCreateInput) {

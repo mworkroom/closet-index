@@ -86,6 +86,40 @@ async function queryAll(dataSourceId) {
   return results
 }
 
+async function inspectDataSource(dataSourceId) {
+  const schema = await notionRequest(`/data_sources/${dataSourceId}`)
+  const viewReferences = await notionRequest(
+    `/views?data_source_id=${encodeURIComponent(dataSourceId)}`,
+  )
+  const views = await Promise.all(
+    (viewReferences.results ?? []).map((view) =>
+      notionRequest(`/views/${view.id}`),
+    ),
+  )
+  return {
+    properties: Object.entries(schema.properties ?? {})
+      .map(([name, definition]) => ({
+        id: definition.id,
+        name,
+        type: definition.type,
+        formulaExpression: definition.formula?.expression ?? null,
+        rollupFunction: definition.rollup?.function ?? null,
+      }))
+      .sort((left, right) => left.name.localeCompare(right.name)),
+    views: views
+      .map((view) => ({
+        id: view.id,
+        name: view.name,
+        type: view.type,
+        filter: view.filter ?? null,
+        sorts: view.sorts ?? [],
+        quickFilters: view.quick_filters ?? {},
+        configuration: view.configuration ?? null,
+      }))
+      .sort((left, right) => left.name.localeCompare(right.name)),
+  }
+}
+
 function property(page, name) {
   return name ? page.properties?.[name] ?? null : null
 }
@@ -208,12 +242,19 @@ function expectInteger(value, label, pageId) {
   return value
 }
 
-const [wardrobePages, outfitPages, dailyPages, replacementPages] =
+const [
+  wardrobePages,
+  outfitPages,
+  dailyPages,
+  replacementPages,
+  replacementLineAudit,
+] =
   await Promise.all([
     queryAll(config.dataSources.wardrobe),
     queryAll(config.dataSources.outfits),
     queryAll(config.dataSources.dailyLog),
     queryAll(config.dataSources.replacementLine),
+    inspectDataSource(config.dataSources.replacementLine),
   ])
 
 const wp = config.properties.wardrobe
@@ -221,9 +262,10 @@ const op = config.properties.outfits
 const dp = config.properties.dailyLog
 const rp = config.properties.replacementLine
 
-const items = wardrobePages.map((page) => {
+const items = []
+for (const page of wardrobePages) {
   const icon = iconValue(page)
-  return {
+  items.push({
     id: page.id,
     notionPageId: page.id,
     name: textValue(property(page, wp.name)),
@@ -234,9 +276,10 @@ const items = wardrobePages.map((page) => {
     retired: booleanValue(property(page, wp.retired)),
     memo: textValue(property(page, wp.memo)),
     acquiredOn: dateValue(property(page, wp.acquiredOn)),
+    replacesItemIds: await relationValue(page, wp.replaces),
     notionCreatedAt: page.created_time,
-  }
-})
+  })
+}
 
 const outfits = []
 for (const page of outfitPages) {
@@ -347,6 +390,9 @@ const snapshot = {
     extractedAt: new Date().toISOString(),
     notionApiVersion: notionVersion,
     dataSources: config.dataSources,
+    phase4Audit: {
+      replacementLine: replacementLineAudit,
+    },
   },
   report,
   colorIcons,

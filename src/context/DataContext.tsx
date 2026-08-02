@@ -19,6 +19,9 @@ import type {
   OutfitCreateInput,
   OutfitItemPlacementInput,
   OutfitPreviewUploadInput,
+  ReplacementLineSnapshot,
+  ReplacementLegacyLink,
+  ReplacementLegacyLinkReviewInput,
   WeatherForecastRequest,
   WeatherForecastResponse,
   WeatherLocationInput,
@@ -32,6 +35,12 @@ interface DataState {
   loading: boolean
   error: string | null
   refresh: () => Promise<void>
+  loadReplacementLines: () => Promise<ReplacementLineSnapshot>
+  loadReplacementLegacyLinks: () => Promise<ReplacementLegacyLink[]>
+  reviewReplacementLegacyLink: (
+    linkId: string,
+    input: ReplacementLegacyLinkReviewInput,
+  ) => Promise<ReplacementLegacyLink>
   createItem: (input: ItemCreateInput) => Promise<Item>
   updateItem: (itemId: string, input: ItemWriteInput) => Promise<Item>
   replaceItemImage: (
@@ -189,6 +198,36 @@ export function DataProvider({
     [repository],
   )
 
+  const loadReplacementLines = useCallback(() => {
+    if (!repository.loadReplacementLines) {
+      return Promise.reject(
+        new Error('이 환경에서는 Replacement Line 조회를 지원하지 않습니다.'),
+      )
+    }
+    return repository.loadReplacementLines()
+  }, [repository])
+
+  const loadReplacementLegacyLinks = useCallback(() => {
+    if (!repository.loadReplacementLegacyLinks) {
+      return Promise.reject(
+        new Error('이 환경에서는 Legacy Link 조회를 지원하지 않습니다.'),
+      )
+    }
+    return repository.loadReplacementLegacyLinks()
+  }, [repository])
+
+  const reviewReplacementLegacyLink = useCallback(
+    (linkId: string, input: ReplacementLegacyLinkReviewInput) => {
+      if (!repository.reviewReplacementLegacyLink) {
+        return Promise.reject(
+          new Error('이 환경에서는 Legacy Link 검토를 지원하지 않습니다.'),
+        )
+      }
+      return repository.reviewReplacementLegacyLink(linkId, input)
+    },
+    [repository],
+  )
+
   const replaceOutfitPreview = useCallback(
     async (outfitId: string, input: OutfitPreviewUploadInput) => {
       if (!repository.replaceOutfitPreview) {
@@ -318,6 +357,9 @@ export function DataProvider({
       loading,
       error,
       refresh,
+      loadReplacementLines,
+      loadReplacementLegacyLinks,
+      reviewReplacementLegacyLink,
       createItem,
       updateItem,
       replaceItemImage: (itemId, input) =>
@@ -347,6 +389,9 @@ export function DataProvider({
       data,
       error,
       loading,
+      loadReplacementLines,
+      loadReplacementLegacyLinks,
+      reviewReplacementLegacyLink,
       findMatchingOutfits,
       mutate,
       refresh,

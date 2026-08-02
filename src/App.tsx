@@ -15,10 +15,13 @@ import { ItemEditorPage } from './pages/ItemEditorPage'
 import { AccessDeniedPage, LoginPage } from './pages/LoginPage'
 import { LookbookPage } from './pages/LookbookPage'
 import { MorePage } from './pages/MorePage'
+import { ReplacementLinesPage } from './pages/ReplacementLinesPage'
+import { ReplacementLegacyLinkReviewPage } from './pages/ReplacementLegacyLinkReviewPage'
 import { OutfitDetailPage } from './pages/OutfitDetailPage'
 import { OutfitCreatorPage } from './pages/OutfitCreatorPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { StatisticsPage } from './pages/StatisticsPage'
+import { StatisticsItemListPage } from './pages/StatisticsItemListPage'
 import { WearLogPage } from './pages/WearLogPage'
 
 function AuthenticatedApp() {
@@ -62,6 +65,18 @@ function AuthenticatedApp() {
           <Route path="/more" element={<MorePage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/statistics" element={<StatisticsPage />} />
+          <Route
+            path="/statistics/replacement-lines"
+            element={<ReplacementLinesPage />}
+          />
+          <Route
+            path="/statistics/replacement-lines/review"
+            element={<ReplacementLegacyLinkReviewPage />}
+          />
+          <Route
+            path="/statistics/items"
+            element={<StatisticsItemListPage />}
+          />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

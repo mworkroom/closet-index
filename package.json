@@ -14,6 +14,8 @@
     "supabase": "supabase",
     "notion:extract": "node scripts/extract-notion.mjs",
     "notion:import": "node scripts/import-supabase.mjs",
+    "audit:phase4": "node scripts/audit-phase4-baseline.mjs",
+    "import:legacy-links": "node scripts/import-replacement-legacy-links.mjs",
     "outfit:preview": "node scripts/compose-outfit-preview.mjs",
     "outfit:upload": "node scripts/upload-outfit-preview.mjs",
     "outfit:preview:audit": "node scripts/audit-outfit-previews.mjs",

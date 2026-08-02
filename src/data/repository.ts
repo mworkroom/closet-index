@@ -10,6 +10,9 @@ import type {
   OutfitCreateInput,
   OutfitItemPlacementInput,
   OutfitPreviewUploadInput,
+  ReplacementLineSnapshot,
+  ReplacementLegacyLink,
+  ReplacementLegacyLinkReviewInput,
   WeatherForecastRequest,
   WeatherForecastResponse,
   WeatherLocation,
@@ -20,6 +23,12 @@ import type {
 
 export interface ClosetRepository {
   load(): Promise<AppData>
+  loadReplacementLines?(): Promise<ReplacementLineSnapshot>
+  loadReplacementLegacyLinks?(): Promise<ReplacementLegacyLink[]>
+  reviewReplacementLegacyLink?(
+    linkId: string,
+    input: ReplacementLegacyLinkReviewInput,
+  ): Promise<ReplacementLegacyLink>
   createItem(input: ItemCreateInput): Promise<Item>
   updateItem(itemId: string, input: ItemWriteInput): Promise<Item>
   replaceItemImage(

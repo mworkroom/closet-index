@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -184,6 +184,21 @@ describe('Item editor', () => {
       await screen.findByRole('link', { name: '정보 수정' }),
     ).toBeInTheDocument()
     expect(screen.getByText('착용 횟수')).toBeInTheDocument()
+    const monthlyWearSection = screen
+      .getByRole('heading', { name: '월별 착용 분포' })
+      .closest('section')!
+    expect(
+      within(monthlyWearSection).getByText(/전체 기록 기간/),
+    ).toBeInTheDocument()
+    expect(
+      within(monthlyWearSection).getAllByRole('img'),
+    ).toHaveLength(12)
+    expect(
+      within(monthlyWearSection).getByRole('img', { name: /4월 \d+회/ }),
+    ).toBeInTheDocument()
+    expect(
+      within(monthlyWearSection).getByRole('img', { name: '1월 0회' }),
+    ).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: '포함된 Outfit' })).toBeInTheDocument()
     expect(screen.queryByText('조건 적합성')).not.toBeInTheDocument()
     expect(

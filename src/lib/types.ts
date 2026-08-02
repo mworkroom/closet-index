@@ -272,6 +272,43 @@ export interface AppData {
   weatherLocations?: WeatherLocation[]
 }
 
+export interface ReplacementLineRecord {
+  id: string
+  name: string
+  styleIdentity: string | null
+}
+
+export interface ReplacementLineMembership {
+  replacementLineId: string
+  itemId: string
+}
+
+export interface ReplacementLineSnapshot {
+  lines: ReplacementLineRecord[]
+  memberships: ReplacementLineMembership[]
+}
+
+export type ReplacementLegacyLinkDecision =
+  | 'a_to_b'
+  | 'b_to_a'
+  | 'parallel'
+  | 'not_replacement'
+
+export interface ReplacementLegacyLink {
+  id: string
+  itemAId: string
+  itemBId: string
+  reviewStatus: 'pending' | 'reviewed'
+  reviewDecision: ReplacementLegacyLinkDecision | null
+  reviewReason: string | null
+  reviewedAt: string | null
+}
+
+export interface ReplacementLegacyLinkReviewInput {
+  decision: ReplacementLegacyLinkDecision
+  reason: string
+}
+
 export interface RecommendationInput {
   tempOut: number
   tempBack: number | null

@@ -45,6 +45,14 @@ describe('Outfit clone and archive management', () => {
     expect(
       screen.getByRole('link', { name: '이 착장으로 새로 만들기' }),
     ).toHaveAttribute('href', '/outfits/new?source=outfit-favorite')
+    expect(screen.queryByText('MANAGE')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: '착장 관리' }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText('저장 Preview')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Preview 만들기|다시 만들기/ }),
+    ).not.toBeInTheDocument()
     const management = document.querySelector<HTMLElement>('.record-management')
     expect(management).toBeInTheDocument()
     expect(within(management!).getByRole('button', { name: '삭제' })).toBeDisabled()

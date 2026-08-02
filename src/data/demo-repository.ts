@@ -9,6 +9,9 @@ import type {
   OutfitCreateInput,
   OutfitItemPlacementInput,
   OutfitPreviewUploadInput,
+  ReplacementLineSnapshot,
+  ReplacementLegacyLink,
+  ReplacementLegacyLinkReviewInput,
   WeatherForecastRequest,
   WeatherForecastResponse,
   WeatherLocation,
@@ -20,6 +23,87 @@ import { demoData } from './demo-data'
 import type { ClosetRepository } from './repository'
 
 const STORAGE_KEY = 'closet-index-demo-data-v3'
+const LEGACY_LINK_REVIEW_STORAGE_KEY =
+  'closet-index-demo-legacy-link-reviews:v1'
+
+const demoReplacementLineSnapshot: ReplacementLineSnapshot = {
+  lines: [
+    {
+      id: 'line-soft-layer',
+      name: 'Soft Layer',
+      styleIdentity: 'Soft Structure',
+    },
+    {
+      id: 'line-everyday-shoes',
+      name: 'Everyday Shoes',
+      styleIdentity: 'Daily Uniform',
+    },
+    {
+      id: 'line-blue-layer',
+      name: 'Blue Layer',
+      styleIdentity: 'Daily Uniform',
+    },
+    {
+      id: 'line-navy-tee',
+      name: 'Navy Tee',
+      styleIdentity: 'Daily Uniform',
+    },
+    {
+      id: 'line-future-dress',
+      name: 'Future Black Dress',
+      styleIdentity: null,
+    },
+  ],
+  memberships: [
+    { replacementLineId: 'line-soft-layer', itemId: 'item-cardigan' },
+    { replacementLineId: 'line-soft-layer', itemId: 'item-knit' },
+    { replacementLineId: 'line-everyday-shoes', itemId: 'item-shoes' },
+    { replacementLineId: 'line-everyday-shoes', itemId: 'item-loafers' },
+    { replacementLineId: 'line-blue-layer', itemId: 'item-cardigan' },
+    { replacementLineId: 'line-navy-tee', itemId: 'item-tee' },
+  ],
+}
+
+const demoReplacementLegacyLinks: ReplacementLegacyLink[] = [
+  {
+    id: 'legacy-layer',
+    itemAId: 'item-cardigan',
+    itemBId: 'item-knit',
+    reviewStatus: 'pending',
+    reviewDecision: null,
+    reviewReason: null,
+    reviewedAt: null,
+  },
+  {
+    id: 'legacy-shoes',
+    itemAId: 'item-loafers',
+    itemBId: 'item-shoes',
+    reviewStatus: 'pending',
+    reviewDecision: null,
+    reviewReason: null,
+    reviewedAt: null,
+  },
+]
+
+function readDemoReplacementLegacyLinks() {
+  try {
+    const stored = window.localStorage.getItem(LEGACY_LINK_REVIEW_STORAGE_KEY)
+    if (!stored) return structuredClone(demoReplacementLegacyLinks)
+    const reviews = JSON.parse(stored) as Record<
+      string,
+      Pick<
+        ReplacementLegacyLink,
+        'reviewStatus' | 'reviewDecision' | 'reviewReason' | 'reviewedAt'
+      >
+    >
+    return demoReplacementLegacyLinks.map((link) => ({
+      ...link,
+      ...(reviews[link.id] ?? {}),
+    }))
+  } catch {
+    return structuredClone(demoReplacementLegacyLinks)
+  }
+}
 
 function normalizeItem(input: ItemWriteInput, id: string): Item {
   const name = input.name.trim()
@@ -98,6 +182,53 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 export class DemoRepository implements ClosetRepository {
   async load() {
     return readData()
+  }
+
+  async loadReplacementLines() {
+    return structuredClone(demoReplacementLineSnapshot)
+  }
+
+  async loadReplacementLegacyLinks() {
+    return readDemoReplacementLegacyLinks()
+  }
+
+  async reviewReplacementLegacyLink(
+    linkId: string,
+    input: ReplacementLegacyLinkReviewInput,
+  ) {
+    const links = readDemoReplacementLegacyLinks()
+    const link = links.find((entry) => entry.id === linkId)
+    if (!link || link.reviewStatus !== 'pending') {
+      throw new Error('검토할 Legacy Link를 찾지 못했습니다.')
+    }
+    const reason = input.reason.trim()
+    if (!reason) throw new Error('선택 이유를 입력해 주세요.')
+    const reviewed: ReplacementLegacyLink = {
+      ...link,
+      reviewStatus: 'reviewed',
+      reviewDecision: input.decision,
+      reviewReason: reason,
+      reviewedAt: new Date().toISOString(),
+    }
+    const reviews = Object.fromEntries(
+      links
+        .map((entry) => (entry.id === linkId ? reviewed : entry))
+        .filter((entry) => entry.reviewStatus === 'reviewed')
+        .map((entry) => [
+          entry.id,
+          {
+            reviewStatus: entry.reviewStatus,
+            reviewDecision: entry.reviewDecision,
+            reviewReason: entry.reviewReason,
+            reviewedAt: entry.reviewedAt,
+          },
+        ]),
+    )
+    window.localStorage.setItem(
+      LEGACY_LINK_REVIEW_STORAGE_KEY,
+      JSON.stringify(reviews),
+    )
+    return reviewed
   }
 
   async createItem(input: ItemCreateInput) {

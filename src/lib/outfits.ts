@@ -34,9 +34,21 @@ export function getItemStats(
   const logs = wearLogs
     .filter((log) => outfitIds.has(log.outfitId))
     .sort((a, b) => b.wornOn.localeCompare(a.wornOn))
+  const monthlyWearCounts = Array.from({ length: 12 }, () => 0)
+  for (const log of logs) {
+    const month = Number(log.wornOn.slice(5, 7))
+    if (month >= 1 && month <= 12) monthlyWearCounts[month - 1] += 1
+  }
+  const wornMonthCount = monthlyWearCounts.filter(
+    (count) => count > 0,
+  ).length
 
   return {
     wearCount: logs.length,
     lastWornOn: logs[0]?.wornOn ?? null,
+    firstWornOn: logs.at(-1)?.wornOn ?? null,
+    monthlyWearCounts,
+    wornMonthCount,
+    isYearRound: wornMonthCount === 12,
   }
 }
