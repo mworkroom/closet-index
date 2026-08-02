@@ -1,4 +1,4 @@
-import compositionConfig from '../data/outfit-composition.v4.json'
+import compositionConfig from '../data/outfit-composition.v5.json'
 import type { Item, Outfit, OutfitItemPlacement } from './types'
 
 type Slot = (typeof compositionConfig.slots)[keyof typeof compositionConfig.slots]

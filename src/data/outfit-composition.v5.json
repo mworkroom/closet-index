@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "canvas": {
     "width": 900,
     "height": 1200
@@ -191,7 +191,7 @@
       "visualHeightWithoutOuter": 440,
       "defaultPositionXWhenOuter": -100,
       "defaultPositionYWhenOuter": 64,
-      "defaultScaleWhenOuter": 1.15,
+      "defaultScaleWhenOuter": 0.9,
       "defaultPositionYWithoutOuter": 52,
       "defaultScaleWithoutOuter": 0.9
     },

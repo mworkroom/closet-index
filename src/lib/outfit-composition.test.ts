@@ -36,7 +36,7 @@ function item(
   }
 }
 
-describe('browser outfit composition v4', () => {
+describe('browser outfit composition v5', () => {
   it('uses the shared scarf position and sock placement defaults', () => {
     expect(
       getOutfitItemPlacementDefaults(item('scarf', 'Acc-Neck'), false),
@@ -78,7 +78,7 @@ describe('browser outfit composition v4', () => {
     const expected = {
       positionX: -100,
       positionY: 64,
-      itemScale: 1.15,
+      itemScale: 0.9,
     }
 
     expect(
@@ -95,6 +95,38 @@ describe('browser outfit composition v4', () => {
         'side',
       ),
     ).toEqual(expected)
+  })
+
+  it('keeps a manually adjusted separated T-shirt scale', () => {
+    const tee = item('tee', 'Top-T-shirts', 1108, 1213)
+    const outer = item('outer', 'Outer-Jacket', 1028, 1147)
+    const outfit: Outfit = {
+      id: 'manually-scaled-side-tee',
+      displayName: null,
+      rating: null,
+      itemIds: [tee.id, outer.id],
+      itemPlacements: [
+        {
+          itemId: tee.id,
+          slot: 'top',
+          positionX: -100,
+          positionY: 64,
+          itemScale: 1,
+          zIndex: 0,
+        },
+      ],
+    }
+
+    const sideTee = composeOutfitLayers(outfit, [tee, outer]).find(
+      (layer) => layer.item.id === tee.id,
+    )!
+    const defaultSideTee = composeOutfitLayers(
+      { ...outfit, itemPlacements: undefined },
+      [tee, outer],
+    ).find((layer) => layer.item.id === tee.id)!
+
+    expect(sideTee.width).toBeGreaterThan(defaultSideTee.width)
+    expect(sideTee.width / defaultSideTee.width).toBeCloseTo(1 / 0.9)
   })
 
   it('places a waist accessory over the top and bottom without changing its ratio', () => {
@@ -273,7 +305,7 @@ describe('browser outfit composition v4', () => {
     expect(automaticInnerwear.zIndex).toBe(40)
     expect(sideInnerwear.zIndex).toBe(0)
     expect(sideInnerwear.left).toBeGreaterThan(automaticInnerwear.left)
-    expect(sideInnerwear.left).toBeCloseTo(469.575)
+    expect(sideInnerwear.left).toBeCloseTo(504.45)
     expect(sideInnerwear.top).toBeCloseTo(234)
   })
 
