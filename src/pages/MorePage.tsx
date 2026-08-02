@@ -1,13 +1,13 @@
-import { BarChart3, CalendarDays, ChevronRight, Settings } from 'lucide-react'
+import { BarChart3, ChevronRight, Heart, Settings } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 
 const links = [
   {
-    to: '/calendar',
-    title: 'Calendar',
-    description: '날짜별 착용 기록 확인·수정',
-    icon: CalendarDays,
+    to: '/favorite',
+    title: 'Favorite',
+    description: 'Favorite 착장만 모아보기',
+    icon: Heart,
   },
   {
     to: '/statistics',

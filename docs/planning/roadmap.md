@@ -1,9 +1,9 @@
 # Closet Index Roadmap
 
-- 최종 수정일: 2026-07-29
+- 최종 수정일: 2026-08-02
 - 문서 상태: 기준 문서
-- 현재 위치: Phase 2 구현·공개·실제 Wear Log 경로 검증 완료, Phase 3 구현 전 확인 대기
-- 관련 문서: [Product Plan](./product-plan.md), [Phase 1 MVP Spec](./phase-1-mvp-spec.md), [Implementation Status](./phase-1-implementation-status.md), [Phase 2 Weather Plan](./phase-2-weather-plan.md), [Phase 3 Visual Wardrobe Plan](./phase-3-visual-wardrobe-plan.md)
+- 현재 위치: Phase 3 완료, Phase 3.5 로컬 구현·검증 완료 및 공개 배포 전, Phase 4는 계획만 완료하고 P4-0 시작 전
+- 관련 문서: [Product Plan](./product-plan.md), [Phase 1 MVP Spec](./phase-1-mvp-spec.md), [Implementation Status](./phase-1-implementation-status.md), [Phase 2 Weather Plan](./phase-2-weather-plan.md), [Phase 3 Visual Wardrobe Plan](./phase-3-visual-wardrobe-plan.md), [Phase 3.5 Calendar & Navigation Upgrade](<./Phase 3.5 — Calendar & Navigation Upgrade.md>)
 
 ## 이 문서의 목적
 
@@ -46,6 +46,7 @@ MVP는 기능의 범위이고, Phase는 작업 순서이며, v1.0은 검증을 �
 | Phase 1B | Visual MVP 및 v1.0 | 대표 착장 이미지, 고정 슬롯 카드, 모바일 실사용 | 핵심 흐름을 실제 생활에서 반복 사용 가능함 |
 | Phase 2 | 날씨 자동화 | 출발·귀가 시각 기반 예보, 평균 온도와 경고 | 수동 온도 계산 없이 신뢰할 수 있는 후보가 나옴 |
 | Phase 3 | 시각 옷장 확장 | 이미지 범위 확대, 코디 만들기, 미리보기 생성 | 새 아이템과 새 착장을 앱 안에서 관리 가능함 |
+| Phase 3.5 | Calendar·내비게이션 개선 | 월요일 시작 월간 착장 달력, 전면 메뉴 재배치 | 한 달 착장을 한 화면에서 보고 기존 착장으로 바로 이동할 수 있음 |
 | Phase 4 | 유지관리·고급 통계 | 세탁, 교체 계보, 알림, 고급 통계 | 반복 관리 업무까지 앱에서 안정적으로 처리함 |
 
 ## Phase 0 — Discovery & Product Rules
@@ -180,6 +181,30 @@ J가 직접 온도를 확인하고 평균을 계산하던 과정을 자동화한
 - 기존 착장은 수정되지 않고 복제를 통해 새 고정 조합으로 저장된다.
 - 이미지와 relation이 어긋났을 때 찾고 복구할 수 있다.
 
+## Phase 3.5 — Calendar & Navigation Upgrade
+
+- 상세 실행 계획: [Phase 3.5 Calendar & Navigation Upgrade](<./Phase 3.5 — Calendar & Navigation Upgrade.md>)
+
+### 목표
+
+Phase 4에 들어가기 전에 자주 쓰는 Calendar를 전면 메뉴로 옮기고, 이번 달에 입은 착장을 한눈에 확인하는 월간 화면으로 완성한다.
+
+### 주요 범위
+
+- 하단 탭을 `Home → Calendar → Closet → Lookbook → More`로 재배치
+- Favorite를 More 첫 항목으로 이동
+- 월요일 시작의 5주·6주 월간 착장 달력
+- Calendar chrome과 접근성 이름을 영어로 통일
+- 단일 착장 직접 상세 이동과 복수 착장 선택 시트
+- Wear Log 수정·삭제 진입점을 Outfit 상세 이력으로 이동
+
+### 완료 조건
+
+- 5주·6주 달력이 하단 메뉴 위의 높이를 사용하고 모바일에서 겹치지 않는다.
+- 날짜별 착장 유무와 복수 기록을 한 화면에서 구분할 수 있다.
+- 단일 기록은 기존 Outfit 상세로 바로 이동하고 복수 기록은 선택 후 이동한다.
+- 기존 Wear Log, 통계, URL, Supabase 데이터 계약이 유지된다.
+
 ## Phase 4 — Maintenance & Insights
 
 - 상세 실행 계획: [Phase 4 Maintenance & Insights Plan](./phase-4-maintenance-insights-plan.md)
@@ -204,7 +229,9 @@ Phase 4 기능은 실제 v1.0 사용에서 필요성이 확인된 항목부터 �
 
 1. [완료] Phase 2 Weather Automation 구현·검증·공개
 2. [완료] Phase 3 Visual Wardrobe Expansion 구현·검증·공개
-3. [완료] Phase 4 Maintenance & Insights 상세 계획 수립
-4. Phase 4 P4-0에서 production 통계·Replacement Line 기준선을 읽기 전용으로 확인
-5. 실제 데이터 분포를 바탕으로 통계 기간, 장기 미착용, 최근 반복 기준을 J와 확정
-6. 확정된 계산 계약부터 P4-1을 시작하고 세탁·알림은 별도 착수 조건까지 보류
+3. [로컬 완료] Phase 3.5 Calendar & Navigation Upgrade 구현·검증
+4. Phase 3.5를 실제 iPhone과 공개 환경에서 확인하고 배포 상태를 기록
+5. [완료] Phase 4 Maintenance & Insights 상세 계획 수립
+6. Phase 4 P4-0에서 production 통계·Replacement Line 기준선을 읽기 전용으로 확인
+7. 실제 데이터 분포를 바탕으로 통계 기간, 장기 미착용, 최근 반복 기준을 J와 확정
+8. 확정된 계산 계약부터 P4-1을 시작하고 세탁·알림은 별도 착수 조건까지 보류

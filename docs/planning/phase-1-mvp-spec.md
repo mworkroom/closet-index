@@ -1,11 +1,13 @@
 # Closet Index Phase 1 MVP Spec
 
-- 최종 수정일: 2026-07-27
+- 최종 수정일: 2026-08-02
 - 문서 상태: Phase 1A Technical Alpha와 Phase 1B B1~B5 구현 완료, B6 통합 검증 전
 - 확정 범위: 화면과 내비게이션, 시각 방향, 색상 스와치, 착용 기록, 추천 규칙, 데이터 모델, RLS, 이전 도구, 수용 기준, 원본 전환
 - 미확정 범위: 커스텀 아이콘별 최종 HEX, Batch 1 이후 pilot 확대 시점, 실제 전환일
 - 상위 문서: [Product Plan](./product-plan.md), [Roadmap](./roadmap.md)
 - 세부 문서: [Data & Security](./phase-1-data-security-spec.md), [Notion Migration Map](./notion-migration-map.md), [Acceptance Checklist](./phase-1-acceptance-checklist.md), [Implementation Status](./phase-1-implementation-status.md), [Phase 1B Plan](./phase-1b-plan.md)
+
+> 이 문서의 하단 내비게이션, More, Calendar 화면 명세는 Phase 1 당시의 역사적 기준이다. 현재 동작은 [Phase 3.5 Calendar & Navigation Upgrade](<./Phase 3.5 — Calendar & Navigation Upgrade.md>)가 대체하며, 데이터·보안·추천 등 나머지 Phase 1 계약은 계속 유지한다.
 
 ## 1. 문서의 역할
 

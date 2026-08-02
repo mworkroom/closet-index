@@ -30,19 +30,23 @@ export function EmptyState({
 export function ErrorState({
   message,
   onRetry,
+  title = '문제가 생겼어요',
+  retryLabel = '다시 시도',
 }: {
   message: string
   onRetry?: () => void
+  title?: string
+  retryLabel?: string
 }) {
   return (
     <div className="state-card state-card--error" role="alert">
       <AlertCircle size={22} aria-hidden="true" />
-      <p className="state-card__title">문제가 생겼어요</p>
+      <p className="state-card__title">{title}</p>
       <p className="muted">{message}</p>
       {onRetry && (
         <button className="button button--secondary" type="button" onClick={onRetry}>
           <RotateCcw size={17} aria-hidden="true" />
-          다시 시도
+          {retryLabel}
         </button>
       )}
     </div>

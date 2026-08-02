@@ -62,6 +62,7 @@ export function OutfitDetailPage() {
     refresh,
     setOutfitArchived,
     deleteOutfit,
+    deleteWearLog,
     updateOutfitItemPlacement,
     replaceOutfitPreview,
   } = useClosetData()
@@ -70,6 +71,10 @@ export function OutfitDetailPage() {
   const [deleteConfirming, setDeleteConfirming] = useState(false)
   const [deleteSaving, setDeleteSaving] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleteLogConfirmingId, setDeleteLogConfirmingId] = useState<string | null>(
+    null,
+  )
+  const [deletingLogId, setDeletingLogId] = useState<string | null>(null)
   const [previewSaving, setPreviewSaving] = useState(false)
   const [previewSaved, setPreviewSaved] = useState(false)
   const [previewError, setPreviewError] = useState<string | null>(null)
@@ -123,6 +128,19 @@ export function OutfitDetailPage() {
       )
     } finally {
       setDeleteSaving(false)
+    }
+  }
+
+  const removeWearLog = async (id: string) => {
+    if (deletingLogId) return
+    setDeletingLogId(id)
+    try {
+      await deleteWearLog(id)
+      setDeleteLogConfirmingId(null)
+    } catch {
+      // DataContext에서 공통 오류 메시지를 표시한다.
+    } finally {
+      setDeletingLogId(null)
     }
   }
 
@@ -442,7 +460,16 @@ export function OutfitDetailPage() {
                   <article className="history-card" key={log.id}>
                     <div className="history-card__heading">
                       <strong>{log.wornOn}</strong>
-                      <Link to={`/records/${log.id}/edit`}>수정</Link>
+                      <div className="history-card__actions">
+                        <Link to={`/records/${log.id}/edit`}>수정</Link>
+                        <button
+                          type="button"
+                          disabled={deletingLogId === log.id}
+                          onClick={() => setDeleteLogConfirmingId(log.id)}
+                        >
+                          삭제
+                        </button>
+                      </div>
                     </div>
                     <div className="history-card__facts">
                       <span>
@@ -476,6 +503,30 @@ export function OutfitDetailPage() {
                         걷기 {log.longWalkCondition === 'yes' ? '해당' : '해당 없음'}
                       </span>
                     </div>
+                    {deleteLogConfirmingId === log.id && (
+                      <div className="history-card__confirmation" role="alert">
+                        <strong>이 착용 기록을 삭제할까요?</strong>
+                        <p>삭제 후 착용 횟수와 관련 통계가 다시 계산됩니다.</p>
+                        <div>
+                          <button
+                            className="button button--secondary"
+                            type="button"
+                            disabled={deletingLogId === log.id}
+                            onClick={() => setDeleteLogConfirmingId(null)}
+                          >
+                            취소
+                          </button>
+                          <button
+                            className="button button--danger"
+                            type="button"
+                            disabled={deletingLogId === log.id}
+                            onClick={() => void removeWearLog(log.id)}
+                          >
+                            {deletingLogId === log.id ? '삭제 중' : '삭제 확인'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </article>
                 ))}
               </div>

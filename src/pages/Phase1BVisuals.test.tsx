@@ -415,8 +415,13 @@ describe('Phase 1B screen visuals', () => {
       <CalendarPage />,
     )
 
-    await screen.findByText('CGV용산')
-    expect(document.querySelectorAll('.record-card__preview')).toHaveLength(1)
+    await screen.findByRole('grid', { name: 'May 2026' })
+    expect(document.querySelectorAll('.calendar-outfit-visual')).toHaveLength(1)
+    expect(
+      screen.getByRole('link', {
+        name: /for Sunday, May 3, 2026/,
+      }),
+    ).toHaveAttribute('href', '/outfits/outfit-favorite')
     expect(
       screen.getByRole('img', {
         name: '블루 가디건 + 아이보리 니트 + 블랙 팬츠 외 1개 착장 미리보기',
@@ -430,8 +435,8 @@ describe('Phase 1B screen visuals', () => {
       <CalendarPage />,
     )
 
-    await screen.findByText('가볍게 걷는 날')
-    expect(document.querySelector('.record-card__preview')).toBeInTheDocument()
+    await screen.findByRole('grid', { name: 'June 2026' })
+    expect(document.querySelector('.calendar-outfit-visual')).toBeInTheDocument()
     expect(
       screen.getByRole('img', {
         name: '가볍게 걷는 날 조정 가능한 착장 미리보기',

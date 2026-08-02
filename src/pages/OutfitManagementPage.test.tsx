@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -45,7 +45,9 @@ describe('Outfit clone and archive management', () => {
     expect(
       screen.getByRole('link', { name: '이 착장으로 새로 만들기' }),
     ).toHaveAttribute('href', '/outfits/new?source=outfit-favorite')
-    expect(screen.getByRole('button', { name: '삭제' })).toBeDisabled()
+    const management = document.querySelector<HTMLElement>('.record-management')
+    expect(management).toBeInTheDocument()
+    expect(within(management!).getByRole('button', { name: '삭제' })).toBeDisabled()
     expect(screen.getByText('착용 기록 2개가 있어 삭제할 수 없습니다.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '보관' }))
     expect(screen.getByRole('alert')).toHaveTextContent(
@@ -69,6 +71,33 @@ describe('Outfit clone and archive management', () => {
         (log) => log.outfitId === 'outfit-favorite',
       ),
     ).toHaveLength(2)
+  })
+
+  it('착장 상세의 착용 이력에서 기록을 확인 후 삭제한다', async () => {
+    const user = userEvent.setup()
+    const repository = new DemoRepository()
+    const deleteWearLog = vi.spyOn(repository, 'deleteWearLog')
+
+    renderOutfitRoutes(repository, '/outfits/outfit-favorite')
+
+    const date = await screen.findByText('2026-05-03')
+    const historyCard = date.closest<HTMLElement>('.history-card')
+    expect(historyCard).toBeInTheDocument()
+    await user.click(within(historyCard!).getByRole('button', { name: '삭제' }))
+    expect(within(historyCard!).getByRole('alert')).toHaveTextContent(
+      '삭제 후 착용 횟수와 관련 통계가 다시 계산됩니다.',
+    )
+    await user.click(
+      within(historyCard!).getByRole('button', { name: '삭제 확인' }),
+    )
+
+    expect(await screen.findByText('1개 기록')).toBeInTheDocument()
+    expect(deleteWearLog).toHaveBeenCalledWith('log-2')
+    expect(
+      (await repository.load()).wearLogs.filter(
+        (log) => log.outfitId === 'outfit-favorite',
+      ),
+    ).toHaveLength(1)
   })
 
   it('착용 기록이 없는 Outfit은 확인 뒤 영구 삭제한다', async () => {
