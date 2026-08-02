@@ -8,6 +8,7 @@ import type {
   Outfit,
   OutfitCloneInput,
   OutfitCreateInput,
+  OutfitUpdateInput,
   OutfitItemPlacementInput,
   OutfitPreviewUploadInput,
   ReplacementLineSnapshot,
@@ -44,6 +45,7 @@ export interface ClosetRepository {
   ): Promise<void>
   findMatchingOutfits(itemIds: string[]): Promise<MatchingOutfit[]>
   createOutfit(input: OutfitCreateInput): Promise<Outfit>
+  updateOutfit(outfitId: string, input: OutfitUpdateInput): Promise<Outfit>
   cloneOutfit(input: OutfitCloneInput): Promise<Outfit>
   setOutfitArchived(outfitId: string, archived: boolean): Promise<void>
   deleteOutfit(outfitId: string): Promise<void>

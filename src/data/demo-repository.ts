@@ -7,6 +7,7 @@ import type {
   Outfit,
   OutfitCloneInput,
   OutfitCreateInput,
+  OutfitUpdateInput,
   OutfitItemPlacementInput,
   OutfitPreviewUploadInput,
   ReplacementLineSnapshot,
@@ -459,6 +460,53 @@ export class DemoRepository implements ClosetRepository {
     if (!outfit) throw new Error('Outfit을 찾을 수 없습니다.')
     outfit.archivedAt = archived ? new Date().toISOString() : null
     writeData(data)
+  }
+
+  async updateOutfit(
+    outfitId: string,
+    input: OutfitUpdateInput,
+  ): Promise<Outfit> {
+    const data = readData()
+    const outfit = data.outfits.find((entry) => entry.id === outfitId)
+    if (!outfit) throw new Error('Outfit을 찾을 수 없습니다.')
+    if (input.items.length === 0) {
+      throw new Error('Outfit에는 Item이 하나 이상 필요합니다.')
+    }
+
+    const itemIds = input.items.map((item) => item.itemId)
+    if (new Set(itemIds).size !== itemIds.length) {
+      throw new Error('같은 Item을 Outfit에 두 번 넣을 수 없습니다.')
+    }
+    if (
+      itemIds.some(
+        (itemId) => !data.items.some((item) => item.id === itemId),
+      )
+    ) {
+      throw new Error('Outfit Item을 찾을 수 없습니다.')
+    }
+    const duplicate = data.outfits.some(
+      (entry) =>
+        entry.id !== outfitId &&
+        itemSetKey(entry.itemIds) === itemSetKey(itemIds),
+    )
+    if (!input.allowDuplicate && duplicate) {
+      throw new Error('같은 Item 조합의 Outfit이 이미 있습니다.')
+    }
+
+    outfit.displayName = input.displayName?.trim() || null
+    outfit.itemIds = itemIds
+    outfit.itemPlacements = input.items.map((item) => ({
+      itemId: item.itemId,
+      slot: item.slot,
+      positionX: item.positionX,
+      positionY: item.positionY,
+      itemScale: item.itemScale,
+      zIndex: item.zIndex,
+    }))
+    outfit.previewState = outfit.preview ? 'stale' : 'missing'
+    outfit.preview = null
+    writeData(data)
+    return outfit
   }
 
   async deleteOutfit(outfitId: string) {

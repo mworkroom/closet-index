@@ -17,6 +17,7 @@ function renderCreator(
         <DataProvider repository={repository}>
           <Routes>
             <Route path="/outfits/new" element={<OutfitCreatorPage />} />
+            <Route path="/outfits/:outfitId/edit" element={<OutfitCreatorPage />} />
             <Route path="/outfits/:outfitId" element={<p>저장 완료</p>} />
           </Routes>
         </DataProvider>
@@ -215,5 +216,37 @@ describe('Outfit creator', () => {
         (outfit) => outfit.id === 'outfit-favorite',
       ),
     ).toEqual(sourceBefore)
+  })
+
+  it('기존 Outfit에서 Item을 빼고 같은 ID로 수정한다', async () => {
+    const user = userEvent.setup()
+    const repository = new DemoRepository()
+    const updateOutfit = vi.spyOn(repository, 'updateOutfit')
+    const createOutfit = vi.spyOn(repository, 'createOutfit')
+
+    renderCreator(repository, '/outfits/outfit-favorite/edit')
+
+    expect(await screen.findByRole('heading', { name: '착장 수정' })).toBeInTheDocument()
+    await user.click(
+      (await screen.findAllByRole('button', { name: '블랙 팬츠 선택 해제' }))[0],
+    )
+    await user.click(screen.getByRole('button', { name: '변경 저장' }))
+
+    expect(await screen.findByText('저장 완료')).toBeInTheDocument()
+    expect(createOutfit).not.toHaveBeenCalled()
+    expect(updateOutfit).toHaveBeenCalledWith(
+      'outfit-favorite',
+      expect.objectContaining({
+        allowDuplicate: false,
+        items: expect.not.arrayContaining([
+          expect.objectContaining({ itemId: 'item-pants' }),
+        ]),
+      }),
+    )
+    expect(
+      (await repository.load()).outfits.find(
+        (outfit) => outfit.id === 'outfit-favorite',
+      )?.itemIds,
+    ).not.toContain('item-pants')
   })
 })

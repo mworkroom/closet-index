@@ -8,6 +8,7 @@ import {
   CircleHelp,
   CloudRain,
   Copy,
+  Pencil,
   Footprints,
   MapPin,
   RotateCcw,
@@ -354,13 +355,22 @@ export function OutfitDetailPage() {
           </section>
 
           <section className="section">
-            <Link
-              className="button button--secondary button--wide"
-              to={`/outfits/new?source=${encodeURIComponent(outfit.id)}`}
-            >
-              <Copy size={17} aria-hidden="true" />
-              이 착장으로 새로 만들기
-            </Link>
+            <div className="record-management__actions">
+              <Link
+                className="button button--primary"
+                to={`/outfits/${encodeURIComponent(outfit.id)}/edit`}
+              >
+                <Pencil size={17} aria-hidden="true" />
+                착장 수정
+              </Link>
+              <Link
+                className="button button--secondary"
+                to={`/outfits/new?source=${encodeURIComponent(outfit.id)}`}
+              >
+                <Copy size={17} aria-hidden="true" />
+                새로 만들기
+              </Link>
+            </div>
           </section>
 
           <section className="section">

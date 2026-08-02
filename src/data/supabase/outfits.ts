@@ -4,6 +4,7 @@ import type {
   Outfit,
   OutfitCloneInput,
   OutfitCreateInput,
+  OutfitUpdateInput,
   OutfitItemPlacementInput,
   OutfitPreviewUploadInput,
 } from '../../lib/types'
@@ -123,6 +124,37 @@ export class SupabaseOutfitRepository {
       })),
       preview: null,
       previewState: 'missing',
+    }
+  }
+
+  async update(outfitId: string, input: OutfitUpdateInput): Promise<Outfit> {
+    const { data, error } = await this.client.rpc('update_closet_outfit', {
+      p_workspace_id: this.workspaceId,
+      p_outfit_id: outfitId,
+      p_display_name: input.displayName?.trim() || null,
+      p_items: input.items.map(toOutfitItemWriteRow),
+      p_allow_duplicate: input.allowDuplicate,
+    })
+    if (error) throw error
+
+    const row = (Array.isArray(data) ? data[0] : data) as OutfitRow | null
+    if (!row) throw new Error('수정된 Outfit을 불러오지 못했습니다.')
+    return {
+      id: row.id,
+      displayName: row.display_name,
+      rating: row.rating,
+      archivedAt: row.archived_at ?? null,
+      itemIds: input.items.map((item) => item.itemId),
+      itemPlacements: input.items.map((item) => ({
+        itemId: item.itemId,
+        slot: item.slot,
+        positionX: item.positionX,
+        positionY: item.positionY,
+        itemScale: item.itemScale,
+        zIndex: item.zIndex,
+      })),
+      preview: null,
+      previewState: 'stale',
     }
   }
 

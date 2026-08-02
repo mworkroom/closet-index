@@ -1,6 +1,6 @@
 import { Check, Plus, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { ItemVisual } from '../components/ItemVisual'
 import { OutfitDraftPositionEditor } from '../components/OutfitDraftPositionEditor'
@@ -96,8 +96,10 @@ function buildDraftOutfit(
 
 export function OutfitCreatorPage() {
   const navigate = useNavigate()
+  const { outfitId: editOutfitId } = useParams()
   const [searchParams] = useSearchParams()
-  const sourceOutfitId = searchParams.get('source')
+  const isEditing = Boolean(editOutfitId)
+  const sourceOutfitId = editOutfitId ?? searchParams.get('source')
   const {
     data,
     loading,
@@ -105,10 +107,11 @@ export function OutfitCreatorPage() {
     refresh,
     findMatchingOutfits,
     createOutfit,
+    updateOutfit,
     replaceOutfitPreview,
   } = useClosetData()
   const { activeSeasons } = useSeasonScope()
-  const [outfitId] = useState(() => crypto.randomUUID())
+  const [outfitId] = useState(() => editOutfitId ?? crypto.randomUUID())
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [draftPlacements, setDraftPlacements] = useState(
     () => new Map<string, DraftPlacement>(),
@@ -133,7 +136,11 @@ export function OutfitCreatorPage() {
   useEffect(() => {
     if (!data || sourceApplied || !sourceOutfitId) return
     if (!sourceOutfit) {
-      setSourceError('복제할 원본 Outfit을 찾을 수 없습니다.')
+      setSourceError(
+        isEditing
+          ? '수정할 Outfit을 찾을 수 없습니다.'
+          : '복제할 원본 Outfit을 찾을 수 없습니다.',
+      )
       setSourceApplied(true)
       return
     }
@@ -159,7 +166,7 @@ export function OutfitCreatorPage() {
     setDraftPlacements(placements)
     setDisplayName(sourceOutfit.displayName ?? '')
     setSourceApplied(true)
-  }, [data, sourceApplied, sourceOutfit, sourceOutfitId])
+  }, [data, isEditing, sourceApplied, sourceOutfit, sourceOutfitId])
 
   const colors = useMemo(
     () =>
@@ -273,37 +280,47 @@ export function OutfitCreatorPage() {
     setSaveError(null)
     try {
       if (!allowDuplicate) {
-        const duplicateOutfits = await findMatchingOutfits(selectedIds)
+        const duplicateOutfits = (await findMatchingOutfits(selectedIds)).filter(
+          (outfit) => outfit.id !== editOutfitId,
+        )
         if (duplicateOutfits.length > 0) {
           setMatches(duplicateOutfits)
           return
         }
       }
 
-      const created = await createOutfit({
-        id: outfitId,
-        displayName: displayName.trim() || null,
-        allowDuplicate,
-        items: selectedIds.map((itemId, index) => {
-          const placement = draftOutfit.itemPlacements?.find(
-            (entry) => entry.itemId === itemId,
-          )
-          return {
-            itemId,
-            sortOrder: index,
-            slot: placement?.slot ?? null,
-            positionX: placement?.positionX ?? null,
-            positionY: placement?.positionY ?? null,
-            itemScale: placement?.itemScale ?? null,
-            zIndex: placement?.zIndex ?? null,
-          }
-        }),
+      const items = selectedIds.map((itemId, index) => {
+        const placement = draftOutfit.itemPlacements?.find(
+          (entry) => entry.itemId === itemId,
+        )
+        return {
+          itemId,
+          sortOrder: index,
+          slot: placement?.slot ?? null,
+          positionX: placement?.positionX ?? null,
+          positionY: placement?.positionY ?? null,
+          itemScale: placement?.itemScale ?? null,
+          zIndex: placement?.zIndex ?? null,
+        }
       })
+      const saved =
+        isEditing && editOutfitId
+          ? await updateOutfit(editOutfitId, {
+              displayName: displayName.trim() || null,
+              allowDuplicate,
+              items,
+            })
+          : await createOutfit({
+              id: outfitId,
+              displayName: displayName.trim() || null,
+              allowDuplicate,
+              items,
+            })
       let previewWarning: string | null = null
-      if (imageCount === selectedItems.length) {
+      if (!isEditing && imageCount === selectedItems.length) {
         try {
-          const preview = await prepareOutfitPreview(created, data?.items ?? [])
-          await replaceOutfitPreview(created.id, preview)
+          const preview = await prepareOutfitPreview(saved, data?.items ?? [])
+          await replaceOutfitPreview(saved.id, preview)
         } catch (cause) {
           previewWarning =
             cause instanceof Error
@@ -311,7 +328,7 @@ export function OutfitCreatorPage() {
               : '착장 preview를 만들지 못했습니다.'
         }
       }
-      navigate(`/outfits/${created.id}`, {
+      navigate(`/outfits/${saved.id}`, {
         replace: true,
         state: previewWarning ? { previewWarning } : undefined,
       })
@@ -327,12 +344,17 @@ export function OutfitCreatorPage() {
   const imageCount = selectedItems.filter((item) => Boolean(item.image)).length
 
   return (
-    <AppShell title="새 Outfit" eyebrow="CREATE OUTFIT" back hideNavigation>
+    <AppShell
+      title={isEditing ? '착장 수정' : '새 Outfit'}
+      eyebrow={isEditing ? 'EDIT OUTFIT' : 'CREATE OUTFIT'}
+      back
+      hideNavigation
+    >
       {loading && <LoadingState />}
       {error && <ErrorState message={error} onRetry={() => void refresh()} />}
       {data && (
         <>
-          {sourceOutfit && sourceApplied && (
+          {!isEditing && sourceOutfit && sourceApplied && (
             <section className="outfit-creator__source" role="status">
               <span>
                 <strong>원본 Outfit에서 복제 중</strong>
@@ -358,7 +380,7 @@ export function OutfitCreatorPage() {
             </div>
             {selectedItems.length === 0 ? (
               <p className="outfit-creator__empty-selection">
-                아래에서 Item을 골라 새 착장을 구성해 주세요.
+                아래에서 Item을 골라 착장을 구성해 주세요.
               </p>
             ) : (
               <div className="outfit-creator__selected-list">
@@ -567,7 +589,11 @@ export function OutfitCreatorPage() {
                   disabled={saving}
                   onClick={() => void save(true)}
                 >
-                  {saving ? '저장 중…' : '같은 조합으로 별도 저장'}
+                  {saving
+                    ? '저장 중…'
+                    : isEditing
+                      ? '같은 조합으로 수정'
+                      : '같은 조합으로 별도 저장'}
                 </button>
               </div>
             )}
@@ -583,11 +609,18 @@ export function OutfitCreatorPage() {
               disabled={selectedItems.length === 0 || saving || matches.length > 0}
               onClick={() => void save(false)}
             >
-              {saving ? 'Outfit과 preview 저장 중…' : '새 Outfit 저장'}
+              {saving
+                ? isEditing
+                  ? '변경 저장 중…'
+                  : 'Outfit과 preview 저장 중…'
+                : isEditing
+                  ? '변경 저장'
+                  : '새 Outfit 저장'}
             </button>
             <p className="outfit-creator__save-note">
-              저장할 때 새 Outfit과 모든 Item 관계를 한 번에 생성합니다. Wear Log는
-              자동으로 만들지 않습니다.
+              {isEditing
+                ? '이름과 구성 Item만 수정합니다. 평가, 보관 상태, Wear Log는 유지됩니다.'
+                : '저장할 때 새 Outfit과 모든 Item 관계를 한 번에 생성합니다. Wear Log는 자동으로 만들지 않습니다.'}
             </p>
           </section>
         </>

@@ -43,8 +43,12 @@ describe('Outfit clone and archive management', () => {
 
     expect(await screen.findByText('2개 기록')).toBeInTheDocument()
     expect(
-      screen.getByRole('link', { name: '이 착장으로 새로 만들기' }),
+      screen.getByRole('link', { name: '새로 만들기' }),
     ).toHaveAttribute('href', '/outfits/new?source=outfit-favorite')
+    expect(screen.getByRole('link', { name: '착장 수정' })).toHaveAttribute(
+      'href',
+      '/outfits/outfit-favorite/edit',
+    )
     expect(screen.queryByText('MANAGE')).not.toBeInTheDocument()
     expect(
       screen.queryByRole('heading', { name: '착장 관리' }),

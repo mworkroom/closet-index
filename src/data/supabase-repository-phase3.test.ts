@@ -202,6 +202,42 @@ describe('SupabaseRepository Phase 3 writes', () => {
     expect(builder.eq).toHaveBeenNthCalledWith(2, 'workspace_id', 'workspace')
   })
 
+  it('updates an existing Outfit and its relations through one RPC payload', async () => {
+    const rpc = vi.fn(async () => ({
+      data: {
+        id: 'outfit-existing',
+        display_name: '수정 착장',
+        rating: 'good',
+        archived_at: null,
+      },
+      error: null,
+    }))
+    const repository = new SupabaseRepository({ rpc } as unknown as SupabaseClient, 'workspace')
+
+    const outfit = await repository.updateOutfit('outfit-existing', {
+      displayName: ' 수정 착장 ',
+      allowDuplicate: false,
+      items: [{
+        itemId: 'item-coat', slot: 'outer', sortOrder: 0,
+        positionX: 0, positionY: 0, itemScale: 1, zIndex: 50,
+      }],
+    })
+
+    expect(rpc).toHaveBeenCalledWith('update_closet_outfit', {
+      p_workspace_id: 'workspace',
+      p_outfit_id: 'outfit-existing',
+      p_display_name: '수정 착장',
+      p_items: [{
+        item_id: 'item-coat', slot: 'outer', sort_order: 0,
+        position_x: 0, position_y: 0, item_scale: 1, z_index: 50,
+      }],
+      p_allow_duplicate: false,
+    })
+    expect(outfit).toMatchObject({
+      id: 'outfit-existing', rating: 'good', itemIds: ['item-coat'],
+    })
+  })
+
   it('routes Item and Outfit deletion through authenticated cleanup functions', async () => {
     const invoke = vi.fn(async () => ({ data: { deleted: true }, error: null }))
     const client = { functions: { invoke } } as unknown as SupabaseClient

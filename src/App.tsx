@@ -59,6 +59,7 @@ function AuthenticatedApp() {
           <Route path="/lookbook" element={<LookbookPage />} />
           <Route path="/favorite" element={<LookbookPage favoriteOnly />} />
           <Route path="/outfits/new" element={<OutfitCreatorPage />} />
+          <Route path="/outfits/:outfitId/edit" element={<OutfitCreatorPage />} />
           <Route path="/outfits/:outfitId" element={<OutfitDetailPage />} />
           <Route path="/wear/:outfitId" element={<WearLogPage />} />
           <Route path="/records/:logId/edit" element={<WearLogPage />} />

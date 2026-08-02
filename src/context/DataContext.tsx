@@ -17,6 +17,7 @@ import type {
   MatchingOutfit,
   Outfit,
   OutfitCreateInput,
+  OutfitUpdateInput,
   OutfitItemPlacementInput,
   OutfitPreviewUploadInput,
   ReplacementLineSnapshot,
@@ -56,6 +57,7 @@ interface DataState {
   ) => Promise<void>
   findMatchingOutfits: (itemIds: string[]) => Promise<MatchingOutfit[]>
   createOutfit: (input: OutfitCreateInput) => Promise<Outfit>
+  updateOutfit: (outfitId: string, input: OutfitUpdateInput) => Promise<Outfit>
   setOutfitArchived: (outfitId: string, archived: boolean) => Promise<void>
   deleteOutfit: (outfitId: string) => Promise<void>
   updateOutfitItemPlacement: (input: OutfitItemPlacementInput) => Promise<void>
@@ -297,6 +299,32 @@ export function DataProvider({
     [repository],
   )
 
+  const updateOutfit = useCallback(
+    async (outfitId: string, input: OutfitUpdateInput) => {
+      setError(null)
+      try {
+        const outfit = await repository.updateOutfit(outfitId, input)
+        setData((current) =>
+          current
+            ? {
+                ...current,
+                outfits: current.outfits.map((entry) =>
+                  entry.id === outfit.id ? outfit : entry,
+                ),
+              }
+            : current,
+        )
+        return outfit
+      } catch (cause) {
+        const message =
+          cause instanceof Error ? cause.message : 'Outfit을 수정하지 못했습니다.'
+        setError(message)
+        throw cause
+      }
+    },
+    [repository],
+  )
+
   const createItem = useCallback(
     async (input: ItemCreateInput) => {
       setError(null)
@@ -371,6 +399,7 @@ export function DataProvider({
         mutate(() => repository.updateItemSuitability(itemId, rainOk, longWalkOk)),
       findMatchingOutfits,
       createOutfit,
+      updateOutfit,
       setOutfitArchived,
       deleteOutfit: (outfitId) =>
         mutate(() => repository.deleteOutfit(outfitId)),
@@ -386,6 +415,7 @@ export function DataProvider({
     [
       createItem,
       createOutfit,
+      updateOutfit,
       data,
       error,
       loading,

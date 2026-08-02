@@ -272,6 +272,12 @@ export interface AppData {
   weatherLocations?: WeatherLocation[]
 }
 
+export interface OutfitUpdateInput {
+  displayName: string | null
+  items: OutfitItemWriteInput[]
+  allowDuplicate: boolean
+}
+
 export interface ReplacementLineRecord {
   id: string
   name: string
