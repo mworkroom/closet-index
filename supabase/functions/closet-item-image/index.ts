@@ -146,6 +146,20 @@ const authenticatedFetch = withSupabase(
         if (error) throw error
         return typeof data === 'string' ? data : null
       },
+      async deleteItem(input) {
+        const { data, error } = await context.supabaseAdmin.rpc(
+          'delete_closet_item_if_unreferenced',
+          {
+            p_user_id: input.userId,
+            p_workspace_id: input.workspaceId,
+            p_item_id: input.itemId,
+          },
+        )
+        if (error) throw error
+        return Array.isArray(data)
+          ? data.filter((path): path is string => typeof path === 'string')
+          : []
+      },
       async removeObjects(paths) {
         const { error } = await context.supabaseAdmin.storage
           .from(BUCKET)

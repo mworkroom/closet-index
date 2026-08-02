@@ -25,7 +25,17 @@ interface CancelRequest {
   imageId: string
 }
 
-type ItemImageRequest = BeginRequest | FinalizeRequest | CancelRequest
+interface DeleteRequest {
+  action: 'delete'
+  workspaceId: string
+  itemId: string
+}
+
+type ItemImageRequest =
+  | BeginRequest
+  | FinalizeRequest
+  | CancelRequest
+  | DeleteRequest
 
 export interface BeginUploadResult {
   imageId: string
@@ -65,6 +75,11 @@ export interface ItemImageHandlerDependencies {
     itemId: string
     imageId: string
   }): Promise<string | null>
+  deleteItem(input: {
+    userId: string
+    workspaceId: string
+    itemId: string
+  }): Promise<string[]>
   removeObjects(paths: string[]): Promise<void>
   createId(): string
 }
@@ -98,6 +113,8 @@ function parseRequest(value: unknown): ItemImageRequest | null {
   if (!isObject(value) || typeof value.action !== 'string') return null
   if (!isUuid(value.workspaceId) || !isUuid(value.itemId)) return null
 
+  if (value.action === 'delete') return value as unknown as DeleteRequest
+
   if (value.action === 'begin') {
     if (
       !positiveInteger(value.widthPx, ITEM_IMAGE_MAX_DIMENSION) ||
@@ -117,6 +134,13 @@ function parseRequest(value: unknown): ItemImageRequest | null {
   }
 
   return null
+}
+
+function deleteConflictMessage(cause: unknown): string | null {
+  if (!isObject(cause) || cause.code !== 'P0001') return null
+  return typeof cause.message === 'string'
+    ? cause.message
+    : '연결된 기록이 있어 삭제할 수 없습니다.'
 }
 
 async function safeRemove(
@@ -168,6 +192,16 @@ export async function handleItemImageRequest(
   }
 
   try {
+    if (input.action === 'delete') {
+      const storagePaths = await dependencies.deleteItem({
+        userId,
+        workspaceId: input.workspaceId,
+        itemId: input.itemId,
+      })
+      await safeRemove(dependencies, storagePaths)
+      return Response.json({ deleted: true })
+    }
+
     if (input.action === 'begin') {
       const imageId = dependencies.createId()
       const pending = await dependencies.beginUpload({
@@ -217,7 +251,11 @@ export async function handleItemImageRequest(
     const storagePath = await dependencies.cancelUpload(input)
     await safeRemove(dependencies, storagePath ? [storagePath] : [])
     return Response.json({ cancelled: true })
-  } catch {
+  } catch (cause) {
+    const conflict = deleteConflictMessage(cause)
+    if (conflict) {
+      return errorResponse(409, 'delete-blocked', conflict)
+    }
     return errorResponse(
       500,
       'image-operation-failed',

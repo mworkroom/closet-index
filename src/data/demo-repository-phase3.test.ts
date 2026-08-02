@@ -134,4 +134,39 @@ describe('DemoRepository Phase 3 writes', () => {
       archivedAt: expect.any(String),
     })
   })
+
+  it('연결된 기록은 보호하고 미연결 Item과 미착용 Outfit만 삭제한다', async () => {
+    const repository = new DemoRepository()
+    await repository.createItem(itemInput('item-unlinked'))
+    await repository.createOutfit({
+      id: 'outfit-unworn',
+      displayName: '미착용 착장',
+      items: [
+        {
+          itemId: 'item-cardigan',
+          slot: 'outer',
+          sortOrder: 0,
+          positionX: 0,
+          positionY: 0,
+          itemScale: 1,
+          zIndex: 10,
+        },
+      ],
+      allowDuplicate: true,
+    })
+
+    await expect(repository.deleteItem('item-cardigan')).rejects.toThrow(
+      '포함된 Outfit',
+    )
+    await expect(repository.deleteOutfit('outfit-favorite')).rejects.toThrow(
+      '착용 기록',
+    )
+
+    await repository.deleteItem('item-unlinked')
+    await repository.deleteOutfit('outfit-unworn')
+    const data = await repository.load()
+
+    expect(data.items.some((item) => item.id === 'item-unlinked')).toBe(false)
+    expect(data.outfits.some((outfit) => outfit.id === 'outfit-unworn')).toBe(false)
+  })
 })

@@ -33,6 +33,7 @@ function dependencies(): OutfitPreviewHandlerDependencies {
       replacedStoragePaths: ['old-ready.webp'],
     })),
     cancelUpload: vi.fn(async () => storagePath),
+    deleteOutfit: vi.fn(async () => [storagePath]),
     removeObjects: vi.fn(async () => undefined),
   }
 }
@@ -143,6 +144,44 @@ describe('closet outfit preview function contract', () => {
       workspaceId,
       outfitId,
       previewId,
+    })
+  })
+
+  it('deletes the Outfit metadata first and then removes returned preview objects', async () => {
+    const deps = dependencies()
+    const response = await handleOutfitPreviewRequest(
+      request({ action: 'delete', workspaceId, outfitId }),
+      'user-id',
+      deps,
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({ deleted: true })
+    expect(deps.deleteOutfit).toHaveBeenCalledWith({
+      userId: 'user-id',
+      workspaceId,
+      outfitId,
+    })
+    expect(deps.removeObjects).toHaveBeenCalledWith([storagePath])
+  })
+
+  it('returns a conflict when Wear Logs block Outfit deletion', async () => {
+    const deps = dependencies()
+    vi.mocked(deps.deleteOutfit).mockRejectedValue(
+      Object.assign(new Error('착용 기록이 있는 Outfit은 삭제할 수 없습니다.'), {
+        code: 'P0001',
+      }),
+    )
+
+    const response = await handleOutfitPreviewRequest(
+      request({ action: 'delete', workspaceId, outfitId }),
+      'user-id',
+      deps,
+    )
+
+    expect(response.status).toBe(409)
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: 'delete-blocked' },
     })
   })
 })

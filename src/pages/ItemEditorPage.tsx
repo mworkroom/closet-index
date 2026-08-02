@@ -1,3 +1,4 @@
+import { Archive, RotateCcw, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
@@ -41,6 +42,7 @@ export function ItemEditorPage() {
     createItem,
     updateItem,
     setItemRetired,
+    deleteItem,
   } = useClosetData()
   const editingItem = itemId
     ? data?.items.find((item) => item.id === itemId)
@@ -55,6 +57,9 @@ export function ItemEditorPage() {
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false)
   const [retireConfirming, setRetireConfirming] = useState(false)
   const [retireSaving, setRetireSaving] = useState(false)
+  const [deleteConfirming, setDeleteConfirming] = useState(false)
+  const [deleteSaving, setDeleteSaving] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!itemId || !editingItem || initializedItemId === itemId) return
@@ -101,6 +106,9 @@ export function ItemEditorPage() {
     )
   }, [data, form.category, form.name, itemId])
   const isShoes = form.category.toLocaleLowerCase().includes('shoe')
+  const linkedOutfitCount = itemId
+    ? (data?.outfits.filter((outfit) => outfit.itemIds.includes(itemId)).length ?? 0)
+    : 0
 
   const updateField = <Key extends keyof ItemWriteInput>(
     key: Key,
@@ -170,6 +178,22 @@ export function ItemEditorPage() {
       // DataContext owns the user-facing error state.
     } finally {
       setRetireSaving(false)
+    }
+  }
+
+  const removeItem = async () => {
+    if (!editingItem || deleteSaving || linkedOutfitCount > 0) return
+    setDeleteSaving(true)
+    setDeleteError(null)
+    try {
+      await deleteItem(editingItem.id)
+      navigate('/closet', { replace: true })
+    } catch (cause) {
+      setDeleteError(
+        cause instanceof Error ? cause.message : 'Item을 삭제하지 못했습니다.',
+      )
+    } finally {
+      setDeleteSaving(false)
     }
   }
 
@@ -383,64 +407,6 @@ export function ItemEditorPage() {
           </section>
         )}
 
-        {editingItem && (
-          <section className="panel item-lifecycle-panel">
-            <div>
-              <p className="eyebrow">STATUS</p>
-              <h2>상태 관리</h2>
-            </div>
-            <p>
-              현재 상태: <strong>{editingItem.retired ? 'Retired' : '사용 중'}</strong>
-            </p>
-            <p>
-              {editingItem.retired
-                ? '목록의 Retired 포함 필터에서 계속 확인할 수 있습니다.'
-                : '더 이상 사용하지 않는 Item은 기록을 지우지 않고 Retired로 전환합니다.'}
-            </p>
-            {editingItem.retired ? (
-              <button
-                className="button button--secondary button--wide"
-                type="button"
-                disabled={retireSaving}
-                onClick={() => void changeRetired(false)}
-              >
-                {retireSaving ? '변경 중…' : '사용 중으로 되돌리기'}
-              </button>
-            ) : retireConfirming ? (
-              <div className="retire-confirmation" role="alert">
-                <strong>이 Item을 Retired로 전환할까요?</strong>
-                <p>기존 Outfit과 착용 기록은 그대로 유지됩니다.</p>
-                <div>
-                  <button
-                    className="button button--secondary"
-                    type="button"
-                    disabled={retireSaving}
-                    onClick={() => setRetireConfirming(false)}
-                  >
-                    취소
-                  </button>
-                  <button
-                    className="button button--primary"
-                    type="button"
-                    disabled={retireSaving}
-                    onClick={() => void changeRetired(true)}
-                  >
-                    {retireSaving ? '변경 중…' : 'Retired로 전환'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                className="button button--secondary button--wide"
-                type="button"
-                onClick={() => setRetireConfirming(true)}
-              >
-                Retired로 전환
-              </button>
-            )}
-          </section>
-        )}
-
         {showDuplicateWarning && (
           <section className="duplicate-warning" role="alert">
             <strong>같은 이름과 카테고리의 Item이 이미 있습니다.</strong>
@@ -484,6 +450,105 @@ export function ItemEditorPage() {
           </button>
         </div>
       </form>
+
+      {editingItem && (
+        <section className="record-management" aria-label="Item 삭제 및 보관">
+          <div className="record-management__actions">
+            <button
+              className="button button--danger"
+              type="button"
+              disabled={deleteSaving || linkedOutfitCount > 0}
+              onClick={() => setDeleteConfirming(true)}
+            >
+              <Trash2 size={17} aria-hidden="true" />
+              삭제
+            </button>
+            <button
+              className="button button--secondary"
+              type="button"
+              disabled={retireSaving}
+              onClick={() =>
+                editingItem.retired
+                  ? void changeRetired(false)
+                  : setRetireConfirming(true)
+              }
+            >
+              {editingItem.retired ? (
+                <RotateCcw size={17} aria-hidden="true" />
+              ) : (
+                <Archive size={17} aria-hidden="true" />
+              )}
+              {retireSaving
+                ? '변경 중…'
+                : editingItem.retired
+                  ? '복원'
+                  : '보관'}
+            </button>
+          </div>
+
+          {linkedOutfitCount > 0 && (
+            <p className="record-management__help">
+              포함된 Outfit {linkedOutfitCount}개가 있어 삭제할 수 없습니다.
+            </p>
+          )}
+
+          {deleteConfirming && linkedOutfitCount === 0 && (
+            <div className="record-management__confirmation" role="alert">
+              <strong>이 Item을 영구 삭제할까요?</strong>
+              <p>삭제한 Item과 연결된 이미지는 복구할 수 없습니다.</p>
+              <div>
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  disabled={deleteSaving}
+                  onClick={() => setDeleteConfirming(false)}
+                >
+                  취소
+                </button>
+                <button
+                  className="button button--danger"
+                  type="button"
+                  disabled={deleteSaving}
+                  onClick={() => void removeItem()}
+                >
+                  {deleteSaving ? '삭제 중…' : '삭제 확인'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {retireConfirming && !editingItem.retired && (
+            <div className="record-management__confirmation" role="alert">
+              <strong>이 Item을 보관할까요?</strong>
+              <p>기존 Outfit과 착용 기록은 유지되며 언제든 복원할 수 있습니다.</p>
+              <div>
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  disabled={retireSaving}
+                  onClick={() => setRetireConfirming(false)}
+                >
+                  취소
+                </button>
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  disabled={retireSaving}
+                  onClick={() => void changeRetired(true)}
+                >
+                  {retireSaving ? '보관 중…' : '보관 확인'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {deleteError && (
+            <p className="form-error" role="alert">
+              {deleteError}
+            </p>
+          )}
+        </section>
+      )}
     </AppShell>
   )
 }

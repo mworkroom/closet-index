@@ -76,7 +76,7 @@ Phase 3는 다음 구현을 그대로 이어받는다.
 - Retired 과거 데이터의 이미지 전체 보충
 - 모든 기존 Item 451개의 이미지 일괄 완성
 - 고해상도 원본 사진의 원격 장기 보관
-- Item·Outfit의 일반적인 영구 삭제 UI
+- 연결 기록까지 함께 지우는 연쇄 삭제
 - 공유 옷장, 가족 계정, 공개 프로필
 - 세탁·Replacement Line·알림·고급 통계
 
@@ -174,12 +174,14 @@ Item 선택 기능:
 
 ### 4.7 삭제와 복구
 
-Phase 3에서는 일반적인 영구 삭제 버튼을 만들지 않는다.
+Item과 Outfit 상세에는 보관을 기본 정리 수단으로 두고, 참조 기록이 없는 경우에만 확인 후 영구 삭제를 허용한다.
 
-- 사용하지 않는 Item은 Retired로 전환한다.
+- 사용하지 않는 Item은 보관(`retired`)하고 언제든 복원할 수 있다.
 - 잘못 만든 Outfit은 별도 보관 상태로 추천·기본 LOOKBOOK에서 제외하고 다시 복원할 수 있게 한다.
 - `Error`는 실제로 입어 본 Outfit 만족도이므로 보관 상태로 재사용하지 않는다.
-- Wear Log가 연결된 Item·Outfit은 삭제하지 않는다.
+- Outfit 또는 Replacement Line에 연결된 Item은 삭제하지 않는다.
+- Wear Log가 연결된 Outfit은 삭제하지 않는다.
+- 허용된 삭제는 database function에서 참조를 다시 확인한 뒤 metadata를 삭제하고, 반환된 경로의 Storage 객체를 Storage API로 정리한다.
 - 이미지 교체는 새 cutout이 ready가 된 뒤 이전 ready cutout을 비활성화한다.
 - 업로드 실패는 기존 ready 이미지에 영향을 주지 않는다.
 
@@ -363,7 +365,7 @@ Storage 객체와 database transaction은 하나로 묶을 수 없으므로 이�
 
 #### P3-0 확인 결과 - 2026-07-29
 
-- J의 Phase 3 구현 시작 요청에 따라 기존 제품 결정을 유지한다: 첫 업로드는 투명 PNG/WebP cutout, 영구 삭제 UI 제외, 실제 검증은 Item 1개와 복제 Outfit 1개를 사용하고 Wear Log는 자동 생성하지 않는다.
+- J의 Phase 3 구현 시작 요청 당시에는 첫 업로드를 투명 PNG/WebP cutout으로 제한하고 영구 삭제 UI를 제외했다. 2026-08-02 후속 결정으로 참조 기록이 없는 Item·Outfit의 안전 삭제 UI를 추가했으며, Wear Log 자동 생성 금지는 유지한다.
 - 원격 `mworkroom`을 읽기 전용으로 대조했다. 최신 Closet migration은 `20260728160018_phase2_wear_log_weather_provenance`이며, Phase 3 migration은 아직 원격에 적용하지 않았다.
 - 기준선은 Item 451개, Outfit 507개, relation 2,401개, Wear Log 784개다.
 - Item image metadata는 ready 56개, pending 0개, error 0개이며 Outfit preview metadata는 ready 1개다. `closet-images` 객체는 57개다.
@@ -639,7 +641,7 @@ Phase 3는 다음 조건을 만족하면 완료로 본다.
 구현 시작 전 다음 세 가지만 확인한다.
 
 1. 첫 앱 내 이미지 등록은 `이미 투명 배경인 PNG/WebP cutout` 업로드로 시작한다.
-2. 잘못 만든 Item·Outfit의 영구 삭제는 Phase 3 첫 범위에 넣지 않고 Retired·추천 제외로 처리한다.
+2. 잘못 만든 Item·Outfit은 보관을 기본값으로 하되, 참조 기록이 없는 경우에만 확인 후 영구 삭제할 수 있다.
 3. 원격 검증에서는 J가 실제로 추가할 Item 1개와 복제 Outfit 1개를 사용하며, 가짜 Wear Log는 만들지 않는다.
 
 이 값이 승인되면 P3-1 원격 schema preflight부터 시작한다. 승인 전에는 DB·Storage·Edge Function·배포를 변경하지 않는다.

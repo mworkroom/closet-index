@@ -202,6 +202,30 @@ describe('SupabaseRepository Phase 3 writes', () => {
     expect(builder.eq).toHaveBeenNthCalledWith(2, 'workspace_id', 'workspace')
   })
 
+  it('routes Item and Outfit deletion through authenticated cleanup functions', async () => {
+    const invoke = vi.fn(async () => ({ data: { deleted: true }, error: null }))
+    const client = { functions: { invoke } } as unknown as SupabaseClient
+    const repository = new SupabaseRepository(client, 'workspace')
+
+    await repository.deleteItem('item-existing')
+    await repository.deleteOutfit('outfit-existing')
+
+    expect(invoke).toHaveBeenNthCalledWith(1, 'closet-item-image', {
+      body: {
+        action: 'delete',
+        workspaceId: 'workspace',
+        itemId: 'item-existing',
+      },
+    })
+    expect(invoke).toHaveBeenNthCalledWith(2, 'closet-outfit-preview', {
+      body: {
+        action: 'delete',
+        workspaceId: 'workspace',
+        outfitId: 'outfit-existing',
+      },
+    })
+  })
+
   it('uploads an optimized cutout with a signed ticket and finalizes it', async () => {
     const invoke = vi
       .fn()

@@ -16,6 +16,7 @@ function renderEditor(
       <DataProvider repository={repository}>
         <Routes>
           <Route path="/closet/new" element={<ItemEditorPage />} />
+          <Route path="/closet" element={<p>Item 목록</p>} />
           <Route path="/closet/:itemId/edit" element={<ItemEditorPage />} />
           <Route path="/closet/:itemId" element={<p>저장 완료</p>} />
         </Routes>
@@ -110,7 +111,7 @@ describe('Item editor', () => {
     )
   })
 
-  it('정보 수정 화면에서 이미지 관리와 Retired 전환을 함께 제공한다', async () => {
+  it('정보 수정 화면 최하단에서 삭제 가능 여부와 보관·복원을 제공한다', async () => {
     const user = userEvent.setup()
     const repository = new DemoRepository()
     const setItemRetired = vi.spyOn(repository, 'setItemRetired')
@@ -120,25 +121,50 @@ describe('Item editor', () => {
     expect(
       await screen.findByRole('heading', { name: /Item 이미지 (추가|교체)/ }),
     ).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Item 삭제 및 보관' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '삭제' })).toBeDisabled()
+    expect(screen.getByText(/포함된 Outfit \d+개가 있어 삭제할 수 없습니다\./)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '보관' }))
     expect(
-      screen.getByRole('heading', { name: '상태 관리' }),
+      screen.getByText('이 Item을 보관할까요?'),
     ).toBeInTheDocument()
 
-    await user.click(
-      screen.getByRole('button', { name: 'Retired로 전환' }),
-    )
-    expect(
-      screen.getByText('이 Item을 Retired로 전환할까요?'),
-    ).toBeInTheDocument()
-
-    await user.click(
-      screen.getByRole('button', { name: 'Retired로 전환' }),
-    )
+    await user.click(screen.getByRole('button', { name: '보관 확인' }))
 
     expect(setItemRetired).toHaveBeenCalledWith('item-cardigan', true)
     expect(
-      await screen.findByRole('button', { name: '사용 중으로 되돌리기' }),
+      await screen.findByRole('button', { name: '복원' }),
     ).toBeInTheDocument()
+  })
+
+  it('Outfit에 포함되지 않은 Item은 확인 뒤 영구 삭제한다', async () => {
+    const user = userEvent.setup()
+    const repository = new DemoRepository()
+    await repository.createItem({
+      id: 'item-unlinked',
+      name: '미연결 재킷',
+      category: 'Outer-Jacket',
+      semanticColor: 'Navy',
+      paletteId: null,
+      displayHex: '#293A5B',
+      seasons: ['Fall'],
+      rainOk: true,
+      longWalkOk: true,
+      memo: null,
+      acquiredOn: null,
+    })
+    const deleteItem = vi.spyOn(repository, 'deleteItem')
+
+    renderEditor(repository, '/closet/item-unlinked/edit')
+
+    await user.click(await screen.findByRole('button', { name: '삭제' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('이 Item을 영구 삭제할까요?')
+    await user.click(screen.getByRole('button', { name: '삭제 확인' }))
+
+    expect(await screen.findByText('Item 목록')).toBeInTheDocument()
+    expect(deleteItem).toHaveBeenCalledWith('item-unlinked')
+    expect((await repository.load()).items.some((item) => item.id === 'item-unlinked')).toBe(false)
   })
 
   it('상세 화면은 수정 패널 없이 사용 정보와 Outfit만 보여 준다', async () => {
@@ -164,7 +190,7 @@ describe('Item editor', () => {
       screen.queryByRole('heading', { name: /Item 이미지 (추가|교체)/ }),
     ).not.toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Retired로 전환' }),
+      screen.queryByRole('button', { name: '보관' }),
     ).not.toBeInTheDocument()
   })
 })

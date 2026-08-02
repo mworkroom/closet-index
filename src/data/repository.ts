@@ -27,6 +27,7 @@ export interface ClosetRepository {
     input: ItemImageUploadInput,
   ): Promise<void>
   setItemRetired(itemId: string, retired: boolean): Promise<void>
+  deleteItem(itemId: string): Promise<void>
   updateItemSuitability(
     itemId: string,
     rainOk: boolean,
@@ -36,6 +37,7 @@ export interface ClosetRepository {
   createOutfit(input: OutfitCreateInput): Promise<Outfit>
   cloneOutfit(input: OutfitCloneInput): Promise<Outfit>
   setOutfitArchived(outfitId: string, archived: boolean): Promise<void>
+  deleteOutfit(outfitId: string): Promise<void>
   updateOutfitItemPlacement(input: OutfitItemPlacementInput): Promise<void>
   replaceOutfitPreview?(
     outfitId: string,

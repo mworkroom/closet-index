@@ -39,6 +39,7 @@ interface DataState {
     input: ItemImageUploadInput,
   ) => Promise<void>
   setItemRetired: (itemId: string, retired: boolean) => Promise<void>
+  deleteItem: (itemId: string) => Promise<void>
   updateItemSuitability: (
     itemId: string,
     rainOk: boolean,
@@ -47,6 +48,7 @@ interface DataState {
   findMatchingOutfits: (itemIds: string[]) => Promise<MatchingOutfit[]>
   createOutfit: (input: OutfitCreateInput) => Promise<Outfit>
   setOutfitArchived: (outfitId: string, archived: boolean) => Promise<void>
+  deleteOutfit: (outfitId: string) => Promise<void>
   updateOutfitItemPlacement: (input: OutfitItemPlacementInput) => Promise<void>
   replaceOutfitPreview: (
     outfitId: string,
@@ -322,11 +324,14 @@ export function DataProvider({
         mutate(() => repository.replaceItemImage(itemId, input)),
       setItemRetired: (itemId, retired) =>
         mutate(() => repository.setItemRetired(itemId, retired)),
+      deleteItem: (itemId) => mutate(() => repository.deleteItem(itemId)),
       updateItemSuitability: (itemId, rainOk, longWalkOk) =>
         mutate(() => repository.updateItemSuitability(itemId, rainOk, longWalkOk)),
       findMatchingOutfits,
       createOutfit,
       setOutfitArchived,
+      deleteOutfit: (outfitId) =>
+        mutate(() => repository.deleteOutfit(outfitId)),
       updateOutfitItemPlacement,
       replaceOutfitPreview,
       saveDefaultWeatherLocation: (input) =>

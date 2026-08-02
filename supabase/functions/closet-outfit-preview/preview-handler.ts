@@ -27,7 +27,17 @@ interface CancelRequest {
   previewId: string
 }
 
-type OutfitPreviewRequest = BeginRequest | FinalizeRequest | CancelRequest
+interface DeleteRequest {
+  action: 'delete'
+  workspaceId: string
+  outfitId: string
+}
+
+type OutfitPreviewRequest =
+  | BeginRequest
+  | FinalizeRequest
+  | CancelRequest
+  | DeleteRequest
 
 export interface PreviewBeginResult {
   previewId: string
@@ -69,6 +79,11 @@ export interface OutfitPreviewHandlerDependencies {
     outfitId: string
     previewId: string
   }): Promise<string | null>
+  deleteOutfit(input: {
+    userId: string
+    workspaceId: string
+    outfitId: string
+  }): Promise<string[]>
   removeObjects(paths: string[]): Promise<void>
   createId(): string
 }
@@ -94,6 +109,8 @@ function parseRequest(value: unknown): OutfitPreviewRequest | null {
   if (!isObject(value) || typeof value.action !== 'string') return null
   if (!isUuid(value.workspaceId) || !isUuid(value.outfitId)) return null
 
+  if (value.action === 'delete') return value as unknown as DeleteRequest
+
   if (value.action === 'begin') {
     if (
       value.widthPx !== OUTFIT_PREVIEW_WIDTH ||
@@ -116,6 +133,13 @@ function parseRequest(value: unknown): OutfitPreviewRequest | null {
     return value as unknown as FinalizeRequest | CancelRequest
   }
   return null
+}
+
+function deleteConflictMessage(cause: unknown): string | null {
+  if (!isObject(cause) || cause.code !== 'P0001') return null
+  return typeof cause.message === 'string'
+    ? cause.message
+    : '연결된 기록이 있어 삭제할 수 없습니다.'
 }
 
 async function safeRemove(
@@ -157,6 +181,16 @@ export async function handleOutfitPreviewRequest(
   }
 
   try {
+    if (input.action === 'delete') {
+      const storagePaths = await dependencies.deleteOutfit({
+        userId,
+        workspaceId: input.workspaceId,
+        outfitId: input.outfitId,
+      })
+      await safeRemove(dependencies, storagePaths)
+      return Response.json({ deleted: true })
+    }
+
     if (input.action === 'begin') {
       const previewId = dependencies.createId()
       const begun = await dependencies.beginUpload({
@@ -200,7 +234,11 @@ export async function handleOutfitPreviewRequest(
     const path = await dependencies.cancelUpload(input)
     await safeRemove(dependencies, path ? [path] : [])
     return Response.json({ cancelled: true })
-  } catch {
+  } catch (cause) {
+    const conflict = deleteConflictMessage(cause)
+    if (conflict) {
+      return errorResponse(409, 'delete-blocked', conflict)
+    }
     return errorResponse(500, 'preview-write-failed', '착장 preview를 저장하지 못했습니다.')
   }
 }

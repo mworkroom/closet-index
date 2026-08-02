@@ -45,9 +45,11 @@ describe('Outfit clone and archive management', () => {
     expect(
       screen.getByRole('link', { name: '이 착장으로 새로 만들기' }),
     ).toHaveAttribute('href', '/outfits/new?source=outfit-favorite')
-    await user.click(screen.getByRole('button', { name: '보관하기' }))
+    expect(screen.getByRole('button', { name: '삭제' })).toBeDisabled()
+    expect(screen.getByText('착용 기록 2개가 있어 삭제할 수 없습니다.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '보관' }))
     expect(screen.getByRole('alert')).toHaveTextContent(
-      '평가와 기존 착용 기록은 삭제하지 않으며 언제든 복원할 수 있습니다.',
+      '평가와 기존 착용 기록은 유지되며 언제든 복원할 수 있습니다.',
     )
     await user.click(screen.getByRole('button', { name: '보관 확인' }))
 
@@ -57,7 +59,7 @@ describe('Outfit clone and archive management', () => {
       screen.queryByRole('link', { name: '오늘 입기' }),
     ).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: '복원하기' }))
+    await user.click(screen.getByRole('button', { name: '복원' }))
 
     expect(await screen.findByRole('link', { name: '오늘 입기' })).toBeVisible()
     expect(setOutfitArchived).toHaveBeenNthCalledWith(1, 'outfit-favorite', true)
@@ -67,6 +69,38 @@ describe('Outfit clone and archive management', () => {
         (log) => log.outfitId === 'outfit-favorite',
       ),
     ).toHaveLength(2)
+  })
+
+  it('착용 기록이 없는 Outfit은 확인 뒤 영구 삭제한다', async () => {
+    const user = userEvent.setup()
+    const repository = new DemoRepository()
+    await repository.createOutfit({
+      id: 'outfit-unworn',
+      displayName: '미착용 착장',
+      allowDuplicate: true,
+      items: [
+        {
+          itemId: 'item-cardigan',
+          slot: 'outer',
+          sortOrder: 0,
+          positionX: 0,
+          positionY: 0,
+          itemScale: 1,
+          zIndex: 10,
+        },
+      ],
+    })
+    const deleteOutfit = vi.spyOn(repository, 'deleteOutfit')
+
+    renderOutfitRoutes(repository, '/outfits/outfit-unworn')
+
+    await user.click(await screen.findByRole('button', { name: '삭제' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('이 Outfit을 영구 삭제할까요?')
+    await user.click(screen.getByRole('button', { name: '삭제 확인' }))
+
+    expect(await screen.findByRole('heading', { name: '착장' })).toBeInTheDocument()
+    expect(deleteOutfit).toHaveBeenCalledWith('outfit-unworn')
+    expect((await repository.load()).outfits.some((outfit) => outfit.id === 'outfit-unworn')).toBe(false)
   })
 
   it('보관 Outfit을 기본 Lookbook에서 숨기고 명시적 필터에서 복원 경로를 제공한다', async () => {

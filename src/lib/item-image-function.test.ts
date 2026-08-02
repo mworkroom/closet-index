@@ -32,6 +32,7 @@ function dependencies(): ItemImageHandlerDependencies {
       replacedStoragePaths: ['old-ready.webp'],
     })),
     cancelUpload: vi.fn(async () => storagePath),
+    deleteItem: vi.fn(async () => [storagePath]),
     removeObjects: vi.fn(async () => undefined),
   }
 }
@@ -148,5 +149,43 @@ describe('closet item image function contract', () => {
       imageId,
     })
     expect(deps.removeObjects).toHaveBeenCalledWith(['old-ready.webp'])
+  })
+
+  it('deletes the Item metadata first and then removes returned Storage objects', async () => {
+    const deps = dependencies()
+    const response = await handleItemImageRequest(
+      request({ action: 'delete', workspaceId, itemId }),
+      'user-id',
+      deps,
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({ deleted: true })
+    expect(deps.deleteItem).toHaveBeenCalledWith({
+      userId: 'user-id',
+      workspaceId,
+      itemId,
+    })
+    expect(deps.removeObjects).toHaveBeenCalledWith([storagePath])
+  })
+
+  it('returns a conflict when a database relation blocks Item deletion', async () => {
+    const deps = dependencies()
+    vi.mocked(deps.deleteItem).mockRejectedValue(
+      Object.assign(new Error('이 Item이 포함된 Outfit이 있어 삭제할 수 없습니다.'), {
+        code: 'P0001',
+      }),
+    )
+
+    const response = await handleItemImageRequest(
+      request({ action: 'delete', workspaceId, itemId }),
+      'user-id',
+      deps,
+    )
+
+    expect(response.status).toBe(409)
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: 'delete-blocked' },
+    })
   })
 })

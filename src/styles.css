@@ -431,6 +431,17 @@ button:disabled {
   color: var(--ink);
 }
 
+.button--danger {
+  border-color: #e1aaa6;
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
 .button--wide {
   width: 100%;
 }
@@ -647,6 +658,49 @@ button:disabled {
   grid-template-columns: 1fr 1.4fr;
   gap: 8px;
   margin-top: 12px;
+}
+
+.record-management {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+  margin-bottom: 28px;
+}
+
+.record-management__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.record-management__help {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.record-management__confirmation {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid #ddbc78;
+  border-radius: 14px;
+  background: #fff9eb;
+}
+
+.record-management__confirmation p {
+  margin: 0;
+  color: #765415;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.record-management__confirmation > div {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 8px;
 }
 
 .icon-button {

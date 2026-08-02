@@ -686,6 +686,17 @@ export class SupabaseRepository implements ClosetRepository {
     if (!data) throw new Error('Item을 찾을 수 없습니다.')
   }
 
+  async deleteItem(itemId: string) {
+    const result = await this.client.functions.invoke('closet-item-image', {
+      body: {
+        action: 'delete',
+        workspaceId: this.workspaceId,
+        itemId,
+      },
+    })
+    if (result.error) throw result.error
+  }
+
   async findMatchingOutfits(itemIds: string[]): Promise<MatchingOutfit[]> {
     const { data, error } = await this.client.rpc(
       'find_matching_closet_outfits',
@@ -807,6 +818,17 @@ export class SupabaseRepository implements ClosetRepository {
 
     if (error) throw error
     if (!data) throw new Error('Outfit을 찾을 수 없습니다.')
+  }
+
+  async deleteOutfit(outfitId: string) {
+    const result = await this.client.functions.invoke('closet-outfit-preview', {
+      body: {
+        action: 'delete',
+        workspaceId: this.workspaceId,
+        outfitId,
+      },
+    })
+    if (result.error) throw result.error
   }
 
   async updateItemSuitability(

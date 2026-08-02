@@ -14,9 +14,10 @@ import {
   RefreshCw,
   Thermometer,
   TrainFront,
+  Trash2,
 } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { ItemVisual } from '../components/ItemVisual'
 import { LayeredOutfitPreview } from '../components/LayeredOutfitPreview'
@@ -50,6 +51,7 @@ function TransportIcon({ name }: { name: string }) {
 export function OutfitDetailPage() {
   const { outfitId = '' } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
   const navigationState = (location.state ?? {}) as RecommendationNavigationState & {
     previewWarning?: string
   }
@@ -59,11 +61,15 @@ export function OutfitDetailPage() {
     error,
     refresh,
     setOutfitArchived,
+    deleteOutfit,
     updateOutfitItemPlacement,
     replaceOutfitPreview,
   } = useClosetData()
   const [archiveConfirming, setArchiveConfirming] = useState(false)
   const [archiveSaving, setArchiveSaving] = useState(false)
+  const [deleteConfirming, setDeleteConfirming] = useState(false)
+  const [deleteSaving, setDeleteSaving] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [previewSaving, setPreviewSaving] = useState(false)
   const [previewSaved, setPreviewSaved] = useState(false)
   const [previewError, setPreviewError] = useState<string | null>(null)
@@ -99,6 +105,24 @@ export function OutfitDetailPage() {
       // DataContext에서 공통 오류 메시지를 표시한다.
     } finally {
       setArchiveSaving(false)
+    }
+  }
+
+  const removeOutfit = async () => {
+    if (!outfit || deleteSaving || logs.length > 0) return
+    setDeleteSaving(true)
+    setDeleteError(null)
+    try {
+      await deleteOutfit(outfit.id)
+      navigate('/lookbook', { replace: true })
+    } catch (cause) {
+      setDeleteError(
+        cause instanceof Error
+          ? cause.message
+          : 'Outfit을 삭제하지 못했습니다.',
+      )
+    } finally {
+      setDeleteSaving(false)
     }
   }
 
@@ -143,15 +167,6 @@ export function OutfitDetailPage() {
                   그대로 유지됩니다.
                 </small>
               </span>
-              <button
-                type="button"
-                className="button button--secondary"
-                disabled={archiveSaving}
-                onClick={() => void changeArchived(false)}
-              >
-                <RotateCcw size={17} aria-hidden="true" />
-                {archiveSaving ? '복원 중…' : '복원하기'}
-              </button>
             </section>
           )}
           {navigationState.previewWarning && (
@@ -412,44 +427,6 @@ export function OutfitDetailPage() {
               <Copy size={17} aria-hidden="true" />
               이 착장으로 새로 만들기
             </Link>
-            {!outfit.archivedAt && (
-              <button
-                type="button"
-                className="button button--secondary button--wide"
-                disabled={archiveSaving}
-                onClick={() => setArchiveConfirming(true)}
-              >
-                <Archive size={17} aria-hidden="true" />
-                보관하기
-              </button>
-            )}
-            {archiveConfirming && !outfit.archivedAt && (
-              <div className="outfit-management__confirmation" role="alert">
-                <strong>이 Outfit을 보관할까요?</strong>
-                <p>
-                  기본 Lookbook과 추천에서만 숨깁니다. 평가와 기존 착용 기록은
-                  삭제하지 않으며 언제든 복원할 수 있습니다.
-                </p>
-                <div>
-                  <button
-                    type="button"
-                    className="button button--secondary"
-                    disabled={archiveSaving}
-                    onClick={() => setArchiveConfirming(false)}
-                  >
-                    취소
-                  </button>
-                  <button
-                    type="button"
-                    className="button button--secondary"
-                    disabled={archiveSaving}
-                    onClick={() => void changeArchived(true)}
-                  >
-                    {archiveSaving ? '보관 중…' : '보관 확인'}
-                  </button>
-                </div>
-              </div>
-            )}
           </section>
 
           <section className="section">
@@ -542,6 +519,106 @@ export function OutfitDetailPage() {
               />
             </details>
           )}
+
+          <section className="record-management" aria-label="착장 삭제 및 보관">
+            <div className="record-management__actions">
+              <button
+                type="button"
+                className="button button--danger"
+                disabled={deleteSaving || logs.length > 0}
+                onClick={() => setDeleteConfirming(true)}
+              >
+                <Trash2 size={17} aria-hidden="true" />
+                삭제
+              </button>
+              <button
+                type="button"
+                className="button button--secondary"
+                disabled={archiveSaving}
+                onClick={() =>
+                  outfit.archivedAt
+                    ? void changeArchived(false)
+                    : setArchiveConfirming(true)
+                }
+              >
+                {outfit.archivedAt ? (
+                  <RotateCcw size={17} aria-hidden="true" />
+                ) : (
+                  <Archive size={17} aria-hidden="true" />
+                )}
+                {archiveSaving
+                  ? '변경 중…'
+                  : outfit.archivedAt
+                    ? '복원'
+                    : '보관'}
+              </button>
+            </div>
+
+            {logs.length > 0 && (
+              <p className="record-management__help">
+                착용 기록 {logs.length}개가 있어 삭제할 수 없습니다.
+              </p>
+            )}
+
+            {deleteConfirming && logs.length === 0 && (
+              <div className="record-management__confirmation" role="alert">
+                <strong>이 Outfit을 영구 삭제할까요?</strong>
+                <p>구성 정보와 저장된 preview는 복구할 수 없습니다.</p>
+                <div>
+                  <button
+                    type="button"
+                    className="button button--secondary"
+                    disabled={deleteSaving}
+                    onClick={() => setDeleteConfirming(false)}
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="button"
+                    className="button button--danger"
+                    disabled={deleteSaving}
+                    onClick={() => void removeOutfit()}
+                  >
+                    {deleteSaving ? '삭제 중…' : '삭제 확인'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {archiveConfirming && !outfit.archivedAt && (
+              <div className="record-management__confirmation" role="alert">
+                <strong>이 Outfit을 보관할까요?</strong>
+                <p>
+                  기본 Lookbook과 추천에서만 숨깁니다. 평가와 기존 착용 기록은
+                  유지되며 언제든 복원할 수 있습니다.
+                </p>
+                <div>
+                  <button
+                    type="button"
+                    className="button button--secondary"
+                    disabled={archiveSaving}
+                    onClick={() => setArchiveConfirming(false)}
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="button"
+                    className="button button--secondary"
+                    disabled={archiveSaving}
+                    onClick={() => void changeArchived(true)}
+                  >
+                    {archiveSaving ? '보관 중…' : '보관 확인'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {deleteError && (
+              <p className="form-error" role="alert">
+                {deleteError}
+              </p>
+            )}
+          </section>
         </>
       )}
     </AppShell>

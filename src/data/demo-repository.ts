@@ -176,6 +176,17 @@ export class DemoRepository implements ClosetRepository {
     writeData(data)
   }
 
+  async deleteItem(itemId: string) {
+    const data = readData()
+    const item = data.items.find((entry) => entry.id === itemId)
+    if (!item) throw new Error('Item을 찾을 수 없습니다.')
+    if (data.outfits.some((outfit) => outfit.itemIds.includes(itemId))) {
+      throw new Error('이 Item이 포함된 Outfit이 있어 삭제할 수 없습니다.')
+    }
+    data.items = data.items.filter((entry) => entry.id !== itemId)
+    writeData(data)
+  }
+
   async updateItemSuitability(
     itemId: string,
     rainOk: boolean,
@@ -316,6 +327,17 @@ export class DemoRepository implements ClosetRepository {
     const outfit = data.outfits.find((entry) => entry.id === outfitId)
     if (!outfit) throw new Error('Outfit을 찾을 수 없습니다.')
     outfit.archivedAt = archived ? new Date().toISOString() : null
+    writeData(data)
+  }
+
+  async deleteOutfit(outfitId: string) {
+    const data = readData()
+    const outfit = data.outfits.find((entry) => entry.id === outfitId)
+    if (!outfit) throw new Error('Outfit을 찾을 수 없습니다.')
+    if (data.wearLogs.some((log) => log.outfitId === outfitId)) {
+      throw new Error('착용 기록이 있는 Outfit은 삭제할 수 없습니다.')
+    }
+    data.outfits = data.outfits.filter((entry) => entry.id !== outfitId)
     writeData(data)
   }
 
