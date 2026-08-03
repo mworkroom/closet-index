@@ -11,6 +11,8 @@ import type {
   OutfitItemPlacementInput,
   OutfitPreviewUploadInput,
   ReplacementLineSnapshot,
+  ReplacementLineEdge,
+  ReplacementLineEdgeConfirmationInput,
   ReplacementLegacyLink,
   ReplacementLegacyLinkReviewInput,
   WeatherForecastRequest,
@@ -26,6 +28,7 @@ import type { ClosetRepository } from './repository'
 const STORAGE_KEY = 'closet-index-demo-data-v3'
 const LEGACY_LINK_REVIEW_STORAGE_KEY =
   'closet-index-demo-legacy-link-reviews:v1'
+const LINEAGE_EDGE_STORAGE_KEY = 'closet-index-demo-lineage-edges:v1'
 
 const demoReplacementLineSnapshot: ReplacementLineSnapshot = {
   lines: [
@@ -61,6 +64,7 @@ const demoReplacementLineSnapshot: ReplacementLineSnapshot = {
     { replacementLineId: 'line-everyday-shoes', itemId: 'item-shoes' },
     { replacementLineId: 'line-everyday-shoes', itemId: 'item-loafers' },
     { replacementLineId: 'line-blue-layer', itemId: 'item-cardigan' },
+    { replacementLineId: 'line-blue-layer', itemId: 'item-knit' },
     { replacementLineId: 'line-navy-tee', itemId: 'item-tee' },
   ],
 }
@@ -74,6 +78,7 @@ const demoReplacementLegacyLinks: ReplacementLegacyLink[] = [
     reviewDecision: null,
     reviewReason: null,
     reviewedAt: null,
+    updatedAt: '2026-08-03T00:00:00.000Z',
   },
   {
     id: 'legacy-shoes',
@@ -83,6 +88,7 @@ const demoReplacementLegacyLinks: ReplacementLegacyLink[] = [
     reviewDecision: null,
     reviewReason: null,
     reviewedAt: null,
+    updatedAt: '2026-08-03T00:00:00.000Z',
   },
 ]
 
@@ -94,7 +100,11 @@ function readDemoReplacementLegacyLinks() {
       string,
       Pick<
         ReplacementLegacyLink,
-        'reviewStatus' | 'reviewDecision' | 'reviewReason' | 'reviewedAt'
+        | 'reviewStatus'
+        | 'reviewDecision'
+        | 'reviewReason'
+        | 'reviewedAt'
+        | 'updatedAt'
       >
     >
     return demoReplacementLegacyLinks.map((link) => ({
@@ -104,6 +114,42 @@ function readDemoReplacementLegacyLinks() {
   } catch {
     return structuredClone(demoReplacementLegacyLinks)
   }
+}
+
+function readDemoReplacementLineEdges(): ReplacementLineEdge[] {
+  try {
+    const stored = window.localStorage.getItem(LINEAGE_EDGE_STORAGE_KEY)
+    return stored ? (JSON.parse(stored) as ReplacementLineEdge[]) : []
+  } catch {
+    return []
+  }
+}
+
+function hasLineageCycle(edges: ReplacementLineEdge[]) {
+  const successors = new Map<string, string[]>()
+  for (const edge of edges.filter((entry) => entry.status === 'confirmed')) {
+    const key = `${edge.replacementLineId}:${edge.predecessorItemId}`
+    successors.set(key, [
+      ...(successors.get(key) ?? []),
+      edge.successorItemId,
+    ])
+  }
+
+  for (const edge of edges.filter((entry) => entry.status === 'confirmed')) {
+    const visiting = new Set<string>()
+    const visit = (itemId: string): boolean => {
+      const key = `${edge.replacementLineId}:${itemId}`
+      if (visiting.has(key)) return true
+      visiting.add(key)
+      for (const successorId of successors.get(key) ?? []) {
+        if (visit(successorId)) return true
+      }
+      visiting.delete(key)
+      return false
+    }
+    if (visit(edge.predecessorItemId)) return true
+  }
+  return false
 }
 
 function normalizeItem(input: ItemWriteInput, id: string): Item {
@@ -199,17 +245,24 @@ export class DemoRepository implements ClosetRepository {
   ) {
     const links = readDemoReplacementLegacyLinks()
     const link = links.find((entry) => entry.id === linkId)
-    if (!link || link.reviewStatus !== 'pending') {
+    if (!link) {
       throw new Error('검토할 Legacy Link를 찾지 못했습니다.')
+    }
+    if (link.updatedAt !== input.expectedUpdatedAt) {
+      throw new Error('다른 곳에서 검토 결과가 변경되었습니다. 다시 불러와 주세요.')
     }
     const reason = input.reason.trim()
     if (!reason) throw new Error('선택 이유를 입력해 주세요.')
+    const changedAt = new Date(
+      Math.max(Date.now(), new Date(link.updatedAt).getTime() + 1),
+    ).toISOString()
     const reviewed: ReplacementLegacyLink = {
       ...link,
       reviewStatus: 'reviewed',
       reviewDecision: input.decision,
       reviewReason: reason,
-      reviewedAt: new Date().toISOString(),
+      reviewedAt: changedAt,
+      updatedAt: changedAt,
     }
     const reviews = Object.fromEntries(
       links
@@ -222,6 +275,7 @@ export class DemoRepository implements ClosetRepository {
             reviewDecision: entry.reviewDecision,
             reviewReason: entry.reviewReason,
             reviewedAt: entry.reviewedAt,
+            updatedAt: entry.updatedAt,
           },
         ]),
     )
@@ -230,6 +284,75 @@ export class DemoRepository implements ClosetRepository {
       JSON.stringify(reviews),
     )
     return reviewed
+  }
+
+  async loadReplacementLineEdges() {
+    return structuredClone(readDemoReplacementLineEdges())
+  }
+
+  async confirmReplacementLineEdges(
+    inputs: ReplacementLineEdgeConfirmationInput[],
+  ) {
+    if (inputs.length < 1 || inputs.length > 200) {
+      throw new Error('한 번에 1개 이상 200개 이하의 edge를 저장해 주세요.')
+    }
+    if (new Set(inputs.map((input) => input.sourceLegacyLinkId)).size !== inputs.length) {
+      throw new Error('같은 Legacy Link를 한 번에 두 번 저장할 수 없습니다.')
+    }
+
+    const links = readDemoReplacementLegacyLinks()
+    const currentEdges = readDemoReplacementLineEdges()
+    const nextEdges = [...currentEdges]
+    const changedAt = new Date().toISOString()
+
+    for (const input of inputs) {
+      const link = links.find((entry) => entry.id === input.sourceLegacyLinkId)
+      if (!link || link.reviewStatus !== 'reviewed') {
+        throw new Error('검토가 끝난 Legacy Link만 edge로 저장할 수 있습니다.')
+      }
+      if (link.updatedAt !== input.expectedLegacyUpdatedAt) {
+        throw new Error('검토 결과가 변경되었습니다. 다시 불러와 주세요.')
+      }
+      if (link.reviewDecision !== 'a_to_b' && link.reviewDecision !== 'b_to_a') {
+        throw new Error('방향을 확정한 Legacy Link만 edge로 저장할 수 있습니다.')
+      }
+      const memberships = demoReplacementLineSnapshot.memberships.filter(
+        (entry) => entry.replacementLineId === input.replacementLineId,
+      )
+      if (
+        !memberships.some((entry) => entry.itemId === link.itemAId) ||
+        !memberships.some((entry) => entry.itemId === link.itemBId)
+      ) {
+        throw new Error('두 Item이 함께 속한 Line을 선택해 주세요.')
+      }
+      if (currentEdges.some((edge) => edge.sourceLegacyLinkId === link.id)) {
+        throw new Error('이미 저장된 Legacy Link edge가 있습니다.')
+      }
+      const predecessorItemId =
+        link.reviewDecision === 'a_to_b' ? link.itemAId : link.itemBId
+      const successorItemId =
+        link.reviewDecision === 'a_to_b' ? link.itemBId : link.itemAId
+      const decisionReason = input.decisionReason.trim()
+      if (!decisionReason) throw new Error('edge 선택 이유가 필요합니다.')
+      nextEdges.push({
+        id: crypto.randomUUID(),
+        replacementLineId: input.replacementLineId,
+        predecessorItemId,
+        successorItemId,
+        sourceLegacyLinkId: link.id,
+        branchName: input.branchName?.trim() || null,
+        decisionReason,
+        status: 'confirmed',
+        confirmedAt: changedAt,
+        updatedAt: changedAt,
+      })
+    }
+
+    if (hasLineageCycle(nextEdges)) {
+      throw new Error('Replacement Line 계보에는 cycle을 만들 수 없습니다.')
+    }
+    window.localStorage.setItem(LINEAGE_EDGE_STORAGE_KEY, JSON.stringify(nextEdges))
+    return structuredClone(nextEdges.slice(currentEdges.length))
   }
 
   async createItem(input: ItemCreateInput) {

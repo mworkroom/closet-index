@@ -1,4 +1,4 @@
-import { BarChart3, ChevronRight, Heart, Settings } from 'lucide-react'
+import { BarChart3, ChevronRight, GitBranch, Heart, Settings } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 
@@ -14,6 +14,12 @@ const links = [
     title: 'Statistics',
     description: 'Item 활용률과 실제 착용 기록 확인',
     icon: BarChart3,
+  },
+  {
+    to: '/replacement-lines',
+    title: 'Replacement Lines',
+    description: '같은 역할을 이어 온 Item 계보와 검토',
+    icon: GitBranch,
   },
   {
     to: '/settings',

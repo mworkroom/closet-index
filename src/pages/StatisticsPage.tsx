@@ -347,18 +347,6 @@ export function StatisticsPage() {
             )}
           </section>
 
-          <section className="section replacement-lines-entry" aria-labelledby="replacement-lines-entry-heading">
-            <div>
-              <p className="eyebrow">REPLACEMENT LINEAGE</p>
-              <h2 id="replacement-lines-entry-heading">Replacement Lines</h2>
-              <p className="muted">
-                같은 역할을 이어 온 Item을 Style Identity별로 확인합니다.
-              </p>
-            </div>
-            <Link className="button button--secondary" to="/statistics/replacement-lines">
-              Line Overview 열기
-            </Link>
-          </section>
         </>
       ) : null}
     </AppShell>

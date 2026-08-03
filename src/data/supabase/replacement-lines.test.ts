@@ -71,6 +71,7 @@ describe('SupabaseReplacementLineRepository', () => {
             review_decision: null,
             review_reason: null,
             reviewed_at: null,
+            updated_at: '2026-08-03T00:00:00Z',
           },
         ],
         error: null,
@@ -84,6 +85,7 @@ describe('SupabaseReplacementLineRepository', () => {
         review_decision: 'a_to_b',
         review_reason: 'A 다음 B',
         reviewed_at: '2026-08-03T00:00:00Z',
+        updated_at: '2026-08-03T00:01:00Z',
       },
       error: null,
     }))
@@ -105,6 +107,7 @@ describe('SupabaseReplacementLineRepository', () => {
         reviewDecision: null,
         reviewReason: null,
         reviewedAt: null,
+        updatedAt: '2026-08-03T00:00:00Z',
       },
     ])
     expect(builder.eq).toHaveBeenCalledWith('workspace_id', 'workspace-a')
@@ -113,6 +116,7 @@ describe('SupabaseReplacementLineRepository', () => {
       repository.reviewLegacyLink('link-a', {
         decision: 'a_to_b',
         reason: 'A 다음 B',
+        expectedUpdatedAt: '2026-08-03T00:00:00Z',
       }),
     ).resolves.toMatchObject({
       id: 'link-a',
@@ -120,13 +124,82 @@ describe('SupabaseReplacementLineRepository', () => {
       reviewDecision: 'a_to_b',
     })
     expect(rpc).toHaveBeenCalledWith(
-      'review_closet_replacement_legacy_link',
+      'revise_closet_replacement_legacy_link',
       {
         p_workspace_id: 'workspace-a',
         p_link_id: 'link-a',
+        p_expected_updated_at: '2026-08-03T00:00:00Z',
         p_decision: 'a_to_b',
         p_reason: 'A 다음 B',
       },
     )
+  })
+
+  it('loads edges by workspace and confirms a batch through one RPC call', async () => {
+    const edgeRow = {
+      id: 'edge-a',
+      replacement_line_id: 'line-a',
+      predecessor_item_id: 'item-a',
+      successor_item_id: 'item-b',
+      source_legacy_link_id: 'link-a',
+      branch_name: null,
+      decision_reason: 'A 다음 B',
+      status: 'confirmed',
+      confirmed_at: '2026-08-03T01:00:00Z',
+      updated_at: '2026-08-03T01:00:00Z',
+    }
+    const builder: Record<string, ReturnType<typeof vi.fn>> = {}
+    builder.select = vi.fn(() => builder)
+    builder.eq = vi.fn(() => builder)
+    builder.order = vi
+      .fn()
+      .mockReturnValueOnce(builder)
+      .mockResolvedValueOnce({ data: [edgeRow], error: null })
+    const rpc = vi.fn(async () => ({ data: [edgeRow], error: null }))
+    const client = {
+      from: vi.fn(() => builder),
+      rpc,
+    } as unknown as SupabaseClient
+    const repository = new SupabaseReplacementLineRepository(client, 'workspace-a')
+
+    await expect(repository.loadEdges()).resolves.toEqual([
+      {
+        id: 'edge-a',
+        replacementLineId: 'line-a',
+        predecessorItemId: 'item-a',
+        successorItemId: 'item-b',
+        sourceLegacyLinkId: 'link-a',
+        branchName: null,
+        decisionReason: 'A 다음 B',
+        status: 'confirmed',
+        confirmedAt: '2026-08-03T01:00:00Z',
+        updatedAt: '2026-08-03T01:00:00Z',
+      },
+    ])
+    expect(builder.eq).toHaveBeenCalledWith('workspace_id', 'workspace-a')
+
+    await expect(
+      repository.confirmEdges([
+        {
+          replacementLineId: 'line-a',
+          sourceLegacyLinkId: 'link-a',
+          expectedLegacyUpdatedAt: '2026-08-03T00:00:00Z',
+          branchName: null,
+          decisionReason: 'A 다음 B',
+        },
+      ]),
+    ).resolves.toHaveLength(1)
+    expect(rpc).toHaveBeenCalledWith('confirm_closet_replacement_line_edges', {
+      p_workspace_id: 'workspace-a',
+      p_candidates: [
+        {
+          replacement_line_id: 'line-a',
+          source_legacy_link_id: 'link-a',
+          expected_legacy_updated_at: '2026-08-03T00:00:00Z',
+          branch_name: null,
+          decision_reason: 'A 다음 B',
+        },
+      ],
+    })
   })
 })

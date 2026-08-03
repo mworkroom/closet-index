@@ -2,7 +2,7 @@
 
 - 최초 작성일: 2026-08-01
 - 최종 수정일: 2026-08-03
-- 상태: P4-0·P4-1A·P4-1B·P4-2A·P4-2B 완료, production Legacy Link 검토 0/49·P4-2C 착수 전
+- 상태: P4-0·P4-1A·P4-1B·P4-2A·P4-2B 완료, production Legacy Link 검토 49/49·P4-2C edge schema·명시적 Line 선택·원자 일괄 confirm 기반 완료, 실제 45개 edge 확정 대기
 - 목표 릴리스: Phase 4 Statistics & Replacement Lineage
 - 선행 상태: Phase 3 구현·검증·공개 완료, Phase 3.5 로컬 구현·검증 완료 및 공개 배포 전
 - 관련 문서: [Roadmap](./roadmap.md), [Product Plan](./product-plan.md), [Phase 3 Plan](./phase-3-visual-wardrobe-plan.md), [Phase 1 Data & Security Spec](./phase-1-data-security-spec.md), [P4-0 Baseline Audit](./phase-4-p4-0-baseline-audit.md)
@@ -273,7 +273,6 @@ MORE → Statistics
 → Most Worn
 → Never Worn / 해당 연도 미착용
 → 카테고리 보유 현황
-→ Replacement Lines 진입
 ```
 
 - 각 Item 결과는 최대 4개만 먼저 표시한다.
@@ -292,7 +291,7 @@ MORE → Statistics
 ### 7.3 Replacement Line Overview
 
 ```text
-MORE → Statistics → Replacement Lines
+MORE → Replacement Lines
 → Style Identity 그룹
 → Line 목록
 → Active/Retired·membership·Legacy Link 상태
@@ -316,6 +315,36 @@ Line 목록에는 다음을 표시한다.
 - parent, child, 손자 세대의 thumbnail을 모두 같은 크기로 표시한다.
 - 가지가 갈라질 때 연결선과 가지 이름을 함께 표시하되 Item 카드 크기는 줄이지 않는다.
 - 구매일, Active/Retired, 선택 이유는 Item 카드 또는 펼침 상세에서 확인한다.
+
+#### 확정 UI 기준
+
+계보 화면은 2026-08-03에 확정한 `ITEM LINEAGE · Ivory Layered` 기준안의 구조를 따른다. 이 기준은 단순한 세로 목록이 아니라 다음의 세대별 묶음과 바깥쪽 branch connector를 포함한다.
+
+```text
+ITEM LINEAGE
+Line 이름
+사용 중 N · Retired N
+
+┌ G0 · 시작 아이템 ─────────────────┐
+│ [같은 크기 thumbnail] Item · 연도 · 상태 │
+└───────────────────────────────────┘
+                 │
+┌ G1 · 시작 아이템에서 이어진 후보 N ┐
+│ [thumbnail] Item · 연도 · 상태 · 이유  │
+│ [thumbnail] Item · 연도 · 상태 · 이유  │
+└───────────────────────────────────┘
+      ├──── G2 · A에서 이어짐
+      └──── G2 · B에서 이어짐
+```
+
+- 화면 머리에는 `ITEM LINEAGE`, Line 이름, 사용 중·Retired 합계를 표시한다.
+- 각 세대는 `G0`, `G1`, `G2`와 세대의 의미를 적은 header를 가진 하나의 둥근 묶음 카드다.
+- 같은 세대의 병렬 후보는 카드 안의 독립 행으로 쌓으며 각 행의 thumbnail 크기와 정보 열을 동일하게 유지한다.
+- Item 행은 이름, 취득 연도, 상태 badge와 선택 이유를 표시한다. 수량처럼 원본에 없는 값은 화면을 맞추기 위해 추정하지 않는다.
+- 상태 badge는 최소 `사용 중`, `Retired`, `이어짐`을 구분하고 색만으로 의미를 전달하지 않는다.
+- G0에서 G1로 이어지는 단일 연결선과, predecessor별 G2 묶음으로 갈라지는 바깥쪽 branch connector를 표시한다.
+- 가지가 여러 개면 G2를 한 카드에 섞지 않고 `A에서 이어짐`, `B에서 이어짐`처럼 predecessor 기준의 별도 묶음으로 나눈다.
+- 깊이가 늘어나도 thumbnail을 축소하지 않으며 모바일 한 열에서 가로 스크롤 없이 위에서 아래로 읽히게 한다.
 
 ## 8. Replacement Line 정리 흐름
 
@@ -393,14 +422,14 @@ Item Statistics만을 위해 Wear Log나 Item에 중복 집계값을 저장하�
 - Legacy Link의 검토 상태와 선택 결과를 보존한다.
 - 확인된 predecessor·successor만 별도 directed edge로 저장한다.
 - edge에는 workspace, Line, 두 Item, 출처, 검토 상태를 추적할 수 있어야 한다.
-- 가지 이름과 선택 이유의 저장 위치는 P4-2B 실제 편집 예시를 확인한 뒤 edge 또는 branch 단위로 확정한다.
+- 가지 이름과 선택 이유는 출처 Legacy Link를 추적하는 edge에 저장하며, 빈 가지 이름은 `null`로 정규화한다.
 - 구매일로 direction을 자동 seed하지 않는다.
 
 ### 9.3 쓰기 안전성
 
 - P4-0과 P4-2A는 production을 변경하지 않는 읽기 전용 단계다.
 - 쓰기 schema와 RLS는 P4-2B 검토 UI 계약이 확정된 뒤 migration으로 추가한다.
-- authenticated frontend에는 Legacy Link table의 INSERT·UPDATE 권한을 열지 않고, membership과 pending 상태를 다시 검사하는 confirm 전용 RPC만 실행할 수 있게 한다.
+- authenticated frontend에는 Legacy Link와 revision table의 직접 INSERT·UPDATE·DELETE 권한을 열지 않는다. 최초 검토와 재검토는 workspace membership, 선택지, 필수 이유, 화면이 읽은 `updated_at`을 다시 검사하는 RPC만 실행할 수 있게 한다.
 - Line과 Item의 workspace 일치를 DB와 repository 양쪽에서 검증한다.
 - directed edge는 self-edge와 cycle을 차단한다.
 - 여러 membership·edge 변경은 RPC 트랜잭션을 검토한다.
@@ -470,18 +499,25 @@ P4-2A 화면은 production에 추출된 49개 pair와 실제 검토 진행률을
 - [x] 검토 진행률과 중단 후 복원
 - [x] 확인된 선택만 저장하는 preview·confirm 단계
 
-P4-2B의 canonical pair schema, workspace RLS, confirm 전용 RPC, 49-pair importer와 검토 화면을 production에 적용하고 검증했다. 실제 49개 queue는 모두 pending이며, import는 검토 방향을 자동 선택하지 않았고 기존 행 삭제나 검토 결과 덮어쓰기를 하지 않았다. 첫 실제 pair는 읽기와 UI만 확인했으며 관계 선택·confirm은 사람의 검토 판단으로 남겼다.
+P4-2B의 canonical pair schema, workspace RLS, 49-pair importer와 검토 화면을 production에 적용하고 검증했다. J가 실제 49개를 모두 검토해 49/49가 완료됐으며 A→B 8개, B→A 37개, 동등·병렬 1개, 대체 관계 아님 3개가 저장됐다. 방향 자동 선택, 기존 행 삭제, 검토 결과 추측은 수행하지 않았다.
 
 ### P4-2C. Lineage Editing
 
-- [ ] directed edge schema·migration·RLS
+- [x] 완료한 Legacy Link 재검토와 append-only revision 이력
+- [x] directed edge schema·migration·RLS
 - [ ] 시작점과 predecessor·successor 편집
-- [ ] cycle·self-edge·workspace 불일치 차단
+- [x] cycle·self-edge·workspace 불일치 차단
 - [ ] 가지 이름·선택 이유
 - [ ] Line 병합·보관·대표 Line
 - [ ] membership 변경 시 `needs_review`
 - [ ] 같은 크기 thumbnail의 세로형 Lineage UI
-- [ ] 실제 가지가 있는 fixture로 분기 렌더링
+- [x] 실제 가지가 있는 fixture로 분기 렌더링
+
+P4-2C의 첫 기반으로 완료한 49개 관계를 목록에서 다시 열고 기존 선택·이유를 수정할 수 있게 했다. 현재 결과는 빠른 조회용 snapshot으로 유지하되 모든 저장은 revision row를 추가하며, `updated_at` optimistic concurrency로 오래 열린 화면이 더 최신 판단을 덮어쓰지 못하게 한다. production에는 49개 현재 결과와 일치하는 최초 revision 49개가 backfill됐다. 공통 Line이 두 개인 `무탠다드 슬리브리스 — 퍼스트클로 슬리브리스` pair는 Line을 자동 선택하지 않고 directed edge 단계의 명시적 선택 대상으로 남긴다.
+
+다음 기반으로 45개 방향 관계를 저장 전에 계산해 공통 Line이 하나인 44개, Line 선택이 필요한 1개, edge 제외 4개로 분리했다. 후보 graph에는 self-edge·중복·cycle이 없고 실제 가지 1곳과 합류 1곳이 있어 preview에 그대로 표시한다. directed edge table과 confirm RPC는 출처 검토 결과에서 방향을 다시 계산하고 composite FK, RLS, 최소 권한, optimistic concurrency와 transaction advisory lock 기반 cycle 검사로 잘못된 저장을 차단한다. 이 단계에서는 production edge를 생성하지 않는다.
+
+Line 선택이 필요한 1개 관계에는 기본값 없는 두 선택지를 제공하고, 선택 뒤 44개 자동 귀속 후보와 함께 45개 전체를 다시 확인해야 최종 저장 동작이 나타나게 했다. 최종 저장은 한 batch RPC와 한 transaction으로 처리해 중간 후보 하나라도 유효하지 않으면 앞서 처리한 edge까지 전부 rollback한다. production rollback fixture로 이 원자성을 검증했으며, 실제 저장 버튼은 누르지 않아 production edge는 계속 0개다.
 
 ### P4-3. 통합 검증과 공개
 

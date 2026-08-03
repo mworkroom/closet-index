@@ -308,11 +308,34 @@ export interface ReplacementLegacyLink {
   reviewDecision: ReplacementLegacyLinkDecision | null
   reviewReason: string | null
   reviewedAt: string | null
+  updatedAt: string
 }
 
 export interface ReplacementLegacyLinkReviewInput {
   decision: ReplacementLegacyLinkDecision
   reason: string
+  expectedUpdatedAt: string
+}
+
+export interface ReplacementLineEdge {
+  id: string
+  replacementLineId: string
+  predecessorItemId: string
+  successorItemId: string
+  sourceLegacyLinkId: string
+  branchName: string | null
+  decisionReason: string
+  status: 'confirmed' | 'needs_review' | 'archived'
+  confirmedAt: string
+  updatedAt: string
+}
+
+export interface ReplacementLineEdgeConfirmationInput {
+  replacementLineId: string
+  sourceLegacyLinkId: string
+  expectedLegacyUpdatedAt: string
+  branchName: string | null
+  decisionReason: string
 }
 
 export interface RecommendationInput {

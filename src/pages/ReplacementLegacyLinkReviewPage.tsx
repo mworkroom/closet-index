@@ -96,6 +96,10 @@ export function ReplacementLegacyLinkReviewPage() {
   const [previewing, setPreviewing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [selectedReviewedLinkId, setSelectedReviewedLinkId] = useState<
+    string | null
+  >(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -129,14 +133,30 @@ export function ReplacementLegacyLinkReviewPage() {
         : null,
     [data, lineSnapshot, links],
   )
-  const currentPair = queue?.pendingPairs.find((pair) => pair.reviewable) ?? null
+  const pendingPair =
+    queue?.pendingPairs.find((pair) => pair.reviewable) ?? null
+  const selectedReviewedPair =
+    queue?.reviewedPairs.find(
+      (pair) => pair.reviewable && pair.link.id === selectedReviewedLinkId,
+    ) ?? null
+  const currentPair = pendingPair ?? selectedReviewedPair
+  const revising = currentPair?.link.reviewStatus === 'reviewed'
 
   useEffect(() => {
-    setDecision(null)
-    setReason('')
+    setDecision(currentPair?.link.reviewDecision ?? null)
+    setReason(currentPair?.link.reviewReason ?? '')
     setPreviewing(false)
     setSaveError(null)
-  }, [currentPair?.link.id])
+  }, [currentPair])
+
+  const hasChanges = Boolean(
+    currentPair &&
+      decision &&
+      reason.trim() &&
+      (currentPair.link.reviewStatus === 'pending' ||
+        currentPair.link.reviewDecision !== decision ||
+        currentPair.link.reviewReason !== reason.trim()),
+  )
 
   const confirmReview = async () => {
     if (!currentPair || !decision || !reason.trim()) return
@@ -146,14 +166,23 @@ export function ReplacementLegacyLinkReviewPage() {
       const reviewed = await reviewReplacementLegacyLink(currentPair.link.id, {
         decision,
         reason,
+        expectedUpdatedAt: currentPair.link.updatedAt,
       })
       setLinks((current) =>
         current?.map((link) => (link.id === reviewed.id ? reviewed : link)) ??
         current,
       )
+      if (revising) {
+        setSelectedReviewedLinkId(null)
+        setSaveMessage('검토 결과를 변경했고 이전 판단은 이력에 보존했어요.')
+      }
     } catch (cause) {
+      const message =
+        cause instanceof Error ? cause.message : '검토 결과를 저장하지 못했습니다.'
       setSaveError(
-        cause instanceof Error ? cause.message : '검토 결과를 저장하지 못했습니다.',
+        message.includes('changed after it was loaded')
+          ? '다른 곳에서 검토 결과가 변경되었습니다. 새로고침 후 다시 시도해 주세요.'
+          : message,
       )
     } finally {
       setSaving(false)
@@ -164,7 +193,7 @@ export function ReplacementLegacyLinkReviewPage() {
   const reviewedCount = queue?.reviewedCount ?? 0
 
   return (
-    <AppShell title="Legacy Link Review" eyebrow="P4-2B" back>
+    <AppShell title="Legacy Link Review" eyebrow="P4-2C" back>
       <section className="legacy-review-progress" aria-labelledby="legacy-review-progress-heading">
         <div className="section-heading">
           <h2 id="legacy-review-progress-heading">검토 진행</h2>
@@ -194,22 +223,89 @@ export function ReplacementLegacyLinkReviewPage() {
       {queue && totalCount === reviewedCount ? (
         <EmptyState
           title="모든 Legacy Link를 검토했어요"
-          description="검토 결과는 유지되며, 다음 Lineage 단계에서 확인된 방향만 edge 후보로 사용합니다."
+          description="검토 결과는 아래에서 언제든 다시 열 수 있고, 바꾸기 전 판단도 이력에 남습니다."
           action={
-            <Link className="button button--secondary" to="/statistics/replacement-lines">
-              Line Overview로 돌아가기
-            </Link>
+            <div className="legacy-review-complete-actions">
+              <Link
+                className="button button--primary"
+                to="/replacement-lines/edges/preview"
+              >
+                Edge 후보 미리보기
+              </Link>
+              <Link className="button button--secondary" to="/replacement-lines">
+                Line Overview로 돌아가기
+              </Link>
+            </div>
           }
         />
+      ) : null}
+
+      {saveMessage ? (
+        <p className="success-text legacy-review-save-message" role="status">
+          {saveMessage}
+        </p>
+      ) : null}
+
+      {queue && !pendingPair && !selectedReviewedPair ? (
+        <section
+          className="section legacy-review-history"
+          aria-labelledby="legacy-review-history-heading"
+        >
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">REVIEWED</p>
+              <h2 id="legacy-review-history-heading">검토한 관계</h2>
+            </div>
+            <span className="count">{queue.reviewedPairs.length}</span>
+          </div>
+          <p className="muted">
+            방향이나 이유가 달라지면 해당 관계만 다시 열어 변경할 수 있습니다.
+          </p>
+          <ol className="legacy-review-history__list">
+            {queue.reviewedPairs.map((pair) => {
+              const itemAName = pair.itemA?.name ?? '확인 불가 Item A'
+              const itemBName = pair.itemB?.name ?? '확인 불가 Item B'
+              const description = pair.link.reviewDecision
+                ? describeLegacyLinkDecision(
+                    pair.link.reviewDecision,
+                    itemAName,
+                    itemBName,
+                  )
+                : '검토 결과 없음'
+              return (
+                <li key={pair.link.id}>
+                  <div>
+                    <strong>{itemAName} — {itemBName}</strong>
+                    <span>{description}</span>
+                  </div>
+                  <button
+                    className="button button--secondary"
+                    type="button"
+                    disabled={!pair.reviewable}
+                    aria-label={`${itemAName}, ${itemBName} 다시 검토`}
+                    onClick={() => {
+                      setSaveMessage(null)
+                      setSelectedReviewedLinkId(pair.link.id)
+                    }}
+                  >
+                    다시 검토
+                  </button>
+                </li>
+              )
+            })}
+          </ol>
+        </section>
       ) : null}
 
       {currentPair ? (
         <>
           <section className="section legacy-review-pair" aria-labelledby="legacy-review-pair-heading">
             <div className="section-heading">
-              <h2 id="legacy-review-pair-heading">다음 pair</h2>
+              <h2 id="legacy-review-pair-heading">
+                {revising ? '관계 다시 검토' : '다음 pair'}
+              </h2>
               <span className="count">
-                {reviewedCount + 1}/{totalCount}
+                {revising ? `${reviewedCount}/${totalCount}` : `${reviewedCount + 1}/${totalCount}`}
               </span>
             </div>
             <div className="legacy-review-item-grid">
@@ -227,6 +323,12 @@ export function ReplacementLegacyLinkReviewPage() {
                   : '확인된 공통 Line 없음'}
               </span>
             </div>
+            {currentPair.sharedLineNames.length > 1 ? (
+              <p className="warning-text legacy-review-line-warning" role="note">
+                이 pair는 공통 Line이 여러 개입니다. directed edge를 만들 때 Line을
+                따로 선택해야 합니다.
+              </p>
+            ) : null}
           </section>
 
           <section className="section legacy-review-form" aria-labelledby="legacy-review-choice-heading">
@@ -266,10 +368,19 @@ export function ReplacementLegacyLinkReviewPage() {
               <button
                 className="button button--primary"
                 type="button"
-                disabled={!decision || !reason.trim()}
+                disabled={!hasChanges}
                 onClick={() => setPreviewing(true)}
               >
-                선택 확인
+                {revising ? '변경 확인' : '선택 확인'}
+              </button>
+            ) : null}
+            {revising && !previewing ? (
+              <button
+                className="button button--secondary"
+                type="button"
+                onClick={() => setSelectedReviewedLinkId(null)}
+              >
+                목록으로 돌아가기
               </button>
             ) : null}
           </section>
@@ -277,7 +388,25 @@ export function ReplacementLegacyLinkReviewPage() {
           {previewing && decision && currentPair.itemA && currentPair.itemB ? (
             <section className="section legacy-review-confirm" aria-labelledby="legacy-review-confirm-heading">
               <p className="eyebrow">PREVIEW</p>
-              <h2 id="legacy-review-confirm-heading">저장 전 확인</h2>
+              <h2 id="legacy-review-confirm-heading">
+                {revising ? '변경 전 확인' : '저장 전 확인'}
+              </h2>
+              {revising && currentPair.link.reviewDecision ? (
+                <div className="legacy-review-confirm__before">
+                  <span>현재 저장된 판단</span>
+                  <strong>
+                    {describeLegacyLinkDecision(
+                      currentPair.link.reviewDecision,
+                      currentPair.itemA.name,
+                      currentPair.itemB.name,
+                    )}
+                  </strong>
+                  <p>{currentPair.link.reviewReason}</p>
+                </div>
+              ) : null}
+              <span className="legacy-review-confirm__label">
+                {revising ? '바꿀 판단' : '저장할 판단'}
+              </span>
               <strong>
                 {describeLegacyLinkDecision(
                   decision,
@@ -302,7 +431,7 @@ export function ReplacementLegacyLinkReviewPage() {
                   disabled={saving}
                   onClick={() => void confirmReview()}
                 >
-                  {saving ? '저장 중' : '이대로 저장'}
+                  {saving ? '저장 중' : revising ? '변경 저장' : '이대로 저장'}
                 </button>
               </div>
             </section>

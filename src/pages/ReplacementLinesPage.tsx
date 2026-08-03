@@ -230,14 +230,24 @@ export function ReplacementLinesPage() {
                 : `P4-0에서 ${LEGACY_LINK_BASELINE_COUNT}개 무방향 pair를 확인했습니다. 개별 pair는 아직 앱 DB에 추출되지 않아 관계를 추측해 표시하지 않습니다.`}
             </p>
             {legacyLinksAvailable && legacyLinkCount > 0 ? (
-              <Link
-                className="button button--secondary"
-                to="/statistics/replacement-lines/review"
-              >
-                {reviewedLegacyLinkCount === legacyLinkCount
-                  ? '검토 결과 보기'
-                  : 'Legacy Link 검토 이어가기'}
-              </Link>
+              <div className="legacy-link-status__actions">
+                {reviewedLegacyLinkCount === legacyLinkCount ? (
+                  <Link
+                    className="button button--primary"
+                    to="/replacement-lines/edges/preview"
+                  >
+                    Edge 후보 미리보기
+                  </Link>
+                ) : null}
+                <Link
+                  className="button button--secondary"
+                  to="/replacement-lines/review"
+                >
+                  {reviewedLegacyLinkCount === legacyLinkCount
+                    ? '검토 결과 보기'
+                    : 'Legacy Link 검토 이어가기'}
+                </Link>
+              </div>
             ) : (
               <span className="legacy-link-status__pending">
                 검토 데이터 준비 전

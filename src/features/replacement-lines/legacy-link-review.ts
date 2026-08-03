@@ -16,6 +16,7 @@ export interface LegacyLinkReviewPair {
 export interface LegacyLinkReviewQueue {
   pairs: LegacyLinkReviewPair[]
   pendingPairs: LegacyLinkReviewPair[]
+  reviewedPairs: LegacyLinkReviewPair[]
   reviewedCount: number
   hiddenItemPairCount: number
 }
@@ -60,6 +61,9 @@ export function buildLegacyLinkReviewQueue(
     pairs,
     pendingPairs: pairs.filter(
       (pair) => pair.link.reviewStatus === 'pending',
+    ),
+    reviewedPairs: pairs.filter(
+      (pair) => pair.link.reviewStatus === 'reviewed',
     ),
     reviewedCount: pairs.filter(
       (pair) => pair.link.reviewStatus === 'reviewed',

@@ -17,6 +17,7 @@ import { LookbookPage } from './pages/LookbookPage'
 import { MorePage } from './pages/MorePage'
 import { ReplacementLinesPage } from './pages/ReplacementLinesPage'
 import { ReplacementLegacyLinkReviewPage } from './pages/ReplacementLegacyLinkReviewPage'
+import { ReplacementLineageEdgePreviewPage } from './pages/ReplacementLineageEdgePreviewPage'
 import { OutfitDetailPage } from './pages/OutfitDetailPage'
 import { OutfitCreatorPage } from './pages/OutfitCreatorPage'
 import { SettingsPage } from './pages/SettingsPage'
@@ -67,12 +68,28 @@ function AuthenticatedApp() {
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/statistics" element={<StatisticsPage />} />
           <Route
-            path="/statistics/replacement-lines"
+            path="/replacement-lines"
             element={<ReplacementLinesPage />}
           />
           <Route
-            path="/statistics/replacement-lines/review"
+            path="/replacement-lines/review"
             element={<ReplacementLegacyLinkReviewPage />}
+          />
+          <Route
+            path="/replacement-lines/edges/preview"
+            element={<ReplacementLineageEdgePreviewPage />}
+          />
+          <Route
+            path="/statistics/replacement-lines"
+            element={<Navigate to="/replacement-lines" replace />}
+          />
+          <Route
+            path="/statistics/replacement-lines/review"
+            element={<Navigate to="/replacement-lines/review" replace />}
+          />
+          <Route
+            path="/statistics/replacement-lines/edges/preview"
+            element={<Navigate to="/replacement-lines/edges/preview" replace />}
           />
           <Route
             path="/statistics/items"

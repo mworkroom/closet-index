@@ -47,6 +47,10 @@ describe('Phase 3.5 navigation', () => {
     ).toEqual([
       ['FavoriteFavorite 착장만 모아보기', '/favorite'],
       ['StatisticsItem 활용률과 실제 착용 기록 확인', '/statistics'],
+      [
+        'Replacement Lines같은 역할을 이어 온 Item 계보와 검토',
+        '/replacement-lines',
+      ],
       ['Settings계정과 데이터 원본 상태', '/settings'],
     ])
     expect(within(menu!).queryByText('Calendar')).not.toBeInTheDocument()

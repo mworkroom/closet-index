@@ -21,6 +21,8 @@ import type {
   OutfitItemPlacementInput,
   OutfitPreviewUploadInput,
   ReplacementLineSnapshot,
+  ReplacementLineEdge,
+  ReplacementLineEdgeConfirmationInput,
   ReplacementLegacyLink,
   ReplacementLegacyLinkReviewInput,
   WeatherForecastRequest,
@@ -42,6 +44,10 @@ interface DataState {
     linkId: string,
     input: ReplacementLegacyLinkReviewInput,
   ) => Promise<ReplacementLegacyLink>
+  loadReplacementLineEdges: () => Promise<ReplacementLineEdge[]>
+  confirmReplacementLineEdges: (
+    inputs: ReplacementLineEdgeConfirmationInput[],
+  ) => Promise<ReplacementLineEdge[]>
   createItem: (input: ItemCreateInput) => Promise<Item>
   updateItem: (itemId: string, input: ItemWriteInput) => Promise<Item>
   replaceItemImage: (
@@ -230,6 +236,27 @@ export function DataProvider({
     [repository],
   )
 
+  const loadReplacementLineEdges = useCallback(() => {
+    if (!repository.loadReplacementLineEdges) {
+      return Promise.reject(
+        new Error('이 환경에서는 Lineage edge 조회를 지원하지 않습니다.'),
+      )
+    }
+    return repository.loadReplacementLineEdges()
+  }, [repository])
+
+  const confirmReplacementLineEdges = useCallback(
+    (inputs: ReplacementLineEdgeConfirmationInput[]) => {
+      if (!repository.confirmReplacementLineEdges) {
+        return Promise.reject(
+          new Error('이 환경에서는 Lineage edge 저장을 지원하지 않습니다.'),
+        )
+      }
+      return repository.confirmReplacementLineEdges(inputs)
+    },
+    [repository],
+  )
+
   const replaceOutfitPreview = useCallback(
     async (outfitId: string, input: OutfitPreviewUploadInput) => {
       if (!repository.replaceOutfitPreview) {
@@ -388,6 +415,8 @@ export function DataProvider({
       loadReplacementLines,
       loadReplacementLegacyLinks,
       reviewReplacementLegacyLink,
+      loadReplacementLineEdges,
+      confirmReplacementLineEdges,
       createItem,
       updateItem,
       replaceItemImage: (itemId, input) =>
@@ -422,6 +451,8 @@ export function DataProvider({
       loadReplacementLines,
       loadReplacementLegacyLinks,
       reviewReplacementLegacyLink,
+      loadReplacementLineEdges,
+      confirmReplacementLineEdges,
       findMatchingOutfits,
       mutate,
       refresh,

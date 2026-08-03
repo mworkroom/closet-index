@@ -10,6 +10,8 @@ import type {
   OutfitItemPlacementInput,
   OutfitPreviewUploadInput,
   ReplacementLineSnapshot,
+  ReplacementLineEdge,
+  ReplacementLineEdgeConfirmationInput,
   ReplacementLegacyLink,
   ReplacementLegacyLinkReviewInput,
   WeatherForecastRequest,
@@ -67,6 +69,16 @@ export class SupabaseRepository implements ClosetRepository {
     input: ReplacementLegacyLinkReviewInput,
   ): Promise<ReplacementLegacyLink> {
     return this.replacementLines.reviewLegacyLink(linkId, input)
+  }
+
+  loadReplacementLineEdges(): Promise<ReplacementLineEdge[]> {
+    return this.replacementLines.loadEdges()
+  }
+
+  confirmReplacementLineEdges(
+    inputs: ReplacementLineEdgeConfirmationInput[],
+  ): Promise<ReplacementLineEdge[]> {
+    return this.replacementLines.confirmEdges(inputs)
   }
 
   createItem(input: ItemCreateInput) {

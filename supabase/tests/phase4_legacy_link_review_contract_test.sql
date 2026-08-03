@@ -1,6 +1,6 @@
 begin;
 
-select plan(27);
+select plan(28);
 
 select has_table(
   'public',
@@ -365,6 +365,16 @@ select is(
   ),
   'A was replaced by B',
   'the human review reason is preserved'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from public.closet_replacement_legacy_link_revisions
+    where legacy_link_id = '88000000-0000-0000-0000-000000000001'
+  ),
+  1,
+  'the confirm RPC also preserves the first review revision'
 );
 
 select throws_ok(

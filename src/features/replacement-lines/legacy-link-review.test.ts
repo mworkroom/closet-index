@@ -37,6 +37,7 @@ describe('Legacy Link review queue', () => {
         reviewDecision: null,
         reviewReason: null,
         reviewedAt: null,
+        updatedAt: '2026-08-03T00:00:00Z',
       },
       {
         id: 'link-reviewed',
@@ -46,6 +47,7 @@ describe('Legacy Link review queue', () => {
         reviewDecision: 'parallel',
         reviewReason: '같은 역할',
         reviewedAt: '2026-08-03T00:00:00Z',
+        updatedAt: '2026-08-03T00:00:00Z',
       },
     ]
     const lines: ReplacementLineSnapshot = {
@@ -63,6 +65,7 @@ describe('Legacy Link review queue', () => {
 
     expect(queue.reviewedCount).toBe(1)
     expect(queue.pendingPairs).toHaveLength(1)
+    expect(queue.reviewedPairs).toHaveLength(1)
     expect(queue.hiddenItemPairCount).toBe(1)
     expect(queue.pendingPairs[0]).toMatchObject({
       sharedLineNames: ['Daily Top'],

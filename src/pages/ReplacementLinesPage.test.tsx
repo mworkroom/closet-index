@@ -12,11 +12,11 @@ describe('ReplacementLinesPage', () => {
     const repository = new DemoRepository()
     const loadReplacementLines = vi.spyOn(repository, 'loadReplacementLines')
     render(
-      <MemoryRouter initialEntries={['/statistics/replacement-lines']}>
+      <MemoryRouter initialEntries={['/replacement-lines']}>
         <DataProvider repository={repository}>
           <Routes>
             <Route
-              path="/statistics/replacement-lines"
+              path="/replacement-lines"
               element={<ReplacementLinesPage />}
             />
             <Route path="/closet/:itemId" element={<p>Item 상세</p>} />
@@ -30,7 +30,7 @@ describe('ReplacementLinesPage', () => {
     ).toBeInTheDocument()
     expect(loadReplacementLines).toHaveBeenCalledTimes(1)
     expect(screen.getByText('5 Lines')).toBeInTheDocument()
-    expect(screen.getByText('6개')).toBeInTheDocument()
+    expect(screen.getByText('7개')).toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: 'Daily Uniform' }),
     ).toBeInTheDocument()
@@ -44,7 +44,7 @@ describe('ReplacementLinesPage', () => {
 
   it('shows available Legacy Links without inventing direction and opens the review queue', async () => {
     render(
-      <MemoryRouter initialEntries={['/statistics/replacement-lines']}>
+      <MemoryRouter initialEntries={['/replacement-lines']}>
         <DataProvider repository={new DemoRepository()}>
           <ReplacementLinesPage />
         </DataProvider>
@@ -61,7 +61,7 @@ describe('ReplacementLinesPage', () => {
       within(legacySection).getByRole('link', {
         name: 'Legacy Link 검토 이어가기',
       }),
-    ).toHaveAttribute('href', '/statistics/replacement-lines/review')
+    ).toHaveAttribute('href', '/replacement-lines/review')
     expect(legacySection).not.toHaveTextContent('→')
   })
 })
