@@ -1,121 +1,85 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { ArrowLeft, ChevronRight } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
-import { ItemVisual } from '../components/ItemVisual'
-import { EmptyState, ErrorState, LoadingState } from '../components/States'
+import { ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
 import {
   buildReplacementLineOverview,
   LEGACY_LINK_BASELINE_COUNT,
-  type ReplacementLineItemOverview,
+  type ReplacementLineColorGroup,
   type ReplacementLineOverviewRow,
 } from '../features/replacement-lines/replacement-line-overview'
-import { formatMonthDayYear } from '../lib/date'
 import type {
   ReplacementLegacyLink,
   ReplacementLineSnapshot,
 } from '../lib/types'
 
-function ReplacementLineItemRow({ entry }: { entry: ReplacementLineItemOverview }) {
-  const { item, lineNames } = entry
-  return (
-    <Link
-      className="replacement-line-item"
-      to={`/closet/${item.id}`}
-      aria-label={`${item.name} Item 상세 보기`}
-    >
-      <ItemVisual item={item} className="item-visual--row" />
-      <span className="replacement-line-item__body">
-        <strong>{item.name}</strong>
-        <span>
-          {item.retired ? 'Retired' : 'Active'} ·{' '}
-          {item.acquiredOn
-            ? `취득 ${formatMonthDayYear(item.acquiredOn)}`
-            : '취득일 미상'}
-        </span>
-        {lineNames.length > 1 ? (
-          <span className="warning-text">
-            복수 Line · {lineNames.join(' · ')}
-          </span>
-        ) : null}
-      </span>
-    </Link>
-  )
+function usesLightText(hex: string) {
+  const value = hex.replace('#', '')
+  if (!/^[0-9a-f]{6}$/i.test(value)) return false
+  const red = Number.parseInt(value.slice(0, 2), 16)
+  const green = Number.parseInt(value.slice(2, 4), 16)
+  const blue = Number.parseInt(value.slice(4, 6), 16)
+  return (red * 299 + green * 587 + blue * 114) / 1000 < 142
 }
 
 function ReplacementLineCard({ line }: { line: ReplacementLineOverviewRow }) {
   const isEmpty = line.membershipCount === 0
   const isSingle = line.membershipCount === 1
   return (
-    <details className="replacement-line-card">
-      <summary>
-        <span className="replacement-line-card__heading">
-          <strong>{line.name}</strong>
-          <span>
-            Active {line.activeItems.length} · Retired {line.retiredItems.length}
+    <Link
+      className="replacement-line-card replacement-line-card--link"
+      to={`/replacement-lines/${line.id}`}
+      aria-label={`${line.name} 계보 보기`}
+    >
+      <span className="replacement-line-card__heading">
+        <strong>{line.name}</strong>
+        <span>
+          Active {line.activeItems.length} · Retired {line.retiredItems.length}
+        </span>
+        {line.styleIdentity ? (
+          <span className="replacement-line-card__identity">
+            {line.styleIdentity}
           </span>
-        </span>
-        <span className="replacement-line-card__count">
-          {line.membershipCount} Item
-        </span>
-      </summary>
-
-      <div className="replacement-line-card__details">
-        <dl className="replacement-line-facts">
-          <div>
-            <dt>최근 Active 취득</dt>
-            <dd>{formatMonthDayYear(line.newestActiveAcquiredOn)}</dd>
-          </div>
-          <div>
-            <dt>Style Identity</dt>
-            <dd>{line.styleIdentity ?? '미지정'}</dd>
-          </div>
-        </dl>
-
-        <div className="replacement-line-warnings" aria-label="Line 점검 상태">
-          {isEmpty ? <span>빈 Line</span> : null}
-          {isSingle ? <span>단일 Item Line</span> : null}
-          {line.hasMultipleLineItem ? <span>복수 Line 소속 Item</span> : null}
-          {line.hiddenMembershipCount > 0 ? (
-            <span>확인 불가 membership {line.hiddenMembershipCount}개</span>
-          ) : null}
-          {!isEmpty && !isSingle && !line.hasMultipleLineItem ? (
-            <span className="replacement-line-warnings__ok">기본 구조 확인</span>
-          ) : null}
-        </div>
-
-        {!isEmpty ? (
-          <Link
-            className="button button--secondary replacement-line-card__lineage-link"
-            to={`/replacement-lines/${line.id}`}
-          >
-            계보 보기
-          </Link>
         ) : null}
+      </span>
+      <span className="replacement-line-card__count">
+        {line.membershipCount} Item
+      </span>
+      <ChevronRight aria-hidden="true" size={18} />
 
-        {line.membershipCount === 0 ? (
-          <EmptyState
-            title="연결된 Item이 없어요"
-            description="원본 Line은 유지하고, 이 읽기 전용 단계에서는 수정하지 않습니다."
-          />
-        ) : (
-          <div className="replacement-line-items">
-            {line.activeItems.map((entry) => (
-              <ReplacementLineItemRow entry={entry} key={entry.item.id} />
-            ))}
-            {line.retiredItems.map((entry) => (
-              <ReplacementLineItemRow entry={entry} key={entry.item.id} />
-            ))}
-          </div>
-        )}
-      </div>
-    </details>
+      {isEmpty || isSingle || line.hasMultipleLineItem || line.hasMultipleSemanticColors ? (
+        <span className="replacement-line-warnings" aria-label="Line 점검 상태">
+          {isEmpty ? <span>빈 Line</span> : null}
+          {isSingle ? <span>단일 Item</span> : null}
+          {line.hasMultipleLineItem ? <span>복수 Line 소속</span> : null}
+          {line.hasMultipleSemanticColors ? <span>색상 확인 필요</span> : null}
+        </span>
+      ) : null}
+    </Link>
+  )
+}
+
+function ColorIndexCard({ group }: { group: ReplacementLineColorGroup }) {
+  const lightText = usesLightText(group.displayHex)
+  return (
+    <Link
+      className={`replacement-line-color-card${lightText ? ' replacement-line-color-card--dark' : ''}`}
+      to={`/replacement-lines?color=${encodeURIComponent(group.id)}`}
+      style={{ backgroundColor: group.displayHex }}
+      aria-label={`${group.label}, ${group.lines.length}개 Line 보기`}
+    >
+      <strong>{group.label}</strong>
+      <span>{group.lines.length} Lines</span>
+    </Link>
   )
 }
 
 export function ReplacementLinesPage() {
   const { data, loadReplacementLines, loadReplacementLegacyLinks } =
     useClosetData()
+  const [searchParams] = useSearchParams()
   const [snapshot, setSnapshot] = useState<ReplacementLineSnapshot | null>(null)
   const [legacyLinks, setLegacyLinks] =
     useState<ReplacementLegacyLink[] | null>(null)
@@ -162,6 +126,10 @@ export function ReplacementLinesPage() {
         : null,
     [data, snapshot],
   )
+  const selectedColorId = searchParams.get('color')
+  const selectedColor = selectedColorId
+    ? overview?.colorGroups.find((group) => group.id === selectedColorId) ?? null
+    : null
   const legacyLinkCount = legacyLinksAvailable
     ? (legacyLinks?.length ?? 0)
     : LEGACY_LINK_BASELINE_COUNT
@@ -169,122 +137,126 @@ export function ReplacementLinesPage() {
     legacyLinks?.filter((link) => link.reviewStatus === 'reviewed').length ?? 0
 
   return (
-    <AppShell title="Replacement Lines" eyebrow="LINE OVERVIEW" back>
+    <AppShell title="Replacement Lines" eyebrow="COLOR INDEX" back>
       <section className="replacement-line-intro" aria-labelledby="line-overview-heading">
-        <p className="eyebrow">READ ONLY</p>
-        <h2 id="line-overview-heading">같은 역할을 이어 온 Item</h2>
+        <p className="eyebrow">REPLACEMENT LINEAGE</p>
+        <h2 id="line-overview-heading">색상별로 이어 온 Item</h2>
         <p className="muted">
-          현재 Line과 membership을 그대로 읽습니다. 취득일과 Retired 상태는
-          참고 정보이며, 대체 방향이나 세대를 자동으로 정하지 않습니다.
+          색상을 고른 뒤 Line을 누르면 중간 목록 없이 바로 계보를 확인할 수 있습니다.
         </p>
       </section>
 
       {loading ? <LoadingState label="Replacement Line을 불러오는 중" /> : null}
       {error ? <ErrorState message={error} onRetry={() => void load()} /> : null}
 
-      {overview ? (
-        <>
-          <section className="section" aria-labelledby="line-summary-heading">
-            <div className="section-heading">
-              <h2 id="line-summary-heading">Overview</h2>
-              <span className="count">{overview.summary.lineCount} Lines</span>
+      {overview && selectedColor ? (
+        <section className="section replacement-line-color-results" aria-labelledby="selected-color-heading">
+          <Link className="replacement-line-color-back" to="/replacement-lines">
+            <ArrowLeft aria-hidden="true" size={16} />
+            모든 색상
+          </Link>
+          <div className="replacement-line-color-heading">
+            <span
+              className="replacement-line-color-heading__swatch"
+              style={{ backgroundColor: selectedColor.displayHex }}
+              aria-hidden="true"
+            />
+            <div>
+              <h2 id="selected-color-heading">{selectedColor.label}</h2>
+              <span>{selectedColor.lines.length} Lines</span>
             </div>
-            <div className="metric-grid metric-grid--two" aria-label="Replacement Line 요약">
-              <div>
-                <span>Membership</span>
-                <strong>{overview.summary.membershipCount}개</strong>
-              </div>
-              <div>
-                <span>고유 Item</span>
-                <strong>{overview.summary.uniqueItemCount}개</strong>
-              </div>
-              <div>
-                <span>Active / Retired</span>
-                <strong>
-                  {overview.summary.activeItemCount} / {overview.summary.retiredItemCount}
-                </strong>
-              </div>
-              <div>
-                <span>점검 필요</span>
-                <strong>
-                  빈 {overview.summary.emptyLineCount} · 단일{' '}
-                  {overview.summary.singleItemLineCount}
-                </strong>
-              </div>
+          </div>
+          <div className="replacement-line-list">
+            {selectedColor.lines.map((line) => (
+              <ReplacementLineCard line={line} key={line.id} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {overview && !selectedColor ? (
+        <>
+          <section className="section" aria-labelledby="color-index-heading">
+            <div className="section-heading">
+              <h2 id="color-index-heading">Color</h2>
+              <span className="count">{overview.colorGroups.length} Colors</span>
+            </div>
+            <div className="replacement-line-color-grid">
+              {overview.colorGroups.map((group) => (
+                <ColorIndexCard group={group} key={group.id} />
+              ))}
             </div>
             {overview.summary.hiddenMembershipCount > 0 ? (
               <p className="warning-text replacement-line-scope-warning" role="alert">
                 현재 workspace Item으로 확인되지 않는 membership{' '}
-                {overview.summary.hiddenMembershipCount}개는 이름과 상세를 노출하지 않았습니다.
+                {overview.summary.hiddenMembershipCount}개는 색상 계산에서 제외했습니다.
               </p>
             ) : null}
           </section>
 
-          <section className="section legacy-link-status" aria-labelledby="legacy-link-heading">
-            <div className="section-heading">
-              <h2 id="legacy-link-heading">Legacy Link</h2>
-              <span className="count">
-                검토 {reviewedLegacyLinkCount}/{legacyLinkCount}
+          <details className="replacement-line-management">
+            <summary>
+              <span>
+                <strong>Line 관리 현황</strong>
+                <small>
+                  {overview.summary.lineCount} Lines · {overview.summary.membershipCount} Memberships
+                </small>
               </span>
-            </div>
-            <div className="legacy-link-status__line" aria-label="방향 없는 Legacy Link 상태">
-              <span>Item A</span>
-              <strong aria-hidden="true">—</strong>
-              <span>Item B</span>
-              <b>{legacyLinkCount} pairs</b>
-            </div>
-            <p className="muted">
-              {legacyLinksAvailable
-                ? '개별 pair는 화살표 없이 보존됩니다. 검토 화면에서만 사람이 방향이나 관계 제외를 확인합니다.'
-                : `P4-0에서 ${LEGACY_LINK_BASELINE_COUNT}개 무방향 pair를 확인했습니다. 개별 pair는 아직 앱 DB에 추출되지 않아 관계를 추측해 표시하지 않습니다.`}
-            </p>
-            {legacyLinksAvailable && legacyLinkCount > 0 ? (
-              <div className="legacy-link-status__actions">
-                {reviewedLegacyLinkCount === legacyLinkCount ? (
-                  <Link
-                    className="button button--primary"
-                    to="/replacement-lines/edges/preview"
-                  >
-                    Edge 후보 미리보기
-                  </Link>
-                ) : null}
-                <Link
-                  className="button button--secondary"
-                  to="/replacement-lines/review"
-                >
-                  {reviewedLegacyLinkCount === legacyLinkCount
-                    ? '검토 결과 보기'
-                    : 'Legacy Link 검토 이어가기'}
-                </Link>
+              <span>보기</span>
+            </summary>
+            <div className="replacement-line-management__body">
+              <div className="metric-grid metric-grid--two" aria-label="Replacement Line 요약">
+                <div>
+                  <span>고유 Item</span>
+                  <strong>{overview.summary.uniqueItemCount}개</strong>
+                </div>
+                <div>
+                  <span>Active / Retired</span>
+                  <strong>
+                    {overview.summary.activeItemCount} / {overview.summary.retiredItemCount}
+                  </strong>
+                </div>
+                <div>
+                  <span>빈 Line</span>
+                  <strong>{overview.summary.emptyLineCount}개</strong>
+                </div>
+                <div>
+                  <span>단일 Item</span>
+                  <strong>{overview.summary.singleItemLineCount}개</strong>
+                </div>
               </div>
-            ) : (
-              <span className="legacy-link-status__pending">
-                검토 데이터 준비 전
-              </span>
-            )}
-          </section>
 
-          <div className="replacement-line-groups">
-            {overview.groups.map((group, groupIndex) => (
-              <section
-                className="section replacement-line-group"
-                aria-labelledby={`replacement-line-group-${groupIndex}`}
-                key={group.id}
-              >
+              <section className="legacy-link-status" aria-labelledby="legacy-link-heading">
                 <div className="section-heading">
-                  <h2 id={`replacement-line-group-${groupIndex}`}>
-                    {group.label}
-                  </h2>
-                  <span className="count">{group.lines.length} Lines</span>
+                  <h2 id="legacy-link-heading">Legacy Link</h2>
+                  <span className="count">
+                    검토 {reviewedLegacyLinkCount}/{legacyLinkCount}
+                  </span>
                 </div>
-                <div className="replacement-line-list">
-                  {group.lines.map((line) => (
-                    <ReplacementLineCard line={line} key={line.id} />
-                  ))}
-                </div>
+                <p className="muted">
+                  {legacyLinksAvailable
+                    ? '확인한 방향과 선택 이유는 계보 데이터로 보존됩니다.'
+                    : `P4-0에서 ${LEGACY_LINK_BASELINE_COUNT}개 무방향 pair를 확인했습니다.`}
+                </p>
+                {legacyLinksAvailable && legacyLinkCount > 0 ? (
+                  <div className="legacy-link-status__actions">
+                    {reviewedLegacyLinkCount === legacyLinkCount ? (
+                      <Link className="button button--primary" to="/replacement-lines/edges/preview">
+                        Edge 후보 미리보기
+                      </Link>
+                    ) : null}
+                    <Link className="button button--secondary" to="/replacement-lines/review">
+                      {reviewedLegacyLinkCount === legacyLinkCount
+                        ? '검토 결과 보기'
+                        : 'Legacy Link 검토 이어가기'}
+                    </Link>
+                  </div>
+                ) : (
+                  <span className="legacy-link-status__pending">검토 데이터 준비 전</span>
+                )}
               </section>
-            ))}
-          </div>
+            </div>
+          </details>
         </>
       ) : null}
     </AppShell>

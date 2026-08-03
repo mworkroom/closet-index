@@ -112,6 +112,7 @@ export interface Item {
   name: string
   category: string
   semanticColor: string | null
+  paletteName?: string | null
   displayHex: string
   seasons: string[]
   retired: boolean
@@ -322,7 +323,8 @@ export interface ReplacementLineEdge {
   replacementLineId: string
   predecessorItemId: string
   successorItemId: string
-  sourceLegacyLinkId: string
+  sourceLegacyLinkId: string | null
+  sourceKind: 'legacy_link' | 'manual'
   branchName: string | null
   decisionReason: string
   status: 'confirmed' | 'needs_review' | 'archived'
@@ -334,6 +336,30 @@ export interface ReplacementLineEdgeConfirmationInput {
   replacementLineId: string
   sourceLegacyLinkId: string
   expectedLegacyUpdatedAt: string
+  branchName: string | null
+  decisionReason: string
+}
+
+export interface ReplacementLineEdgeDetailsUpdateInput {
+  expectedUpdatedAt: string
+  branchName: string | null
+  decisionReason: string
+}
+
+export interface ReplacementLineEdgeDirectionUpdateInput {
+  expectedUpdatedAt: string
+}
+
+export interface ReplacementLineStart {
+  replacementLineId: string
+  itemId: string
+  designatedAt: string
+}
+
+export interface ReplacementLineManualEdgeInput {
+  replacementLineId: string
+  predecessorItemId: string
+  successorItemId: string
   branchName: string | null
   decisionReason: string
 }

@@ -4,14 +4,16 @@ import { buildReplacementLineOverview } from './replacement-line-overview'
 
 function item(
   id: string,
-  options: Partial<Pick<Item, 'retired' | 'acquiredOn' | 'name'>> = {},
+  options: Partial<
+    Pick<Item, 'retired' | 'acquiredOn' | 'name' | 'semanticColor' | 'displayHex'>
+  > = {},
 ): Item {
   return {
     id,
     name: options.name ?? id,
     category: 'Top-T-shirts',
-    semanticColor: null,
-    displayHex: '#222222',
+    semanticColor: options.semanticColor ?? null,
+    displayHex: options.displayHex ?? '#222222',
     seasons: ['Summer'],
     retired: options.retired ?? false,
     rainOk: true,
@@ -83,5 +85,80 @@ describe('Replacement Line overview', () => {
     ])
     expect(overview.lines[0].hiddenMembershipCount).toBe(1)
     expect(overview.summary.hiddenMembershipCount).toBe(1)
+  })
+
+  it('indexes each Line by its member color and uses the Line name only for an empty Line', () => {
+    const overview = buildReplacementLineOverview(
+      {
+        lines: [
+          { id: 'black-bag', name: 'Black Bag - Crossbody Black', styleIdentity: null },
+          { id: 'black-coat', name: 'Black Long Coat', styleIdentity: null },
+          { id: 'ivory-top', name: 'Ivory Layered', styleIdentity: null },
+          { id: 'empty-black', name: 'Future Black Dress', styleIdentity: null },
+        ],
+        memberships: [
+          { replacementLineId: 'black-bag', itemId: 'black-a' },
+          { replacementLineId: 'black-bag', itemId: 'black-b' },
+          { replacementLineId: 'black-coat', itemId: 'black-b' },
+          { replacementLineId: 'ivory-top', itemId: 'ivory' },
+        ],
+      },
+      [
+        item('black-a', { semanticColor: 'Black', displayHex: '#111111' }),
+        item('black-b', { semanticColor: 'Black', displayHex: '#111111' }),
+        item('ivory', { semanticColor: 'Ivory', displayHex: '#F2EEE2' }),
+      ],
+    )
+
+    expect(overview.colorGroups.map((group) => group.label)).toEqual([
+      'Black',
+      'Ivory',
+    ])
+    expect(overview.colorGroups[0]).toMatchObject({
+      displayHex: '#111111',
+      lines: [
+        expect.objectContaining({ id: 'black-bag' }),
+        expect.objectContaining({ id: 'black-coat' }),
+        expect.objectContaining({ id: 'empty-black' }),
+      ],
+    })
+  })
+
+  it('keeps a Line with conflicting member colors in a review group', () => {
+    const overview = buildReplacementLineOverview(
+      {
+        lines: [{ id: 'mixed', name: 'Mixed Legacy Line', styleIdentity: null }],
+        memberships: [
+          { replacementLineId: 'mixed', itemId: 'black' },
+          { replacementLineId: 'mixed', itemId: 'ivory' },
+        ],
+      },
+      [
+        item('black', { semanticColor: 'Black', displayHex: '#111111' }),
+        item('ivory', { semanticColor: 'Ivory', displayHex: '#F2EEE2' }),
+      ],
+    )
+
+    expect(overview.colorGroups).toEqual([
+      expect.objectContaining({
+        id: 'unassigned',
+        label: '색상 확인 필요',
+        lines: [expect.objectContaining({ hasMultipleSemanticColors: true })],
+      }),
+    ])
+  })
+
+  it('matches a color as a word instead of finding Red inside Layered', () => {
+    const overview = buildReplacementLineOverview(
+      {
+        lines: [{ id: 'layered', name: 'Layered Top', styleIdentity: null }],
+        memberships: [],
+      },
+      [],
+    )
+
+    expect(overview.colorGroups).toEqual([
+      expect.objectContaining({ id: 'unassigned', label: '색상 확인 필요' }),
+    ])
   })
 })

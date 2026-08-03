@@ -1,8 +1,8 @@
 # Closet Index Phase 4 Statistics & Replacement Lineage Plan
 
 - 최초 작성일: 2026-08-01
-- 최종 수정일: 2026-08-03
-- 상태: P4-0·P4-1A·P4-1B·P4-2A·P4-2B 완료, production Legacy Link 검토 49/49·45개 directed edge 확정·P4-2C 읽기 전용 세대별 Lineage UI 완료, edge 편집·Line 관리 대기
+- 최종 수정일: 2026-08-04
+- 상태: P4-0·P4-1A·P4-1B·P4-2A·P4-2B 완료, production Legacy Link 검토 49/49·45개 directed edge 확정·P4-2C 색상 인덱스·세대별 Lineage UI·edge 설명 편집 production 적용 및 검증 완료, 방향 편집·Line 관리 대기
 - 목표 릴리스: Phase 4 Statistics & Replacement Lineage
 - 선행 상태: Phase 3 구현·검증·공개 완료, Phase 3.5 로컬 구현·검증 완료 및 공개 배포 전
 - 관련 문서: [Roadmap](./roadmap.md), [Product Plan](./product-plan.md), [Phase 3 Plan](./phase-3-visual-wardrobe-plan.md), [Phase 1 Data & Security Spec](./phase-1-data-security-spec.md), [P4-0 Baseline Audit](./phase-4-p4-0-baseline-audit.md)
@@ -292,20 +292,21 @@ MORE → Statistics
 
 ```text
 MORE → Replacement Lines
-→ Style Identity 그룹
-→ Line 목록
-→ Active/Retired·membership·Legacy Link 상태
-→ Line 상세 또는 검토 시작
+→ Line 이름의 색상과 기존 Item HEX로 만든 Color Index
+→ 선택한 색상의 Line 목록
+→ Line 선택 즉시 계보 상세
 ```
 
-Line 목록에는 다음을 표시한다.
+첫 화면에는 전체 Line 목록 대신 색상 tile만 표시한다. 한 Replacement Line 안의 Item은 예외 없이 같은 색상 계열이라는 운영 규칙을 사용하고, Line 이름에 포함된 색상명을 분류 원본으로 삼는다. tile의 배경색은 해당 Line Item의 기존 `displayHex`를 집계해 표시하며 밝기에 따라 글자 대비를 바꾼다.
 
-- Line 이름과 Style Identity
+색상을 선택한 뒤의 Line 목록에는 다음을 표시한다.
+
+- Line 이름과 보조 정보인 Style Identity
 - Active Item 수와 전체 Item 수
-- 가장 최근 Active Item의 취득일
 - 빈 Line, 단일 Item Line, 복수 Line 소속 Item
-- Legacy Link 검토 진행률
-- `needs_review` 또는 `confirmed` 상태
+- Line 카드 전체를 누르면 중간 membership Item 목록이나 별도 `계보 보기` 버튼 없이 `/replacement-lines/:lineId`로 이동
+
+Legacy Link 진행률과 전체 Line 품질 요약은 주 탐색 흐름을 늘리지 않도록 첫 화면의 접힌 `Line 관리 현황`에 유지한다. Style Identity는 색상보다 상위 navigation이 아니라 Line 카드의 보조 label로 유지한다.
 
 ### 7.4 Line 상세와 계보
 
@@ -505,13 +506,16 @@ P4-2B의 canonical pair schema, workspace RLS, 49-pair importer와 검토 화면
 
 - [x] 완료한 Legacy Link 재검토와 append-only revision 이력
 - [x] directed edge schema·migration·RLS
-- [ ] 시작점과 predecessor·successor 편집
+- [x] 시작점과 predecessor·successor 편집
 - [x] cycle·self-edge·workspace 불일치 차단
-- [ ] 가지 이름·선택 이유
+- [x] 가지 이름·선택 이유 인라인 편집과 전용 RPC
 - [ ] Line 병합·보관·대표 Line
 - [ ] membership 변경 시 `needs_review`
+- [ ] 자동 분류보다 우선하는 Line 색상 category 직접 지정
 - [x] 같은 크기 thumbnail의 세로형 Lineage UI
 - [x] 실제 가지가 있는 fixture로 분기 렌더링
+- [x] 12개 색상 tile의 Color Index와 밝기별 글자 대비
+- [x] 색상 선택 후 Line 카드에서 계보로 직접 이동
 
 P4-2C의 첫 기반으로 완료한 49개 관계를 목록에서 다시 열고 기존 선택·이유를 수정할 수 있게 했다. 현재 결과는 빠른 조회용 snapshot으로 유지하되 모든 저장은 revision row를 추가하며, `updated_at` optimistic concurrency로 오래 열린 화면이 더 최신 판단을 덮어쓰지 못하게 한다. production에는 49개 현재 결과와 일치하는 최초 revision 49개가 backfill됐다. 공통 Line이 두 개인 `무탠다드 슬리브리스 — 퍼스트클로 슬리브리스` pair는 Line을 자동 선택하지 않고 directed edge 단계의 명시적 선택 대상으로 남긴다.
 
@@ -521,15 +525,23 @@ Line 선택이 필요한 1개 관계에는 기본값 없는 두 선택지를 제
 
 확정된 edge만 읽어 각 Line의 시작점과 graph depth를 계산하는 상세 화면을 `/replacement-lines/:lineId`에 추가했다. 구매 연도는 정렬·세대 판정에 쓰지 않고 DAG의 위상 관계로 G0·G1·G2 이상을 계산하며, 실제 production의 G0→G1→G2 chain, 1→2 분기, 2→1 합류를 확인했다. Line membership에는 있지만 confirmed edge에 참여하지 않은 Item은 시작점으로 추정하지 않고 `계보 연결 전`으로 분리한다. 모든 세대는 같은 thumbnail slot, 상태 badge, 취득 연도와 선택 이유를 사용하며 실제 데이터에 없는 수량과 예정 상태는 만들지 않는다.
 
+긴 Style Identity·Line 목록을 첫 화면에서 제거하고, Line 이름의 색상 규칙과 기존 Item 팔레트 HEX를 결합한 Color Index를 추가했다. production의 53개 Line은 Black·Blue·Brown·Burgundy·Charcoal·Denim·Green·Grey·Ivory·Navy·Silver·White 12개 색상으로 누락 없이 분류된다. 색상 선택 상태는 URL query에 남겨 계보에서 뒤로 왔을 때 같은 색상 목록을 복원하며, Line 카드가 계보 상세를 직접 열어 membership 목록을 중복해서 보지 않게 했다.
+
+확정된 edge의 `선택 이유`와 선택적인 `가지 이름`을 계보 Item 행에서 바로 수정하는 인라인 UI를 구현하고 production migration `20260803173959_revise_replacement_line_edge_details`를 적용했다. 전용 RPC는 workspace membership, 입력 길이, confirmed 상태와 화면이 읽은 `updated_at`을 다시 검사하며 predecessor·successor, Line, 출처와 상태는 변경하지 않는다. transaction rollback fixture에서 실제 수정 성공, stale `updated_at` 충돌, 비회원·anon 거절을 확인했고 원본 45개 edge와 표본 이유·시간이 그대로 유지되는 것을 재확인했다. 함수 실행 권한은 `authenticated`와 `service_role`에만 있으며 `public`·`anon`에는 없다. 색상 category는 현재 Line 이름과 팔레트 기반 자동 분류이고, J가 직접 지정한 값이 자동 분류보다 우선하는 편집 기능은 별도 후속 항목으로 남긴다.
+
+기존 confirmed edge의 predecessor·successor를 확인 뒤 교환하는 `방향 바꾸기` UI와 production migration `20260803182849_reverse_replacement_line_edge`를 추가했다. 방향 전환 RPC는 출처 Legacy Link의 검토 결정을 반대로 revise해 append-only revision을 남긴 뒤 같은 edge를 다시 confirmed로 만들며, 이 과정을 한 transaction에서 처리한다. 기존 cycle trigger가 새 방향을 검증하므로 순환이 생기면 Legacy revision과 edge 변경이 함께 rollback되고, 화면이 읽은 edge `updated_at`과 workspace membership도 다시 검사한다. production rollback fixture에서 edge 방향 교환, Legacy 결정 반전, revision 증가, timestamp 전진과 confirmed 유지, stale·비회원 거절을 확인한 뒤 원본 45개 edge와 표본 revision이 그대로인 것을 재확인했다. 명시적 시작점 지정과 신규 수동 관계 생성은 별도 후속 데이터 구조로 남긴다.
+
+명시적 시작점과 Legacy Link가 없는 신규 연결을 위해 production migration `20260803185015_add_replacement_line_starts_and_manual_edges`를 적용했다. 시작점은 별도 table에 저장해 incoming edge와 동시에 존재하지 못하게 하고, 수동 edge는 기존 Legacy Link 출처를 흉내 내지 않도록 `source_kind = 'manual'`과 nullable `source_legacy_link_id`로 구분한다. `계보 연결 전` Item에서 시작점으로 지정하거나 Line의 다른 Item을 predecessor로 골라 선택 이유·가지 이름과 함께 연결할 수 있으며, G0에서도 명시적 시작점을 지정·해제할 수 있다. 새 RPC는 workspace membership, Line membership, self-edge, 중복, cycle과 시작점 충돌을 다시 검사하며 table 직접 쓰기는 열지 않는다. production rollback fixture에서 시작점 지정·해제, 수동 edge 생성, incoming Item의 시작점 지정 거절, cycle과 비회원 쓰기 거절을 확인했고, rollback 뒤 기존 confirmed edge 45개·수동 edge 0개·명시적 시작점 0개가 유지됐다. 기능은 준비됐지만 실제 미연결 Item을 시작점 또는 incoming edge로 분류하는 판단은 J가 앱에서 차례로 저장해야 하므로 전체 데이터 완료 조건은 아직 열어 둔다.
+
 ### P4-3. 통합 검증과 공개
 
-- [ ] TypeScript 검사, 전체 Vitest, production build
+- [x] TypeScript 검사, 전체 Vitest, production build
 - [ ] Item 통계와 production Wear Log 표본·전체 집계 대조
 - [ ] PC와 iPhone 크기에서 Statistics·Item 상세·Lineage QA
 - [ ] 키보드 탐색, focus, label, 그래프 접근성 확인
 - [ ] 초기 데이터·이미지 요청량과 렌더 시간 비교
 - [ ] schema 변경 시 격리 pgTAP, RLS, grant, Advisor 검증
-- [ ] production 적용 전후 Line·membership·edge count 검증
+- [x] production 적용 전후 Line·membership·edge count 검증
 - [ ] GitHub Pages 배포와 공개 asset·로그인 화면 확인
 
 ## 11. 테스트 기준

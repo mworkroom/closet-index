@@ -12,6 +12,10 @@ import type {
   ReplacementLineSnapshot,
   ReplacementLineEdge,
   ReplacementLineEdgeConfirmationInput,
+  ReplacementLineEdgeDetailsUpdateInput,
+  ReplacementLineEdgeDirectionUpdateInput,
+  ReplacementLineManualEdgeInput,
+  ReplacementLineStart,
   ReplacementLegacyLink,
   ReplacementLegacyLinkReviewInput,
   WeatherForecastRequest,
@@ -79,6 +83,38 @@ export class SupabaseRepository implements ClosetRepository {
     inputs: ReplacementLineEdgeConfirmationInput[],
   ): Promise<ReplacementLineEdge[]> {
     return this.replacementLines.confirmEdges(inputs)
+  }
+
+  updateReplacementLineEdgeDetails(
+    edgeId: string,
+    input: ReplacementLineEdgeDetailsUpdateInput,
+  ): Promise<ReplacementLineEdge> {
+    return this.replacementLines.updateEdgeDetails(edgeId, input)
+  }
+
+  reverseReplacementLineEdge(
+    edgeId: string,
+    input: ReplacementLineEdgeDirectionUpdateInput,
+  ): Promise<ReplacementLineEdge> {
+    return this.replacementLines.reverseEdge(edgeId, input)
+  }
+
+  loadReplacementLineStarts(): Promise<ReplacementLineStart[]> {
+    return this.replacementLines.loadStarts()
+  }
+
+  setReplacementLineStart(
+    replacementLineId: string,
+    itemId: string,
+    isStart: boolean,
+  ): Promise<boolean> {
+    return this.replacementLines.setStart(replacementLineId, itemId, isStart)
+  }
+
+  createReplacementLineManualEdge(
+    input: ReplacementLineManualEdgeInput,
+  ): Promise<ReplacementLineEdge> {
+    return this.replacementLines.createManualEdge(input)
   }
 
   createItem(input: ItemCreateInput) {

@@ -128,6 +128,7 @@ export function ReplacementLineageEdgePreviewPage() {
             ? candidate.sharedLines[0].id
             : selectedLines[candidate.link.id],
         sourceLegacyLinkId: candidate.link.id,
+        sourceKind: 'legacy_link',
         expectedLegacyUpdatedAt: candidate.link.updatedAt,
         branchName: null,
         decisionReason: candidate.link.reviewReason ?? '',

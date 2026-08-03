@@ -23,6 +23,10 @@ import type {
   ReplacementLineSnapshot,
   ReplacementLineEdge,
   ReplacementLineEdgeConfirmationInput,
+  ReplacementLineEdgeDetailsUpdateInput,
+  ReplacementLineEdgeDirectionUpdateInput,
+  ReplacementLineManualEdgeInput,
+  ReplacementLineStart,
   ReplacementLegacyLink,
   ReplacementLegacyLinkReviewInput,
   WeatherForecastRequest,
@@ -48,6 +52,23 @@ interface DataState {
   confirmReplacementLineEdges: (
     inputs: ReplacementLineEdgeConfirmationInput[],
   ) => Promise<ReplacementLineEdge[]>
+  updateReplacementLineEdgeDetails: (
+    edgeId: string,
+    input: ReplacementLineEdgeDetailsUpdateInput,
+  ) => Promise<ReplacementLineEdge>
+  reverseReplacementLineEdge: (
+    edgeId: string,
+    input: ReplacementLineEdgeDirectionUpdateInput,
+  ) => Promise<ReplacementLineEdge>
+  loadReplacementLineStarts: () => Promise<ReplacementLineStart[]>
+  setReplacementLineStart: (
+    replacementLineId: string,
+    itemId: string,
+    isStart: boolean,
+  ) => Promise<boolean>
+  createReplacementLineManualEdge: (
+    input: ReplacementLineManualEdgeInput,
+  ) => Promise<ReplacementLineEdge>
   createItem: (input: ItemCreateInput) => Promise<Item>
   updateItem: (itemId: string, input: ItemWriteInput) => Promise<Item>
   replaceItemImage: (
@@ -257,6 +278,67 @@ export function DataProvider({
     [repository],
   )
 
+  const updateReplacementLineEdgeDetails = useCallback(
+    (edgeId: string, input: ReplacementLineEdgeDetailsUpdateInput) => {
+      if (!repository.updateReplacementLineEdgeDetails) {
+        return Promise.reject(
+          new Error('이 환경에서는 Lineage edge 수정을 지원하지 않습니다.'),
+        )
+      }
+      return repository.updateReplacementLineEdgeDetails(edgeId, input)
+    },
+    [repository],
+  )
+
+  const reverseReplacementLineEdge = useCallback(
+    (edgeId: string, input: ReplacementLineEdgeDirectionUpdateInput) => {
+      if (!repository.reverseReplacementLineEdge) {
+        return Promise.reject(
+          new Error('이 환경에서는 Lineage edge 방향 전환을 지원하지 않습니다.'),
+        )
+      }
+      return repository.reverseReplacementLineEdge(edgeId, input)
+    },
+    [repository],
+  )
+
+  const loadReplacementLineStarts = useCallback(() => {
+    if (!repository.loadReplacementLineStarts) {
+      return Promise.reject(
+        new Error('이 환경에서는 Lineage 시작점 조회를 지원하지 않습니다.'),
+      )
+    }
+    return repository.loadReplacementLineStarts()
+  }, [repository])
+
+  const setReplacementLineStart = useCallback(
+    (replacementLineId: string, itemId: string, isStart: boolean) => {
+      if (!repository.setReplacementLineStart) {
+        return Promise.reject(
+          new Error('이 환경에서는 Lineage 시작점 수정을 지원하지 않습니다.'),
+        )
+      }
+      return repository.setReplacementLineStart(
+        replacementLineId,
+        itemId,
+        isStart,
+      )
+    },
+    [repository],
+  )
+
+  const createReplacementLineManualEdge = useCallback(
+    (input: ReplacementLineManualEdgeInput) => {
+      if (!repository.createReplacementLineManualEdge) {
+        return Promise.reject(
+          new Error('이 환경에서는 수동 Lineage edge 추가를 지원하지 않습니다.'),
+        )
+      }
+      return repository.createReplacementLineManualEdge(input)
+    },
+    [repository],
+  )
+
   const replaceOutfitPreview = useCallback(
     async (outfitId: string, input: OutfitPreviewUploadInput) => {
       if (!repository.replaceOutfitPreview) {
@@ -417,6 +499,11 @@ export function DataProvider({
       reviewReplacementLegacyLink,
       loadReplacementLineEdges,
       confirmReplacementLineEdges,
+      updateReplacementLineEdgeDetails,
+      reverseReplacementLineEdge,
+      loadReplacementLineStarts,
+      setReplacementLineStart,
+      createReplacementLineManualEdge,
       createItem,
       updateItem,
       replaceItemImage: (itemId, input) =>
@@ -453,6 +540,11 @@ export function DataProvider({
       reviewReplacementLegacyLink,
       loadReplacementLineEdges,
       confirmReplacementLineEdges,
+      updateReplacementLineEdgeDetails,
+      reverseReplacementLineEdge,
+      loadReplacementLineStarts,
+      setReplacementLineStart,
+      createReplacementLineManualEdge,
       findMatchingOutfits,
       mutate,
       refresh,

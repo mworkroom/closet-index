@@ -31,6 +31,7 @@ const edge = (
   predecessorItemId,
   successorItemId,
   sourceLegacyLinkId: `source-${id}`,
+  sourceKind: 'legacy_link',
   branchName: null,
   decisionReason: `reason-${id}`,
   status,
@@ -98,5 +99,28 @@ describe('buildReplacementLineage', () => {
 
     expect(result?.cyclic).toBe(true)
     expect(result?.generations).toEqual([])
+  })
+
+  it('treats only explicitly designated standalone items as graph roots', () => {
+    const result = buildReplacementLineage(
+      'line-a',
+      snapshot,
+      [],
+      [item('a'), item('b')],
+      [
+        {
+          replacementLineId: 'line-a',
+          itemId: 'a',
+          designatedAt: '2026-08-03T02:00:00.000Z',
+        },
+      ],
+    )
+
+    expect(result?.generations[0].groups[0].nodes[0]).toMatchObject({
+      item: { id: 'a' },
+      isExplicitStart: true,
+    })
+    expect(result?.unconnectedMembers.map((entry) => entry.id)).toEqual(['b'])
+    expect(result?.explicitStartCount).toBe(1)
   })
 })

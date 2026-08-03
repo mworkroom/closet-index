@@ -3,6 +3,7 @@ import type {
   ReplacementLineEdge,
   ReplacementLineRecord,
   ReplacementLineSnapshot,
+  ReplacementLineStart,
 } from '../../lib/types'
 
 export interface ReplacementLineageNode {
@@ -13,6 +14,7 @@ export interface ReplacementLineageNode {
   predecessors: Item[]
   reason: string | null
   branchName: string | null
+  isExplicitStart: boolean
 }
 
 export interface ReplacementLineageGroup {
@@ -38,6 +40,7 @@ export interface ReplacementLineage {
   activeCount: number
   retiredCount: number
   confirmedEdgeCount: number
+  explicitStartCount: number
   needsReviewEdgeCount: number
   invalidEdgeCount: number
   hasBranch: boolean
@@ -89,6 +92,7 @@ export function buildReplacementLineage(
   snapshot: ReplacementLineSnapshot,
   edges: ReplacementLineEdge[],
   items: Item[],
+  starts: ReplacementLineStart[] = [],
 ): ReplacementLineage | null {
   const line = snapshot.lines.find((entry) => entry.id === lineId)
   if (!line) return null
@@ -119,6 +123,17 @@ export function buildReplacementLineage(
   )
 
   const nodeIds = new Set<string>()
+  const explicitStartIds = new Set(
+    starts
+      .filter(
+        (start) =>
+          start.replacementLineId === lineId &&
+          memberIds.has(start.itemId) &&
+          itemById.has(start.itemId),
+      )
+      .map((start) => start.itemId),
+  )
+  explicitStartIds.forEach((itemId) => nodeIds.add(itemId))
   const incoming = new Map<string, ReplacementLineEdge[]>()
   const outgoing = new Map<string, ReplacementLineEdge[]>()
   for (const edge of confirmedEdges) {
@@ -178,6 +193,7 @@ export function buildReplacementLineage(
             .sort(compareItems),
           reason: uniqueText(incomingEdges.map((edge) => edge.decisionReason)),
           branchName: uniqueText(incomingEdges.map((edge) => edge.branchName)),
+          isExplicitStart: explicitStartIds.has(itemId),
         }
       })
 
@@ -259,6 +275,7 @@ export function buildReplacementLineage(
     activeCount: members.filter((item) => !item.retired).length,
     retiredCount: members.filter((item) => item.retired).length,
     confirmedEdgeCount: confirmedEdges.length,
+    explicitStartCount: explicitStartIds.size,
     needsReviewEdgeCount,
     invalidEdgeCount: candidateEdges.length - confirmedEdges.length,
     hasBranch: [...outgoing.values()].some((entries) => entries.length > 1),

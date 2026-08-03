@@ -10,6 +10,7 @@ import type {
 
 export interface PaletteRelation {
   display_hex: string
+  display_name?: string | null
 }
 
 export interface ItemRow {
@@ -104,12 +105,18 @@ function paletteHex(value: ItemRow['color_palette']) {
   return value?.display_hex ?? '#B8B8B4'
 }
 
+function paletteName(value: ItemRow['color_palette']) {
+  if (Array.isArray(value)) return value[0]?.display_name ?? null
+  return value?.display_name ?? null
+}
+
 export function toItem(row: ItemRow, image: Item['image'] = null): Item {
   return {
     id: row.id,
     name: row.name,
     category: row.category,
     semanticColor: row.semantic_color,
+    paletteName: paletteName(row.color_palette),
     displayHex: row.display_hex ?? paletteHex(row.color_palette),
     seasons: row.seasons ?? [],
     retired: row.retired,

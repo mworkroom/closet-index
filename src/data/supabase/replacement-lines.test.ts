@@ -142,6 +142,7 @@ describe('SupabaseReplacementLineRepository', () => {
       predecessor_item_id: 'item-a',
       successor_item_id: 'item-b',
       source_legacy_link_id: 'link-a',
+      source_kind: 'legacy_link',
       branch_name: null,
       decision_reason: 'A 다음 B',
       status: 'confirmed',
@@ -169,6 +170,7 @@ describe('SupabaseReplacementLineRepository', () => {
         predecessorItemId: 'item-a',
         successorItemId: 'item-b',
         sourceLegacyLinkId: 'link-a',
+        sourceKind: 'legacy_link',
         branchName: null,
         decisionReason: 'A 다음 B',
         status: 'confirmed',
@@ -201,5 +203,65 @@ describe('SupabaseReplacementLineRepository', () => {
         },
       ],
     })
+
+    await expect(
+      repository.updateEdgeDetails('edge-a', {
+        expectedUpdatedAt: '2026-08-03T01:00:00Z',
+        branchName: '박시 핏 계열',
+        decisionReason: '핏과 레이어드 균형이 더 좋음',
+      }),
+    ).resolves.toMatchObject({ id: 'edge-a' })
+    expect(rpc).toHaveBeenCalledWith(
+      'revise_closet_replacement_line_edge_details',
+      {
+        p_workspace_id: 'workspace-a',
+        p_edge_id: 'edge-a',
+        p_expected_updated_at: '2026-08-03T01:00:00Z',
+        p_branch_name: '박시 핏 계열',
+        p_decision_reason: '핏과 레이어드 균형이 더 좋음',
+      },
+    )
+
+    await expect(
+      repository.reverseEdge('edge-a', {
+        expectedUpdatedAt: '2026-08-03T01:00:00Z',
+      }),
+    ).resolves.toMatchObject({ id: 'edge-a' })
+    expect(rpc).toHaveBeenCalledWith('reverse_closet_replacement_line_edge', {
+      p_workspace_id: 'workspace-a',
+      p_edge_id: 'edge-a',
+      p_expected_updated_at: '2026-08-03T01:00:00Z',
+    })
+
+    await expect(
+      repository.setStart('line-a', 'item-a', true),
+    ).resolves.toBe(true)
+    expect(rpc).toHaveBeenCalledWith('set_closet_replacement_line_start', {
+      p_workspace_id: 'workspace-a',
+      p_replacement_line_id: 'line-a',
+      p_item_id: 'item-a',
+      p_is_start: true,
+    })
+
+    await expect(
+      repository.createManualEdge({
+        replacementLineId: 'line-a',
+        predecessorItemId: 'item-a',
+        successorItemId: 'item-b',
+        branchName: null,
+        decisionReason: '직접 확인한 연결',
+      }),
+    ).resolves.toMatchObject({ id: 'edge-a' })
+    expect(rpc).toHaveBeenCalledWith(
+      'create_closet_replacement_manual_edge',
+      {
+        p_workspace_id: 'workspace-a',
+        p_replacement_line_id: 'line-a',
+        p_predecessor_item_id: 'item-a',
+        p_successor_item_id: 'item-b',
+        p_branch_name: null,
+        p_decision_reason: '직접 확인한 연결',
+      },
+    )
   })
 })

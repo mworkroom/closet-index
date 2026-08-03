@@ -6,6 +6,10 @@ import type {
   ReplacementLineSnapshot,
   ReplacementLineEdge,
   ReplacementLineEdgeConfirmationInput,
+  ReplacementLineEdgeDetailsUpdateInput,
+  ReplacementLineEdgeDirectionUpdateInput,
+  ReplacementLineManualEdgeInput,
+  ReplacementLineStart,
 } from '../../lib/types'
 
 interface ReplacementLineRow {
@@ -35,12 +39,19 @@ interface ReplacementLineEdgeRow {
   replacement_line_id: string
   predecessor_item_id: string
   successor_item_id: string
-  source_legacy_link_id: string
+  source_legacy_link_id: string | null
+  source_kind: ReplacementLineEdge['sourceKind']
   branch_name: string | null
   decision_reason: string
   status: ReplacementLineEdge['status']
   confirmed_at: string
   updated_at: string
+}
+
+interface ReplacementLineStartRow {
+  replacement_line_id: string
+  item_id: string
+  designated_at: string
 }
 
 function toLegacyLink(row: ReplacementLegacyLinkRow): ReplacementLegacyLink {
@@ -63,6 +74,7 @@ function toLineEdge(row: ReplacementLineEdgeRow): ReplacementLineEdge {
     predecessorItemId: row.predecessor_item_id,
     successorItemId: row.successor_item_id,
     sourceLegacyLinkId: row.source_legacy_link_id,
+    sourceKind: row.source_kind,
     branchName: row.branch_name,
     decisionReason: row.decision_reason,
     status: row.status,
@@ -148,7 +160,7 @@ export class SupabaseReplacementLineRepository {
     const result = await this.client
       .from('closet_replacement_line_edges')
       .select(
-        'id,replacement_line_id,predecessor_item_id,successor_item_id,source_legacy_link_id,branch_name,decision_reason,status,confirmed_at,updated_at',
+        'id,replacement_line_id,predecessor_item_id,successor_item_id,source_legacy_link_id,source_kind,branch_name,decision_reason,status,confirmed_at,updated_at',
       )
       .eq('workspace_id', this.workspaceId)
       .order('confirmed_at')
@@ -176,5 +188,103 @@ export class SupabaseReplacementLineRepository {
     )
     if (error) throw error
     return ((data ?? []) as ReplacementLineEdgeRow[]).map(toLineEdge)
+  }
+
+  async updateEdgeDetails(
+    edgeId: string,
+    input: ReplacementLineEdgeDetailsUpdateInput,
+  ): Promise<ReplacementLineEdge> {
+    const { data, error } = await this.client.rpc(
+      'revise_closet_replacement_line_edge_details',
+      {
+        p_workspace_id: this.workspaceId,
+        p_edge_id: edgeId,
+        p_expected_updated_at: input.expectedUpdatedAt,
+        p_branch_name: input.branchName,
+        p_decision_reason: input.decisionReason,
+      },
+    )
+    if (error) throw error
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | ReplacementLineEdgeRow
+      | null
+    if (!row) throw new Error('수정된 계보 연결을 확인하지 못했습니다.')
+    return toLineEdge(row)
+  }
+
+  async reverseEdge(
+    edgeId: string,
+    input: ReplacementLineEdgeDirectionUpdateInput,
+  ): Promise<ReplacementLineEdge> {
+    const { data, error } = await this.client.rpc(
+      'reverse_closet_replacement_line_edge',
+      {
+        p_workspace_id: this.workspaceId,
+        p_edge_id: edgeId,
+        p_expected_updated_at: input.expectedUpdatedAt,
+      },
+    )
+    if (error) throw error
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | ReplacementLineEdgeRow
+      | null
+    if (!row) throw new Error('방향을 바꾼 계보 연결을 확인하지 못했습니다.')
+    return toLineEdge(row)
+  }
+
+  async loadStarts(): Promise<ReplacementLineStart[]> {
+    const result = await this.client
+      .from('closet_replacement_line_starts')
+      .select('replacement_line_id,item_id,designated_at')
+      .eq('workspace_id', this.workspaceId)
+      .order('designated_at')
+      .order('item_id')
+
+    if (result.error) throw result.error
+    return ((result.data ?? []) as ReplacementLineStartRow[]).map((row) => ({
+      replacementLineId: row.replacement_line_id,
+      itemId: row.item_id,
+      designatedAt: row.designated_at,
+    }))
+  }
+
+  async setStart(
+    replacementLineId: string,
+    itemId: string,
+    isStart: boolean,
+  ): Promise<boolean> {
+    const { data, error } = await this.client.rpc(
+      'set_closet_replacement_line_start',
+      {
+        p_workspace_id: this.workspaceId,
+        p_replacement_line_id: replacementLineId,
+        p_item_id: itemId,
+        p_is_start: isStart,
+      },
+    )
+    if (error) throw error
+    return Boolean(data)
+  }
+
+  async createManualEdge(
+    input: ReplacementLineManualEdgeInput,
+  ): Promise<ReplacementLineEdge> {
+    const { data, error } = await this.client.rpc(
+      'create_closet_replacement_manual_edge',
+      {
+        p_workspace_id: this.workspaceId,
+        p_replacement_line_id: input.replacementLineId,
+        p_predecessor_item_id: input.predecessorItemId,
+        p_successor_item_id: input.successorItemId,
+        p_branch_name: input.branchName,
+        p_decision_reason: input.decisionReason,
+      },
+    )
+    if (error) throw error
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | ReplacementLineEdgeRow
+      | null
+    if (!row) throw new Error('추가한 계보 연결을 확인하지 못했습니다.')
+    return toLineEdge(row)
   }
 }
