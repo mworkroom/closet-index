@@ -18,6 +18,7 @@ import { MorePage } from './pages/MorePage'
 import { ReplacementLinesPage } from './pages/ReplacementLinesPage'
 import { ReplacementLegacyLinkReviewPage } from './pages/ReplacementLegacyLinkReviewPage'
 import { ReplacementLineageEdgePreviewPage } from './pages/ReplacementLineageEdgePreviewPage'
+import { ReplacementLineagePage } from './pages/ReplacementLineagePage'
 import { OutfitDetailPage } from './pages/OutfitDetailPage'
 import { OutfitCreatorPage } from './pages/OutfitCreatorPage'
 import { SettingsPage } from './pages/SettingsPage'
@@ -78,6 +79,10 @@ function AuthenticatedApp() {
           <Route
             path="/replacement-lines/edges/preview"
             element={<ReplacementLineageEdgePreviewPage />}
+          />
+          <Route
+            path="/replacement-lines/:lineId"
+            element={<ReplacementLineagePage />}
           />
           <Route
             path="/statistics/replacement-lines"

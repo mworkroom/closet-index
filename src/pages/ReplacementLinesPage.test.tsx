@@ -40,6 +40,7 @@ describe('ReplacementLinesPage', () => {
     expect(screen.getByText('빈 Line')).toBeInTheDocument()
     expect(screen.getAllByText('단일 Item Line').length).toBeGreaterThan(0)
     expect(screen.getAllByText('복수 Line 소속 Item').length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('link', { name: '계보 보기' }).length).toBeGreaterThan(0)
   })
 
   it('shows available Legacy Links without inventing direction and opens the review queue', async () => {

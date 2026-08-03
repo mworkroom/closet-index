@@ -28,6 +28,7 @@ export function AppShell({
   children,
   back = false,
   action,
+  subtitle,
   hideNavigation = false,
   hideTitle = false,
   fillViewport = false,
@@ -36,6 +37,7 @@ export function AppShell({
   eyebrow?: string
   back?: boolean
   action?: ReactNode
+  subtitle?: ReactNode
   hideNavigation?: boolean
   hideTitle?: boolean
   fillViewport?: boolean
@@ -60,6 +62,7 @@ export function AppShell({
           <div>
             {eyebrow && <p className="eyebrow">{eyebrow}</p>}
             <h1 className={hideTitle ? 'sr-only' : undefined}>{title}</h1>
+            {subtitle ? <div className="topbar__subtitle">{subtitle}</div> : null}
           </div>
         </div>
         {action && <div className="topbar__action">{action}</div>}

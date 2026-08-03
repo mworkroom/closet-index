@@ -2,7 +2,7 @@
 
 - 최초 작성일: 2026-08-01
 - 최종 수정일: 2026-08-03
-- 상태: P4-0·P4-1A·P4-1B·P4-2A·P4-2B 완료, production Legacy Link 검토 49/49·P4-2C edge schema·명시적 Line 선택·원자 일괄 confirm 기반 완료, 실제 45개 edge 확정 대기
+- 상태: P4-0·P4-1A·P4-1B·P4-2A·P4-2B 완료, production Legacy Link 검토 49/49·45개 directed edge 확정·P4-2C 읽기 전용 세대별 Lineage UI 완료, edge 편집·Line 관리 대기
 - 목표 릴리스: Phase 4 Statistics & Replacement Lineage
 - 선행 상태: Phase 3 구현·검증·공개 완료, Phase 3.5 로컬 구현·검증 완료 및 공개 배포 전
 - 관련 문서: [Roadmap](./roadmap.md), [Product Plan](./product-plan.md), [Phase 3 Plan](./phase-3-visual-wardrobe-plan.md), [Phase 1 Data & Security Spec](./phase-1-data-security-spec.md), [P4-0 Baseline Audit](./phase-4-p4-0-baseline-audit.md)
@@ -510,14 +510,16 @@ P4-2B의 canonical pair schema, workspace RLS, 49-pair importer와 검토 화면
 - [ ] 가지 이름·선택 이유
 - [ ] Line 병합·보관·대표 Line
 - [ ] membership 변경 시 `needs_review`
-- [ ] 같은 크기 thumbnail의 세로형 Lineage UI
+- [x] 같은 크기 thumbnail의 세로형 Lineage UI
 - [x] 실제 가지가 있는 fixture로 분기 렌더링
 
 P4-2C의 첫 기반으로 완료한 49개 관계를 목록에서 다시 열고 기존 선택·이유를 수정할 수 있게 했다. 현재 결과는 빠른 조회용 snapshot으로 유지하되 모든 저장은 revision row를 추가하며, `updated_at` optimistic concurrency로 오래 열린 화면이 더 최신 판단을 덮어쓰지 못하게 한다. production에는 49개 현재 결과와 일치하는 최초 revision 49개가 backfill됐다. 공통 Line이 두 개인 `무탠다드 슬리브리스 — 퍼스트클로 슬리브리스` pair는 Line을 자동 선택하지 않고 directed edge 단계의 명시적 선택 대상으로 남긴다.
 
 다음 기반으로 45개 방향 관계를 저장 전에 계산해 공통 Line이 하나인 44개, Line 선택이 필요한 1개, edge 제외 4개로 분리했다. 후보 graph에는 self-edge·중복·cycle이 없고 실제 가지 1곳과 합류 1곳이 있어 preview에 그대로 표시한다. directed edge table과 confirm RPC는 출처 검토 결과에서 방향을 다시 계산하고 composite FK, RLS, 최소 권한, optimistic concurrency와 transaction advisory lock 기반 cycle 검사로 잘못된 저장을 차단한다. 이 단계에서는 production edge를 생성하지 않는다.
 
-Line 선택이 필요한 1개 관계에는 기본값 없는 두 선택지를 제공하고, 선택 뒤 44개 자동 귀속 후보와 함께 45개 전체를 다시 확인해야 최종 저장 동작이 나타나게 했다. 최종 저장은 한 batch RPC와 한 transaction으로 처리해 중간 후보 하나라도 유효하지 않으면 앞서 처리한 edge까지 전부 rollback한다. production rollback fixture로 이 원자성을 검증했으며, 실제 저장 버튼은 누르지 않아 production edge는 계속 0개다.
+Line 선택이 필요한 1개 관계에는 기본값 없는 두 선택지를 제공하고, 선택 뒤 44개 자동 귀속 후보와 함께 45개 전체를 다시 확인해야 최종 저장 동작이 나타나게 했다. 최종 저장은 한 batch RPC와 한 transaction으로 처리해 중간 후보 하나라도 유효하지 않으면 앞서 처리한 edge까지 전부 rollback한다. production rollback fixture로 이 원자성을 검증한 뒤 J가 `Ivory Layered Sleeveless`를 선택하고 최종 저장해 현재 production에는 confirmed edge 45개가 있다.
+
+확정된 edge만 읽어 각 Line의 시작점과 graph depth를 계산하는 상세 화면을 `/replacement-lines/:lineId`에 추가했다. 구매 연도는 정렬·세대 판정에 쓰지 않고 DAG의 위상 관계로 G0·G1·G2 이상을 계산하며, 실제 production의 G0→G1→G2 chain, 1→2 분기, 2→1 합류를 확인했다. Line membership에는 있지만 confirmed edge에 참여하지 않은 Item은 시작점으로 추정하지 않고 `계보 연결 전`으로 분리한다. 모든 세대는 같은 thumbnail slot, 상태 badge, 취득 연도와 선택 이유를 사용하며 실제 데이터에 없는 수량과 예정 상태는 만들지 않는다.
 
 ### P4-3. 통합 검증과 공개
 
@@ -604,10 +606,10 @@ Line 선택이 필요한 1개 관계에는 기본값 없는 두 선택지를 제
 - [x] 53개 Line과 165개 membership을 숨김이나 임의 삭제 없이 확인할 수 있다.
 - [x] 98개 reciprocal entry가 49개 무방향 Legacy Link로 보존된다.
 - [x] 각 Legacy Link의 방향·동등·제외 여부와 선택 이유를 앱에서 검토할 수 있다.
-- [ ] 확인된 edge만 방향 있는 계보로 저장되며 cycle과 workspace 불일치가 차단된다.
+- [x] 확인된 edge만 방향 있는 계보로 저장되며 cycle과 workspace 불일치가 차단된다.
 - [ ] 각 연결 구성요소에 시작점이 있고 모든 Item이 시작점 또는 incoming edge를 가진다.
-- [ ] G0·G1·G2가 구매 연도가 아니라 확인된 graph depth로 표시된다.
-- [ ] 모든 세대의 thumbnail이 같은 크기이며 실제 가지가 있을 때만 branch를 표시한다.
+- [x] G0·G1·G2가 구매 연도가 아니라 확인된 graph depth로 표시된다.
+- [x] 모든 세대의 thumbnail이 같은 크기이며 실제 가지가 있을 때만 branch를 표시한다.
 - [ ] Line 병합·보관·대표 Line과 재검토 상태가 안전하게 동작한다.
 
 ### Phase 4 전체 완료

@@ -84,6 +84,15 @@ function ReplacementLineCard({ line }: { line: ReplacementLineOverviewRow }) {
           ) : null}
         </div>
 
+        {!isEmpty ? (
+          <Link
+            className="button button--secondary replacement-line-card__lineage-link"
+            to={`/replacement-lines/${line.id}`}
+          >
+            계보 보기
+          </Link>
+        ) : null}
+
         {line.membershipCount === 0 ? (
           <EmptyState
             title="연결된 Item이 없어요"
