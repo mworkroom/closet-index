@@ -117,7 +117,7 @@ comment on function public.update_closet_outfit(uuid, uuid, text, jsonb, boolean
 comment on function public.clone_closet_outfit(uuid, uuid, uuid, text) is '역할=Outfit과 구성을 원자 복제; source_of_truth=closet_outfits와 closet_outfit_items; lifecycle=LIVE_CORE';
 comment on function public.find_matching_closet_outfits(uuid, uuid[]) is '역할=동일 Item 구성 Outfit 탐색; source_of_truth=closet_outfits와 closet_outfit_items 조회; lifecycle=LIVE_CORE';
 comment on function public.delete_closet_item_if_unreferenced(uuid, uuid, uuid) is '역할=참조 없는 Item과 이미지 메타데이터 안전 삭제; source_of_truth=closet_items 삭제 계약; lifecycle=LIVE_CORE';
-comment on function public.delete_closet_outfit_if_unworn(uuid, uuid, uuid) is '역할=착용 기록 없는 Outfit과 preview 안전 삭제; source_of_truth=closet_outfits 삭제 계약; lifecycle=LIVE_CORE';
+comment on function public.delete_closet_outfit_if_unworn(uuid, uuid, uuid) is '역할=착용 기록 없는 Outfit 안전 삭제; source_of_truth=closet_outfits 삭제 계약; lifecycle=LIVE_CORE';
 comment on function public.review_closet_replacement_legacy_link(uuid, uuid, text, text) is '역할=pending Legacy Link 최초 검토 wrapper; source_of_truth=closet_replacement_legacy_links; lifecycle=LEGACY_DROP_CANDIDATE';
 comment on function public.revise_closet_replacement_legacy_link(uuid, uuid, timestamp with time zone, text, text) is '역할=Legacy 판단 수정과 revision 원자 추가; source_of_truth=legacy current snapshot과 revision history; lifecycle=LEGACY_DROP_CANDIDATE';
 comment on function public.confirm_closet_replacement_line_edge(uuid, uuid, uuid, timestamp with time zone, text, text) is '역할=Legacy 판단 하나를 confirmed edge로 전환; source_of_truth=closet_replacement_line_edges; lifecycle=LEGACY_DROP_CANDIDATE';

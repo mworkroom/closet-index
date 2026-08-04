@@ -2,7 +2,7 @@
 
 - 작성일: 2026-08-05
 - 근거 문서: [`database-map.md`](./database-map.md)
-- 현재 단계: Outfit Preview local cleanup 구현 완료. production cleanup은 수행하지 않음.
+- 현재 단계: Outfit Preview DB subsystem production cleanup 완료. Storage object 2개와 구 Function 제거만 Dashboard 로그인 대기.
 
 ## 1. 목적과 원칙
 
@@ -19,10 +19,10 @@
 
 | 질문 | 결론 |
 |---|---|
-| 즉시 안전하게 제거 가능한 DB object | production에는 0개. 새 앱·Function 배포와 Storage 정리 후 Preview object 제거 가능 |
+| 즉시 안전하게 제거 가능한 DB object | Preview table·RPC·trigger는 제거 완료. orphan Storage object 2개와 구 Function은 로그인 뒤 제거 가능 |
 | 가장 독립적인 후보 | `closet_import_runs` 2행 |
-| 현재 dependency 때문에 제거할 수 없는 후보 | Legacy Link subsystem. Preview는 local dependency 분리 완료, 배포 순서만 남음 |
-| Outfit Preview 결정 | J가 영구 제거를 확정. local code·migration 준비 완료 |
+| 현재 dependency 때문에 제거할 수 없는 후보 | Legacy Link subsystem. Preview DB dependency는 제거 완료 |
+| Outfit Preview 결정 | J가 영구 제거를 확정. frontend·Function 전환과 DB cleanup 완료 |
 | Line 색상 자동 분류 | 일회성 초기 제안으로만 사용하고 직접 지정 완료 후 제거 권장 |
 
 `closet_import_runs`는 DB FK·trigger·RPC dependency가 없지만, 아직 export하지 않았고 `scripts/import-supabase.mjs`가 쓰므로 “즉시 DROP”으로 분류하지 않는다.
@@ -61,13 +61,13 @@
 ### 결정과 production 기준선
 
 - `closet_outfit_previews`: 2행, 모두 ready.
-- 현재 production frontend는 Preview를 생성·조회한다.
-- production DB에는 stale trigger 두 개, public preview RPC 세 개와 Storage policy dependency가 남아 있다.
+- 초기 production frontend는 Preview를 생성·조회했다.
+- 초기 production DB에는 stale trigger 두 개, public preview RPC 세 개와 Storage policy dependency가 있었다.
 - J는 저장 Preview를 사용하지 않기로 확정했다.
-- local frontend는 Item cutout을 즉시 합성하고, cutout이 하나도 없을 때만 색상 swatch를 표시한다.
-- local Outfit 삭제는 Preview 업로드 Function에서 분리한 `closet-outfit-delete` Function과 기존 Wear Log 보호 RPC를 사용한다.
+- 현재 production frontend는 Item cutout을 즉시 합성하고, cutout이 하나도 없을 때만 색상 swatch를 표시한다.
+- production Outfit 삭제는 Preview 업로드 Function에서 분리한 `closet-outfit-delete` Function과 Wear Log 보호 RPC를 사용한다.
 
-따라서 production에서는 아직 살아 있지만, local 차기 버전에서는 제거된 subsystem이다. table만 먼저 DROP하면 현재 공개 앱이 깨지므로 배포와 cleanup 순서를 지켜야 한다. 새 frontend는 `color_category` migration 전에도 기존 Line SELECT로 한 번 재시도해 이 짧은 전환 구간을 견딘다.
+안전 순서에 따라 새 Function과 frontend를 먼저 배포한 뒤 DB cleanup migration을 적용했다. 현재 table·RPC·trigger·policy dependency는 제거됐고 DB와 frontend는 Preview-free 상태다.
 
 ### 확정한 답
 
@@ -84,9 +84,9 @@
 4. [x] local `closet-outfit-preview` Edge Function과 preview script를 제거한다.
 5. [x] stale trigger·private helper·preview RPC·table·Storage policy dependency 제거 migration을 작성한다.
 6. [x] 관련 frontend tests, pgTAP 계약, CI 목록을 갱신한다.
-7. [ ] `closet-outfit-delete` Function을 먼저 배포하고, 이어서 새 frontend를 production에 배포해 실제 삭제 차단·성공을 검증한다.
+7. [x] `closet-outfit-delete` Function과 새 frontend를 production에 배포하고 실제 삭제 차단·성공을 검증한다.
 8. [ ] 기존 Preview Storage object 2개를 service-role 경계에서 삭제하고 object count 0을 확인한다.
-9. [ ] Preview cleanup·Line color·COMMENT pending migration을 적용하고 table·RPC·trigger·policy dependency가 0인지 확인한다.
+9. [x] Preview cleanup·Line color·COMMENT migration을 적용하고 table·RPC·trigger·policy dependency가 0인지 확인한다.
 10. [ ] 기존 production `closet-outfit-preview` Function을 제거한다.
 
 ### production 적용 중단 조건
@@ -160,9 +160,9 @@ Lineage의 manual edge 편집, 시작점, 이동, 병합, 보관 기능은 유�
 
 ## 6. Line 색상 직접 지정과 자동 분류 종료
 
-이 항목은 Outfit Preview local cleanup 뒤에 구현했다. 새 subsystem은 만들지 않았다.
+이 항목은 Outfit Preview production cleanup과 함께 적용했다. 새 subsystem은 만들지 않았다.
 
-local 구현 구조:
+구현·production 적용 구조:
 
 - [x] `closet_replacement_lines`에 사람이 읽을 수 있는 nullable `color_category` 하나를 추가하는 migration 작성
 - [x] workspace membership과 `updated_at`을 다시 검사하는 전용 update RPC 작성
@@ -171,13 +171,13 @@ local 구현 구조:
 - 기존 53개 Line을 채우는 동안에만 현재 frontend 자동 분류와 Item 팔레트 HEX를 initial suggestion과 tile 표시 보조로 사용
 - active Line 직접 값 100%와 화면 QA를 확인한 뒤 자동 분류 helper와 이름 기반 규칙 제거
 
-자동 분류 결과 history, confidence, migration run table이나 별도 Line color category table은 만들지 않았다. production migration은 아직 적용하지 않았으며, 기존 53개 Line은 J가 앱에서 천천히 직접 지정할 수 있다. 필요하면 적용 전 CSV 한 번으로 제안값을 검토한다. category 이름을 여러 Line에서 일괄 관리해야 하는 실제 요구가 생길 때만 별도 사전을 재검토한다.
+자동 분류 결과 history, confidence, migration run table이나 별도 Line color category table은 만들지 않았다. production migration과 공개 UI 저장·초기화 검증을 완료했으며, 기존 53개 Line은 J가 앱에서 천천히 직접 지정할 수 있다. category 이름을 여러 Line에서 일괄 관리해야 하는 실제 요구가 생길 때만 별도 사전을 재검토한다.
 
 ## 7. 예상 변경 파일
 
 ### Preview local cleanup에서 추가로 변경한 영역
 
-- `supabase/migrations/20260804204937_remove_outfit_preview_subsystem.sql`
+- `supabase/migrations/20260804213423_remove_outfit_preview_subsystem.sql`
 - `supabase/functions/closet-outfit-delete/**`
 - `src/data/image-assets.ts`, repository·snapshot·context·types
 - `src/pages/OutfitCreatorPage.tsx`, `src/pages/LookbookPage.tsx`, `src/components/OutfitVisual.tsx`
