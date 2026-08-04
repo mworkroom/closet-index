@@ -1,10 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type {
-  AppData,
-  ImageAsset,
-  OutfitPreview,
-  OutfitPreviewState,
-} from '../lib/types'
+import type { AppData, ImageAsset } from '../lib/types'
 
 export const CLOSET_IMAGE_BUCKET = 'closet-images'
 export const SIGNED_IMAGE_URL_EXPIRES_IN_SECONDS = 60 * 60
@@ -19,18 +14,6 @@ interface ItemImageRow {
   storage_path: string
   width_px: number | null
   height_px: number | null
-}
-
-interface OutfitPreviewRow {
-  id: string
-  outfit_id: string
-  storage_path: string
-  composition_version: number
-  width_px: number | null
-  height_px: number | null
-  status: 'pending' | 'ready' | 'error'
-  stale_at: string | null
-  source_fingerprint: string | null
 }
 
 interface SignedUrlResult {
@@ -61,8 +44,6 @@ export interface ResolvedSignedUrl {
 
 export interface ReadyImageAssets {
   itemImages: Map<string, ImageAsset>
-  outfitPreviews: Map<string, OutfitPreview>
-  outfitPreviewStates: Map<string, OutfitPreviewState>
 }
 
 function batches<T>(values: T[], size: number) {
@@ -137,8 +118,6 @@ export class SignedImageUrlCache {
 export function emptyReadyImageAssets(): ReadyImageAssets {
   return {
     itemImages: new Map(),
-    outfitPreviews: new Map(),
-    outfitPreviewStates: new Map(),
   }
 }
 
@@ -153,17 +132,6 @@ async function safeRows<T>(
   }
 }
 
-function latestPreviews(rows: OutfitPreviewRow[]) {
-  const latest = new Map<string, OutfitPreviewRow>()
-  for (const row of rows) {
-    const current = latest.get(row.outfit_id)
-    if (!current || row.composition_version > current.composition_version) {
-      latest.set(row.outfit_id, row)
-    }
-  }
-  return [...latest.values()]
-}
-
 export async function loadReadyImageAssets(
   client: SupabaseClient,
   workspaceId: string,
@@ -176,27 +144,8 @@ export async function loadReadyImageAssets(
     .eq('status', 'ready')
     .eq('variant', 'cutout')
 
-  const previewQuery = client
-    .from('closet_outfit_previews')
-    .select(
-      'id,outfit_id,storage_path,composition_version,width_px,height_px,status,stale_at,source_fingerprint',
-    )
-    .eq('workspace_id', workspaceId)
-
-  const [itemRows, allPreviewRows] = await Promise.all([
-    safeRows<ItemImageRow>(itemQuery),
-    safeRows<OutfitPreviewRow>(previewQuery),
-  ])
-  const latestPreviewRows = latestPreviews(allPreviewRows)
-  const readyPreviewRows = latestPreviews(
-    allPreviewRows.filter(
-      (row) => row.status === 'ready' && !row.stale_at,
-    ),
-  )
-  const paths = [
-    ...itemRows.map((row) => row.storage_path),
-    ...readyPreviewRows.map((row) => row.storage_path),
-  ]
+  const itemRows = await safeRows<ItemImageRow>(itemQuery)
+  const paths = itemRows.map((row) => row.storage_path)
 
   let signedUrls = new Map<string, ResolvedSignedUrl>()
   if (paths.length > 0) {
@@ -224,31 +173,7 @@ export async function loadReadyImageAssets(
     })
   }
 
-  const outfitPreviews = new Map<string, OutfitPreview>()
-  for (const row of readyPreviewRows) {
-    const signed = signedUrls.get(row.storage_path)
-    if (!signed) continue
-    outfitPreviews.set(row.outfit_id, {
-      id: row.id,
-      storagePath: row.storage_path,
-      url: signed.url,
-      widthPx: row.width_px,
-      heightPx: row.height_px,
-      expiresAt: signed.expiresAt,
-      compositionVersion: row.composition_version,
-      sourceFingerprint: row.source_fingerprint,
-    })
-  }
-
-  const outfitPreviewStates = new Map<string, OutfitPreviewState>()
-  for (const row of latestPreviewRows) {
-    outfitPreviewStates.set(
-      row.outfit_id,
-      row.stale_at ? 'stale' : row.status,
-    )
-  }
-
-  return { itemImages, outfitPreviews, outfitPreviewStates }
+  return { itemImages }
 }
 
 export function getImageRefreshDelay(
@@ -257,7 +182,6 @@ export function getImageRefreshDelay(
 ): number | null {
   const expiryTimes = [
     ...data.items.map((item) => item.image?.expiresAt),
-    ...data.outfits.map((outfit) => outfit.preview?.expiresAt),
   ]
     .filter((value): value is string => Boolean(value))
     .map((value) => Date.parse(value))

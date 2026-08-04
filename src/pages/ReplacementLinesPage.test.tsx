@@ -88,4 +88,34 @@ describe('ReplacementLinesPage', () => {
       }),
     ).toHaveAttribute('href', '/replacement-lines/review')
   })
+
+  it('removes archived Lines from Color and keeps them in the management list', async () => {
+    const repository = new DemoRepository()
+    const snapshot = await repository.loadReplacementLines()
+    const line = snapshot.lines.find(
+      (entry) => entry.id === 'line-future-dress',
+    )!
+    await repository.setReplacementLineArchived({
+      lineId: line.id,
+      archived: true,
+      expectedUpdatedAt: line.updatedAt,
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/replacement-lines']}>
+        <DataProvider repository={repository}>
+          <ReplacementLinesPage />
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Color' })).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: 'Black, 1개 Line 보기' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '보관된 Line' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Future Black Dress 보관된 Line 보기' }),
+    ).toHaveAttribute('href', '/replacement-lines/line-future-dress')
+  })
 })

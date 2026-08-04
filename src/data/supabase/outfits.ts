@@ -6,9 +6,7 @@ import type {
   OutfitCreateInput,
   OutfitUpdateInput,
   OutfitItemPlacementInput,
-  OutfitPreviewUploadInput,
 } from '../../lib/types'
-import { CLOSET_IMAGE_BUCKET } from '../image-assets'
 import {
   collectAllPages,
   nullableNumericValue,
@@ -71,8 +69,6 @@ export class SupabaseOutfitRepository {
         itemScale: item.itemScale,
         zIndex: item.zIndex,
       })),
-      preview: null,
-      previewState: 'missing',
     }
   }
 
@@ -122,8 +118,6 @@ export class SupabaseOutfitRepository {
         itemScale: nullableNumericValue(link.scale),
         zIndex: link.z_index,
       })),
-      preview: null,
-      previewState: 'missing',
     }
   }
 
@@ -153,8 +147,6 @@ export class SupabaseOutfitRepository {
         itemScale: item.itemScale,
         zIndex: item.zIndex,
       })),
-      preview: null,
-      previewState: 'stale',
     }
   }
 
@@ -175,8 +167,8 @@ export class SupabaseOutfitRepository {
   }
 
   async delete(outfitId: string) {
-    const result = await this.client.functions.invoke('closet-outfit-preview', {
-      body: { action: 'delete', workspaceId: this.workspaceId, outfitId },
+    const result = await this.client.functions.invoke('closet-outfit-delete', {
+      body: { workspaceId: this.workspaceId, outfitId },
     })
     if (result.error) throw result.error
   }
@@ -201,67 +193,4 @@ export class SupabaseOutfitRepository {
     if (!data) throw new Error('Outfit 구성 아이템을 찾을 수 없습니다.')
   }
 
-  async replacePreview(
-    outfitId: string,
-    input: OutfitPreviewUploadInput,
-  ) {
-    const begin = await this.client.functions.invoke(
-      'closet-outfit-preview',
-      {
-        body: {
-          action: 'begin',
-          workspaceId: this.workspaceId,
-          outfitId,
-          widthPx: input.widthPx,
-          heightPx: input.heightPx,
-          bytes: input.bytes,
-          sourceFingerprint: input.sourceFingerprint,
-        },
-      },
-    )
-    if (begin.error) throw begin.error
-    const ticket = begin.data as {
-      previewId: string
-      storagePath: string
-      token: string
-      contentType: string
-    }
-
-    try {
-      const upload = await this.client.storage
-        .from(CLOSET_IMAGE_BUCKET)
-        .uploadToSignedUrl(ticket.storagePath, ticket.token, input.blob, {
-          contentType: 'image/webp',
-          cacheControl: '31536000',
-        })
-      if (upload.error) throw upload.error
-
-      const finalize = await this.client.functions.invoke(
-        'closet-outfit-preview',
-        {
-          body: {
-            action: 'finalize',
-            workspaceId: this.workspaceId,
-            outfitId,
-            previewId: ticket.previewId,
-          },
-        },
-      )
-      if (finalize.error) throw finalize.error
-    } catch (cause) {
-      try {
-        await this.client.functions.invoke('closet-outfit-preview', {
-          body: {
-            action: 'cancel',
-            workspaceId: this.workspaceId,
-            outfitId,
-            previewId: ticket.previewId,
-          },
-        })
-      } catch {
-        // A later orphan sweep can clean an interrupted pending upload.
-      }
-      throw cause
-    }
-  }
 }

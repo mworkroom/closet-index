@@ -41,8 +41,8 @@ describe('Lineage edge candidate preview', () => {
   it('separates ready, Line-choice, and excluded candidates and finds branch/merge points', () => {
     const snapshot: ReplacementLineSnapshot = {
       lines: [
-        { id: 'line-1', name: 'Line One', styleIdentity: null },
-        { id: 'line-2', name: 'Line Two', styleIdentity: null },
+        { id: 'line-1', name: 'Line One', styleIdentity: null, colorCategory: null, reviewStatus: 'ready', lifecycleStatus: 'active', representativeLineId: null, archivedAt: null, updatedAt: '2026-08-03T00:00:00Z' },
+        { id: 'line-2', name: 'Line Two', styleIdentity: null, colorCategory: null, reviewStatus: 'ready', lifecycleStatus: 'active', representativeLineId: null, archivedAt: null, updatedAt: '2026-08-03T00:00:00Z' },
       ],
       memberships: [
         ...['a', 'b', 'c', 'd', 'e'].map((itemId) => ({
@@ -86,7 +86,7 @@ describe('Lineage edge candidate preview', () => {
 
   it('reports a candidate cycle without trying to repair it', () => {
     const snapshot: ReplacementLineSnapshot = {
-      lines: [{ id: 'line', name: 'Cycle Line', styleIdentity: null }],
+      lines: [{ id: 'line', name: 'Cycle Line', styleIdentity: null, colorCategory: null, reviewStatus: 'ready', lifecycleStatus: 'active', representativeLineId: null, archivedAt: null, updatedAt: '2026-08-03T00:00:00Z' }],
       memberships: ['a', 'b', 'c'].map((itemId) => ({
         replacementLineId: 'line',
         itemId,

@@ -9,12 +9,14 @@ interface LayeredOutfitPreviewProps {
   outfit: Outfit
   items: Item[]
   className?: string
+  loading?: 'eager' | 'lazy'
 }
 
 export function LayeredOutfitPreview({
   outfit,
   items,
   className = '',
+  loading = 'eager',
 }: LayeredOutfitPreviewProps) {
   const layers = composeOutfitLayers(outfit, items)
   const label = outfitLabel(outfit, items)
@@ -30,6 +32,7 @@ export function LayeredOutfitPreview({
           key={layer.item.id}
           src={layer.item.image!.url}
           alt=""
+          loading={loading}
           draggable={false}
           style={{
             left: `${(layer.left / OUTFIT_COMPOSITION_CANVAS.width) * 100}%`,

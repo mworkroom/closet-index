@@ -439,8 +439,8 @@ verify_jwt = true
 import_map = "./functions/closet-item-image/deno.json"
 entrypoint = "./functions/closet-item-image/index.ts"
 
-[functions.closet-outfit-preview]
+[functions.closet-outfit-delete]
 enabled = true
 verify_jwt = true
-import_map = "./functions/closet-outfit-preview/deno.json"
-entrypoint = "./functions/closet-outfit-preview/index.ts"
+import_map = "./functions/closet-outfit-delete/deno.json"
+entrypoint = "./functions/closet-outfit-delete/index.ts"

@@ -253,9 +253,8 @@ describe('SupabaseRepository Phase 3 writes', () => {
         itemId: 'item-existing',
       },
     })
-    expect(invoke).toHaveBeenNthCalledWith(2, 'closet-outfit-preview', {
+    expect(invoke).toHaveBeenNthCalledWith(2, 'closet-outfit-delete', {
       body: {
-        action: 'delete',
         workspaceId: 'workspace',
         outfitId: 'outfit-existing',
       },
@@ -324,64 +323,4 @@ describe('SupabaseRepository Phase 3 writes', () => {
     })
   })
 
-  it('uploads a versioned Outfit preview and finalizes it without upsert', async () => {
-    const invoke = vi
-      .fn()
-      .mockResolvedValueOnce({
-        data: {
-          previewId: 'preview-new',
-          storagePath: 'workspace/outfits/outfit/preview/v2.webp',
-          compositionVersion: 2,
-          token: 'signed-token',
-          contentType: 'image/webp',
-        },
-        error: null,
-      })
-      .mockResolvedValueOnce({ data: { previewId: 'preview-new' }, error: null })
-    const uploadToSignedUrl = vi.fn(async () => ({
-      data: { path: 'workspace/outfits/outfit/preview/v2.webp' },
-      error: null,
-    }))
-    const client = {
-      functions: { invoke },
-      storage: { from: vi.fn(() => ({ uploadToSignedUrl })) },
-    } as unknown as SupabaseClient
-    const repository = new SupabaseRepository(client, 'workspace')
-    const blob = new Blob(['webp'], { type: 'image/webp' })
-    const sourceFingerprint = 'a'.repeat(64)
-
-    await repository.replaceOutfitPreview('outfit', {
-      blob,
-      widthPx: 900,
-      heightPx: 1200,
-      bytes: blob.size,
-      sourceFingerprint,
-    })
-
-    expect(invoke).toHaveBeenNthCalledWith(1, 'closet-outfit-preview', {
-      body: {
-        action: 'begin',
-        workspaceId: 'workspace',
-        outfitId: 'outfit',
-        widthPx: 900,
-        heightPx: 1200,
-        bytes: blob.size,
-        sourceFingerprint,
-      },
-    })
-    expect(uploadToSignedUrl).toHaveBeenCalledWith(
-      'workspace/outfits/outfit/preview/v2.webp',
-      'signed-token',
-      blob,
-      { contentType: 'image/webp', cacheControl: '31536000' },
-    )
-    expect(invoke).toHaveBeenNthCalledWith(2, 'closet-outfit-preview', {
-      body: {
-        action: 'finalize',
-        workspaceId: 'workspace',
-        outfitId: 'outfit',
-        previewId: 'preview-new',
-      },
-    })
-  })
 })

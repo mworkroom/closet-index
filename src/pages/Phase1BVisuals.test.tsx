@@ -80,7 +80,7 @@ describe('Phase 1B screen visuals', () => {
     ).toBeInTheDocument()
     expect(
       within(grid!).getByRole('img', {
-        name: '블루 가디건 + 아이보리 니트 + 블랙 팬츠 외 1개 착장 미리보기',
+        name: '블루 가디건 + 아이보리 니트 + 블랙 팬츠 외 1개 조정 가능한 착장 미리보기',
       }),
     ).toBeInTheDocument()
     expect(
@@ -104,32 +104,6 @@ describe('Phase 1B screen visuals', () => {
     links.forEach((link) => {
       const outfitId = link.getAttribute('href')?.replace('/outfits/', '')
       expect(getOutfitStats(outfitId ?? '', demoData.wearLogs).wearCount).toBe(0)
-    })
-    expect(
-      within(grid!).queryByRole('link', {
-        name: /블루 가디건.*착장 상세 보기/,
-      }),
-    ).not.toBeInTheDocument()
-  })
-
-  it('LOOKBOOK에서 저장 Preview가 없는 Outfit만 관리할 수 있다', async () => {
-    const user = userEvent.setup()
-    renderRoute('/lookbook', '/lookbook', <LookbookPage />)
-
-    await screen.findByRole('heading', { name: '착장' })
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: '미리보기 상태' }),
-      'missing',
-    )
-
-    const grid = document.querySelector<HTMLElement>('.outfit-grid')
-    expect(grid).toBeInTheDocument()
-    const links = within(grid!).getAllByRole('link')
-    expect(links.length).toBeGreaterThan(0)
-    links.forEach((link) => {
-      const outfitId = link.getAttribute('href')?.replace('/outfits/', '')
-      const outfit = demoData.outfits.find((entry) => entry.id === outfitId)
-      expect(outfit?.previewState).toBe('missing')
     })
     expect(
       within(grid!).queryByRole('link', {
@@ -307,15 +281,18 @@ describe('Phase 1B screen visuals', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('Outfit 상세에서 preview hero와 구성 Item thumbnail을 표시한다', async () => {
+  it('Outfit 상세에서 실시간 조합 hero와 구성 Item thumbnail을 표시한다', async () => {
     renderRoute(
       '/outfits/outfit-favorite',
       '/outfits/:outfitId',
       <OutfitDetailPage />,
     )
 
-    const preview = await screen.findByRole('img', {
-      name: '블루 가디건 + 아이보리 니트 + 블랙 팬츠 외 1개 착장 미리보기',
+    await screen.findByRole('heading', { name: '착장 상세' })
+    const hero = document.querySelector<HTMLElement>('.identity-card--outfit')
+    if (!hero) throw new Error('Outfit hero missing')
+    const preview = within(hero).getByRole('img', {
+      name: '블루 가디건 + 아이보리 니트 + 블랙 팬츠 외 1개 조정 가능한 착장 미리보기',
     })
     expect(
       screen.getByRole('heading', { name: '착장 상세' }),
@@ -424,7 +401,7 @@ describe('Phase 1B screen visuals', () => {
     ).toHaveAttribute('href', '/outfits/outfit-favorite')
     expect(
       screen.getByRole('img', {
-        name: '블루 가디건 + 아이보리 니트 + 블랙 팬츠 외 1개 착장 미리보기',
+        name: '블루 가디건 + 아이보리 니트 + 블랙 팬츠 외 1개 조정 가능한 착장 미리보기',
       }),
     ).toBeInTheDocument()
 

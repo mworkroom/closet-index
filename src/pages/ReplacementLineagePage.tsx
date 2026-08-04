@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { ItemVisual } from '../components/ItemVisual'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
@@ -16,10 +16,17 @@ import type {
   ReplacementLineEdgeConnectionUpdateInput,
   ReplacementLineEdgeDirectionUpdateInput,
   ReplacementLineManualEdgeInput,
+  ReplacementLineItemMoveInput,
+  ReplacementLineArchiveInput,
+  ReplacementLineColorUpdateInput,
+  ReplacementLineColorCategory,
+  ReplacementLineMergeInput,
+  ReplacementLineRecord,
   ReplacementLineSnapshot,
   ReplacementLineStart,
 } from '../lib/types'
 import {
+  REPLACEMENT_LINE_COLOR_CATEGORIES,
   REPLACEMENT_LINE_DECISION_REASONS,
   type ReplacementLineDecisionReason,
 } from '../lib/types'
@@ -41,6 +48,7 @@ interface LineageItemRowProps {
     input: ReplacementLineEdgeDirectionUpdateInput,
   ) => Promise<void>
   onSetStart: (itemId: string, isStart: boolean) => Promise<void>
+  readOnly: boolean
 }
 
 function LineageItemRow({
@@ -50,6 +58,7 @@ function LineageItemRow({
   onDisconnectEdge,
   onReverseEdge,
   onSetStart,
+  readOnly,
 }: LineageItemRowProps) {
   const statusLabel = node.item.retired ? 'Retired' : '사용 중'
   const [editingEdge, setEditingEdge] = useState<ReplacementLineEdge | null>(null)
@@ -205,7 +214,10 @@ function LineageItemRow({
         </span>
       </Link>
 
-      {node.incomingEdges.length > 0 && !editingEdge && !reversingEdge ? (
+      {!readOnly &&
+      node.incomingEdges.length > 0 &&
+      !editingEdge &&
+      !reversingEdge ? (
         <div className="lineage-edge-actions" aria-label="계승 정보 편집">
           {node.incomingEdges.map((edge) => {
             const predecessor = node.predecessors.find(
@@ -239,7 +251,7 @@ function LineageItemRow({
         </div>
       ) : null}
 
-      {node.depth === 0 && !editingEdge && !reversingEdge ? (
+      {!readOnly && node.depth === 0 && !editingEdge && !reversingEdge ? (
         <div className="lineage-start-actions">
           <button
             className="lineage-edge-edit-button"
@@ -344,7 +356,7 @@ function LineageItemRow({
                 이 부모 연결을 해제하고 {node.item.name}을 같은 Line의 시작점으로
                 둘까요?
               </p>
-              <small>다른 Line으로 옮기는 기능은 Line 관리 단계에서 추가합니다.</small>
+              <small>연결 해제 뒤 `계보 연결 전` 카드에서 다른 Line으로 옮길 수 있습니다.</small>
               <div className="lineage-edge-form__actions">
                 <button
                   className="button button--secondary"
@@ -421,6 +433,7 @@ function LineageGeneration({
   onDisconnectEdge,
   onReverseEdge,
   onSetStart,
+  readOnly,
 }: {
   generation: ReplacementLineageGeneration
   members: Item[]
@@ -428,6 +441,7 @@ function LineageGeneration({
   onDisconnectEdge: LineageItemRowProps['onDisconnectEdge']
   onReverseEdge: LineageItemRowProps['onReverseEdge']
   onSetStart: LineageItemRowProps['onSetStart']
+  readOnly: boolean
 }) {
   const isBranched = generation.groups.length > 1
   return (
@@ -471,6 +485,7 @@ function LineageGeneration({
                       onDisconnectEdge={onDisconnectEdge}
                       onReverseEdge={onReverseEdge}
                       onSetStart={onSetStart}
+                      readOnly={readOnly}
                     />
                   ))}
                 </div>
@@ -486,24 +501,45 @@ function LineageGeneration({
 function UnconnectedLineageItem({
   item,
   members,
+  sourceLine,
+  lines,
   replacementLineId,
   onSetStart,
   onCreateManualEdge,
+  onMoveItem,
+  readOnly,
 }: {
   item: Item
   members: Item[]
+  sourceLine: ReplacementLineRecord
+  lines: ReplacementLineRecord[]
   replacementLineId: string
   onSetStart: (itemId: string, isStart: boolean) => Promise<void>
   onCreateManualEdge: (input: ReplacementLineManualEdgeInput) => Promise<void>
+  onMoveItem: (input: ReplacementLineItemMoveInput) => Promise<void>
+  readOnly: boolean
 }) {
   const [connecting, setConnecting] = useState(false)
+  const [moving, setMoving] = useState(false)
   const [predecessorItemId, setPredecessorItemId] = useState('')
   const [decisionReason, setDecisionReason] = useState('')
   const [branchName, setBranchName] = useState('')
+  const [targetLineChoice, setTargetLineChoice] = useState('')
+  const [newLineName, setNewLineName] = useState('')
+  const [newLineStyleIdentity, setNewLineStyleIdentity] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const predecessorOptions = members.filter((member) => member.id !== item.id)
+  const targetLineOptions = lines
+    .filter(
+      (line) => line.id !== sourceLine.id && line.lifecycleStatus === 'active',
+    )
+    .sort((left, right) => left.name.localeCompare(right.name, 'ko'))
   const normalizedReason = decisionReason.trim()
+  const isCreatingLine = targetLineChoice === '__new__'
+  const selectedTargetLine = targetLineOptions.find(
+    (line) => line.id === targetLineChoice,
+  )
 
   const handleSetStart = async () => {
     setSaving(true)
@@ -541,6 +577,32 @@ function UnconnectedLineageItem({
     }
   }
 
+  const handleMove = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!targetLineChoice || (isCreatingLine && !newLineName.trim())) return
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await onMoveItem({
+        sourceLineId: sourceLine.id,
+        itemId: item.id,
+        targetLineId: selectedTargetLine?.id ?? null,
+        newLineName: isCreatingLine ? newLineName.trim() : null,
+        newLineStyleIdentity: isCreatingLine
+          ? newLineStyleIdentity.trim() || null
+          : null,
+        expectedSourceUpdatedAt: sourceLine.updatedAt,
+        expectedTargetUpdatedAt: selectedTargetLine?.updatedAt ?? null,
+      })
+    } catch (cause) {
+      setSaveError(
+        cause instanceof Error ? cause.message : 'Item을 다른 Line으로 옮기지 못했습니다.',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="lineage-unconnected__item">
       <Link
@@ -556,7 +618,7 @@ function UnconnectedLineageItem({
           </small>
         </span>
       </Link>
-      {!connecting ? (
+      {readOnly ? null : !connecting && !moving ? (
         <div className="lineage-unconnected__actions">
           <button
             className="lineage-edge-edit-button"
@@ -579,8 +641,19 @@ function UnconnectedLineageItem({
               계보에 연결
             </button>
           ) : null}
+          <button
+            className="lineage-edge-edit-button lineage-edge-edit-button--direction"
+            type="button"
+            onClick={() => {
+              setMoving(true)
+              setSaveError(null)
+            }}
+            disabled={saving}
+          >
+            다른 Line으로 옮기기
+          </button>
         </div>
-      ) : (
+      ) : connecting ? (
         <form className="lineage-manual-edge-form" onSubmit={handleConnect}>
           <p className="lineage-edge-form__context">{item.name}의 이전 Item 선택</p>
           <label className="field">
@@ -643,6 +716,81 @@ function UnconnectedLineageItem({
             </button>
           </div>
         </form>
+      ) : (
+        <form className="lineage-manual-edge-form" onSubmit={handleMove}>
+          <p className="lineage-edge-form__context">
+            {item.name} · {sourceLine.name}에서 옮기기
+          </p>
+          <label className="field">
+            <span>옮길 Line</span>
+            <select
+              value={targetLineChoice}
+              onChange={(event) => setTargetLineChoice(event.target.value)}
+              required
+              autoFocus
+            >
+              <option value="">선택해 주세요</option>
+              {targetLineOptions.map((line) => (
+                <option value={line.id} key={line.id}>
+                  {line.name}
+                </option>
+              ))}
+              <option value="__new__">+ 새 Line 만들기</option>
+            </select>
+          </label>
+          {isCreatingLine ? (
+            <>
+              <label className="field">
+                <span>새 Line 이름</span>
+                <input
+                  value={newLineName}
+                  onChange={(event) => setNewLineName(event.target.value)}
+                  aria-label="새 Line 이름"
+                  maxLength={200}
+                  placeholder="예: Ivory Summer Cardigan"
+                  required
+                />
+                <small>색상명을 포함하면 Color 목록에 자동으로 분류됩니다.</small>
+              </label>
+              <label className="field">
+                <span>Style Identity (선택)</span>
+                <input
+                  value={newLineStyleIdentity}
+                  onChange={(event) => setNewLineStyleIdentity(event.target.value)}
+                  maxLength={200}
+                />
+              </label>
+            </>
+          ) : null}
+          <p className="lineage-move-note">
+            이동한 Item은 새 Line의 시작점이 되며, 기존 Line과 옮길 Line은 모두
+            재검토 필요 상태로 표시됩니다.
+          </p>
+          <div className="lineage-edge-form__actions">
+            <button
+              className="button button--secondary"
+              type="button"
+              onClick={() => {
+                setMoving(false)
+                setSaveError(null)
+              }}
+              disabled={saving}
+            >
+              취소
+            </button>
+            <button
+              className="button button--primary"
+              type="submit"
+              disabled={
+                saving ||
+                !targetLineChoice ||
+                (isCreatingLine && !newLineName.trim())
+              }
+            >
+              {saving ? '옮기는 중…' : 'Line 이동'}
+            </button>
+          </div>
+        </form>
       )}
       {saveError ? (
         <p className="form-error lineage-unconnected__error" role="alert">
@@ -653,8 +801,371 @@ function UnconnectedLineageItem({
   )
 }
 
+interface LineManagementPanelProps {
+  line: ReplacementLineRecord
+  lines: ReplacementLineRecord[]
+  membershipCount: number
+  onMerge: (input: ReplacementLineMergeInput) => Promise<void>
+  onSetArchived: (input: ReplacementLineArchiveInput) => Promise<void>
+  onSetColorCategory: (input: ReplacementLineColorUpdateInput) => Promise<void>
+}
+
+function LineManagementPanel({
+  line,
+  lines,
+  membershipCount,
+  onMerge,
+  onSetArchived,
+  onSetColorCategory,
+}: LineManagementPanelProps) {
+  const [action, setAction] = useState<
+    'color' | 'merge' | 'archive' | 'restore' | null
+  >(null)
+  const [targetLineId, setTargetLineId] = useState('')
+  const [colorCategory, setColorCategory] = useState('')
+  const [acknowledged, setAcknowledged] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const representativeLine = line.representativeLineId
+    ? lines.find((candidate) => candidate.id === line.representativeLineId) ?? null
+    : null
+  const targetLines = lines
+    .filter(
+      (candidate) =>
+        candidate.id !== line.id && candidate.lifecycleStatus === 'active',
+    )
+    .sort((left, right) => left.name.localeCompare(right.name, 'ko'))
+  const selectedTarget = targetLines.find(
+    (candidate) => candidate.id === targetLineId,
+  )
+
+  const resetAction = () => {
+    setAction(null)
+    setTargetLineId('')
+    setColorCategory('')
+    setAcknowledged(false)
+    setSaveError(null)
+  }
+
+  const handleMerge = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!selectedTarget || !acknowledged) return
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await onMerge({
+        sourceLineId: line.id,
+        targetLineId: selectedTarget.id,
+        expectedSourceUpdatedAt: line.updatedAt,
+        expectedTargetUpdatedAt: selectedTarget.updatedAt,
+      })
+    } catch (cause) {
+      setSaveError(
+        cause instanceof Error ? cause.message : 'Replacement Line을 병합하지 못했습니다.',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleArchive = async (archived: boolean) => {
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await onSetArchived({
+        lineId: line.id,
+        archived,
+        expectedUpdatedAt: line.updatedAt,
+      })
+      resetAction()
+    } catch (cause) {
+      setSaveError(
+        cause instanceof Error
+          ? cause.message
+          : archived
+            ? 'Replacement Line을 보관하지 못했습니다.'
+            : 'Replacement Line을 다시 사용하지 못했습니다.',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleColorCategory = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const nextCategory = colorCategory || null
+    if (nextCategory === line.colorCategory) return
+
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await onSetColorCategory({
+        lineId: line.id,
+        colorCategory: nextCategory as ReplacementLineColorCategory | null,
+        expectedUpdatedAt: line.updatedAt,
+      })
+      resetAction()
+    } catch (cause) {
+      setSaveError(
+        cause instanceof Error
+          ? cause.message
+          : 'Replacement Line 색상을 저장하지 못했습니다.',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <section
+      className="section lineage-line-management"
+      aria-labelledby="line-management-heading"
+    >
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">LINE MANAGEMENT</p>
+          <h2 id="line-management-heading">Line 관리</h2>
+        </div>
+        <span className="count">
+          {line.lifecycleStatus === 'archived' ? '보관됨' : `${membershipCount} Item`}
+        </span>
+      </div>
+
+      <div className="lineage-line-management__color">
+        <span>대표 색상 category</span>
+        <strong>{line.colorCategory ?? '자동 제안 사용 중'}</strong>
+        {line.lifecycleStatus === 'active' && action !== 'color' ? (
+          <button
+            className="lineage-edge-edit-button"
+            type="button"
+            onClick={() => {
+              setAction('color')
+              setColorCategory(line.colorCategory ?? '')
+              setSaveError(null)
+            }}
+          >
+            색상 수정
+          </button>
+        ) : null}
+      </div>
+
+      {action === 'color' ? (
+        <form
+          className="lineage-line-management__form"
+          onSubmit={handleColorCategory}
+        >
+          <label className="field">
+            <span>Line 색상 category</span>
+            <select
+              value={colorCategory}
+              onChange={(event) => setColorCategory(event.target.value)}
+              autoFocus
+            >
+              <option value="">자동 제안 사용</option>
+              {REPLACEMENT_LINE_COLOR_CATEGORIES.map((category) => (
+                <option value={category} key={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="muted">
+            직접 지정한 값은 Line 이름과 Item 색상으로 만든 자동 제안보다 우선합니다.
+          </p>
+          <div className="lineage-edge-form__actions">
+            <button
+              className="button button--secondary"
+              type="button"
+              onClick={resetAction}
+              disabled={saving}
+            >
+              취소
+            </button>
+            <button
+              className="button button--primary"
+              type="submit"
+              disabled={
+                saving || (colorCategory || null) === line.colorCategory
+              }
+            >
+              {saving ? '저장 중…' : '색상 저장'}
+            </button>
+          </div>
+        </form>
+      ) : null}
+
+      {line.lifecycleStatus === 'archived' ? (
+        representativeLine ? (
+          <div className="lineage-line-management__archived" role="status">
+            <p>
+              이 Line은 <strong>{representativeLine.name}</strong>으로 병합됐습니다.
+            </p>
+            <Link
+              className="button button--primary"
+              to={`/replacement-lines/${representativeLine.id}`}
+            >
+              대표 Line 보기
+            </Link>
+          </div>
+        ) : (
+          <div className="lineage-line-management__archived" role="status">
+            <p>계보 데이터는 그대로 둔 채 Color 목록에서만 보관한 Line입니다.</p>
+            {action !== 'restore' ? (
+              <button
+                className="button button--secondary"
+                type="button"
+                onClick={() => {
+                  setAction('restore')
+                  setSaveError(null)
+                }}
+              >
+                다시 사용
+              </button>
+            ) : (
+              <div className="lineage-line-management__confirmation" role="alert">
+                <p>이 Line을 Color 목록에 다시 표시할까요?</p>
+                <div className="lineage-edge-form__actions">
+                  <button
+                    className="button button--secondary"
+                    type="button"
+                    onClick={resetAction}
+                    disabled={saving}
+                  >
+                    취소
+                  </button>
+                  <button
+                    className="button button--primary"
+                    type="button"
+                    onClick={() => void handleArchive(false)}
+                    disabled={saving}
+                  >
+                    {saving ? '복원 중…' : '다시 사용'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      ) : (
+        <>
+          <p className="muted">
+            같은 계열의 Line을 하나로 합치거나, 삭제하지 않고 Color 목록에서 보관할 수
+            있습니다.
+          </p>
+          {action === null ? (
+            <div className="lineage-line-management__actions">
+              <button
+                className="button button--secondary"
+                type="button"
+                onClick={() => setAction('merge')}
+                disabled={targetLines.length === 0}
+              >
+                대표 Line으로 병합
+              </button>
+              <button
+                className="button button--secondary"
+                type="button"
+                onClick={() => setAction('archive')}
+              >
+                Line 보관
+              </button>
+            </div>
+          ) : null}
+
+          {action === 'merge' ? (
+            <form className="lineage-line-management__form" onSubmit={handleMerge}>
+              <label className="field">
+                <span>대표 Line</span>
+                <select
+                  value={targetLineId}
+                  onChange={(event) => {
+                    setTargetLineId(event.target.value)
+                    setAcknowledged(false)
+                  }}
+                  required
+                  autoFocus
+                >
+                  <option value="">선택해 주세요</option>
+                  {targetLines.map((targetLine) => (
+                    <option value={targetLine.id} key={targetLine.id}>
+                      {targetLine.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="lineage-line-management__warning">
+                현재 Line의 membership·계보·시작점이 대표 Line으로 이동하고 현재 Line은
+                보관됩니다. 자동으로 되돌리는 기능은 제공하지 않습니다.
+              </p>
+              <label className="lineage-line-management__check">
+                <input
+                  type="checkbox"
+                  checked={acknowledged}
+                  onChange={(event) => setAcknowledged(event.target.checked)}
+                />
+                <span>병합 대상과 변경 내용을 확인했습니다.</span>
+              </label>
+              <div className="lineage-edge-form__actions">
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={resetAction}
+                  disabled={saving}
+                >
+                  취소
+                </button>
+                <button
+                  className="button button--danger"
+                  type="submit"
+                  disabled={saving || !selectedTarget || !acknowledged}
+                >
+                  {saving ? '병합 중…' : '이 Line을 병합'}
+                </button>
+              </div>
+            </form>
+          ) : null}
+
+          {action === 'archive' ? (
+            <div className="lineage-line-management__confirmation" role="alert">
+              <p>
+                {membershipCount}개 Item과 계보는 그대로 유지됩니다. 이 Line을 Color
+                목록에서 보관할까요?
+              </p>
+              <div className="lineage-edge-form__actions">
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={resetAction}
+                  disabled={saving}
+                >
+                  취소
+                </button>
+                <button
+                  className="button button--danger"
+                  type="button"
+                  onClick={() => void handleArchive(true)}
+                  disabled={saving}
+                >
+                  {saving ? '보관 중…' : 'Line 보관'}
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </>
+      )}
+
+      {saveError ? (
+        <p className="form-error" role="alert">
+          {saveError}
+        </p>
+      ) : null}
+    </section>
+  )
+}
+
 export function ReplacementLineagePage() {
   const { lineId = '' } = useParams()
+  const navigate = useNavigate()
   const {
     data,
     loadReplacementLines,
@@ -665,6 +1176,10 @@ export function ReplacementLineagePage() {
     loadReplacementLineStarts,
     setReplacementLineStart,
     createReplacementLineManualEdge,
+    moveReplacementLineItem,
+    mergeReplacementLines,
+    setReplacementLineArchived,
+    setReplacementLineColorCategory,
   } = useClosetData()
   const [snapshot, setSnapshot] = useState<ReplacementLineSnapshot | null>(null)
   const [edges, setEdges] = useState<ReplacementLineEdge[] | null>(null)
@@ -693,7 +1208,12 @@ export function ReplacementLineagePage() {
     } finally {
       setLoading(false)
     }
-  }, [loadReplacementLineEdges, loadReplacementLineStarts, loadReplacementLines])
+  }, [
+    lineId,
+    loadReplacementLineEdges,
+    loadReplacementLineStarts,
+    loadReplacementLines,
+  ])
 
   useEffect(() => {
     void load()
@@ -781,6 +1301,56 @@ export function ReplacementLineagePage() {
     [createReplacementLineManualEdge],
   )
 
+  const moveItem = useCallback(
+    async (input: ReplacementLineItemMoveInput) => {
+      const targetLine = await moveReplacementLineItem(input)
+      navigate(`/replacement-lines/${targetLine.id}`)
+    },
+    [moveReplacementLineItem, navigate],
+  )
+
+  const mergeLines = useCallback(
+    async (input: ReplacementLineMergeInput) => {
+      const targetLine = await mergeReplacementLines(input)
+      navigate(`/replacement-lines/${targetLine.id}`)
+    },
+    [mergeReplacementLines, navigate],
+  )
+
+  const setLineArchived = useCallback(
+    async (input: ReplacementLineArchiveInput) => {
+      const savedLine = await setReplacementLineArchived(input)
+      setSnapshot((current) =>
+        current
+          ? {
+              ...current,
+              lines: current.lines.map((line) =>
+                line.id === savedLine.id ? savedLine : line,
+              ),
+            }
+          : current,
+      )
+    },
+    [setReplacementLineArchived],
+  )
+
+  const setLineColorCategory = useCallback(
+    async (input: ReplacementLineColorUpdateInput) => {
+      const savedLine = await setReplacementLineColorCategory(input)
+      setSnapshot((current) =>
+        current
+          ? {
+              ...current,
+              lines: current.lines.map((line) =>
+                line.id === savedLine.id ? savedLine : line,
+              ),
+            }
+          : current,
+      )
+    },
+    [setReplacementLineColorCategory],
+  )
+
   const lineage = useMemo(
     () =>
       data && snapshot && edges && starts
@@ -822,6 +1392,16 @@ export function ReplacementLineagePage() {
               재검토가 필요한 연결 {lineage.needsReviewEdgeCount}개는 세대 계산에서 제외했습니다.
             </p>
           ) : null}
+          {lineage.line.reviewStatus === 'needs_review' ? (
+            <p className="lineage-page-alert lineage-page-alert--membership" role="status">
+              Line membership이 변경되어 계보 재검토가 필요합니다.
+            </p>
+          ) : null}
+          {lineage.line.lifecycleStatus === 'archived' ? (
+            <p className="lineage-page-alert lineage-page-alert--archived" role="status">
+              보관된 Line입니다. 계보는 읽기 전용으로 표시됩니다.
+            </p>
+          ) : null}
           {lineage.invalidEdgeCount > 0 || lineage.cyclic ? (
             <ErrorState
               message={
@@ -845,6 +1425,7 @@ export function ReplacementLineagePage() {
                   onDisconnectEdge={disconnectEdge}
                   onReverseEdge={reverseEdge}
                   onSetStart={setStart}
+                  readOnly={lineage.line.lifecycleStatus === 'archived'}
                   key={generation.depth}
                 />
               ))}
@@ -876,15 +1457,29 @@ export function ReplacementLineagePage() {
                   <UnconnectedLineageItem
                     item={item}
                     members={lineage.members}
+                    sourceLine={lineage.line}
+                    lines={snapshot?.lines ?? []}
                     replacementLineId={lineage.line.id}
                     onSetStart={setStart}
                     onCreateManualEdge={createManualEdge}
+                    onMoveItem={moveItem}
+                    readOnly={lineage.line.lifecycleStatus === 'archived'}
                     key={item.id}
                   />
                 ))}
               </div>
             </section>
           ) : null}
+
+          <LineManagementPanel
+            key={lineage.line.id}
+            line={lineage.line}
+            lines={snapshot?.lines ?? []}
+            membershipCount={lineage.members.length}
+            onMerge={mergeLines}
+            onSetArchived={setLineArchived}
+            onSetColorCategory={setLineColorCategory}
+          />
         </>
       ) : null}
     </AppShell>

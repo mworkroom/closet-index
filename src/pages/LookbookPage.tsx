@@ -1,5 +1,5 @@
 import { Search, SlidersHorizontal } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { OutfitCard } from '../components/OutfitCard'
@@ -10,7 +10,7 @@ import { useSeasonScope } from '../context/SeasonScopeContext'
 import { getOutfitStats, outfitLabel } from '../lib/outfits'
 import { sortPlacesForSelection } from '../lib/place-options'
 import { outfitMatchesSeasonScope } from '../lib/seasons'
-import type { OutfitPreviewState } from '../lib/types'
+import { COLLECTION_BATCH_SIZE } from '../lib/collection-pagination'
 
 function parseOptionalNumber(value: string) {
   return value.trim() === '' ? null : Number(value)
@@ -27,7 +27,22 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
   const [maximumTemp, setMaximumTemp] = useState('')
   const [placeId, setPlaceId] = useState('')
   const [includeUnavailable, setIncludeUnavailable] = useState(false)
-  const [previewState, setPreviewState] = useState<OutfitPreviewState | ''>('')
+  const [visibleOutfitCount, setVisibleOutfitCount] = useState(COLLECTION_BATCH_SIZE)
+
+  useEffect(() => {
+    setVisibleOutfitCount(COLLECTION_BATCH_SIZE)
+  }, [
+    activeSeasons,
+    favorite,
+    favoriteOnly,
+    includeUnavailable,
+    maximumTemp,
+    minimumTemp,
+    notWornRecently,
+    placeId,
+    query,
+    unwornOnly,
+  ])
 
   const outfits = useMemo(() => {
     if (!data) return []
@@ -56,9 +71,6 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
           items.length !== outfit.itemIds.length ||
           items.some((item) => item.retired)
         if (!includeUnavailable && unavailable) return false
-        const currentPreviewState =
-          outfit.previewState ?? (outfit.preview ? 'ready' : 'missing')
-        if (previewState && currentPreviewState !== previewState) return false
         if ((favoriteOnly || favorite) && outfit.rating !== 'favorite') return false
         if (!outfitMatchesSeasonScope(outfit, data.items, activeSeasons)) {
           return false
@@ -107,7 +119,6 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
     minimumTemp,
     notWornRecently,
     placeId,
-    previewState,
     query,
     unwornOnly,
   ])
@@ -121,7 +132,6 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
     setMaximumTemp('')
     setPlaceId('')
     setIncludeUnavailable(false)
-    setPreviewState('')
   }
 
   return (
@@ -163,20 +173,6 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
                 {place.name}
               </option>
             ))}
-          </select>
-          <select
-            aria-label="미리보기 상태"
-            value={previewState}
-            onChange={(event) =>
-              setPreviewState(event.target.value as OutfitPreviewState | '')
-            }
-          >
-            <option value="">모든 Preview 상태</option>
-            <option value="missing">Preview 없음</option>
-            <option value="stale">Preview 오래됨</option>
-            <option value="error">Preview 오류</option>
-            <option value="pending">Preview 생성 중</option>
-            <option value="ready">Preview 준비됨</option>
           </select>
         </div>
         <div className="temperature-filter" aria-label="OK 온도 범위">
@@ -270,16 +266,33 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
               }
             />
           ) : (
-            <div className="outfit-grid">
-              {outfits.map((outfit) => (
-                <OutfitCard
-                  outfit={outfit}
-                  data={data}
-                  layout="grid"
-                  key={outfit.id}
-                />
-              ))}
-            </div>
+            <>
+              <div className="outfit-grid">
+                {outfits.slice(0, visibleOutfitCount).map((outfit) => (
+                  <OutfitCard
+                    outfit={outfit}
+                    data={data}
+                    layout="grid"
+                    key={outfit.id}
+                  />
+                ))}
+              </div>
+              {visibleOutfitCount < outfits.length && (
+                <div className="collection-load-more">
+                  <button
+                    className="button button--secondary"
+                    type="button"
+                    onClick={() =>
+                      setVisibleOutfitCount((current) =>
+                        Math.min(current + COLLECTION_BATCH_SIZE, outfits.length),
+                      )
+                    }
+                  >
+                    더 보기 ({Math.min(visibleOutfitCount, outfits.length)}/{outfits.length})
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </section>
       )}

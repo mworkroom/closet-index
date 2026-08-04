@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import type { Item, ReplacementLineSnapshot } from '../../lib/types'
+import type {
+  Item,
+  ReplacementLineRecord,
+  ReplacementLineSnapshot,
+} from '../../lib/types'
 import { buildReplacementLineOverview } from './replacement-line-overview'
 
 function item(
@@ -24,13 +28,31 @@ function item(
   }
 }
 
+function line(
+  id: string,
+  name: string,
+  styleIdentity: string | null = null,
+): ReplacementLineRecord {
+  return {
+    id,
+    name,
+    styleIdentity,
+    colorCategory: null,
+    reviewStatus: 'ready',
+    lifecycleStatus: 'active',
+    representativeLineId: null,
+    archivedAt: null,
+    updatedAt: '2026-08-03T00:00:00Z',
+  }
+}
+
 describe('Replacement Line overview', () => {
   it('groups Lines and derives lifecycle, warning, and newest Active facts', () => {
     const snapshot: ReplacementLineSnapshot = {
       lines: [
-        { id: 'line-a', name: 'Alpha', styleIdentity: 'Uniform' },
-        { id: 'line-b', name: 'Beta', styleIdentity: 'Uniform' },
-        { id: 'line-empty', name: 'Empty', styleIdentity: null },
+        line('line-a', 'Alpha', 'Uniform'),
+        line('line-b', 'Beta', 'Uniform'),
+        line('line-empty', 'Empty'),
       ],
       memberships: [
         { replacementLineId: 'line-a', itemId: 'active-old' },
@@ -71,7 +93,7 @@ describe('Replacement Line overview', () => {
   it('never exposes a membership Item that is absent from the loaded workspace snapshot', () => {
     const overview = buildReplacementLineOverview(
       {
-        lines: [{ id: 'line', name: 'Scoped', styleIdentity: 'Secure' }],
+        lines: [line('line', 'Scoped', 'Secure')],
         memberships: [
           { replacementLineId: 'line', itemId: 'workspace-item' },
           { replacementLineId: 'line', itemId: 'unavailable-item' },
@@ -91,10 +113,10 @@ describe('Replacement Line overview', () => {
     const overview = buildReplacementLineOverview(
       {
         lines: [
-          { id: 'black-bag', name: 'Black Bag - Crossbody Black', styleIdentity: null },
-          { id: 'black-coat', name: 'Black Long Coat', styleIdentity: null },
-          { id: 'ivory-top', name: 'Ivory Layered', styleIdentity: null },
-          { id: 'empty-black', name: 'Future Black Dress', styleIdentity: null },
+          line('black-bag', 'Black Bag - Crossbody Black'),
+          line('black-coat', 'Black Long Coat'),
+          line('ivory-top', 'Ivory Layered'),
+          line('empty-black', 'Future Black Dress'),
         ],
         memberships: [
           { replacementLineId: 'black-bag', itemId: 'black-a' },
@@ -127,7 +149,7 @@ describe('Replacement Line overview', () => {
   it('keeps a Line with conflicting member colors in a review group', () => {
     const overview = buildReplacementLineOverview(
       {
-        lines: [{ id: 'mixed', name: 'Mixed Legacy Line', styleIdentity: null }],
+        lines: [line('mixed', 'Mixed Legacy Line')],
         memberships: [
           { replacementLineId: 'mixed', itemId: 'black' },
           { replacementLineId: 'mixed', itemId: 'ivory' },
@@ -148,10 +170,39 @@ describe('Replacement Line overview', () => {
     ])
   })
 
+  it('uses a directly selected Line color before name and Item suggestions', () => {
+    const directLine = {
+      ...line('direct', 'Black Layer'),
+      colorCategory: 'Ivory',
+    }
+    const overview = buildReplacementLineOverview(
+      {
+        lines: [directLine],
+        memberships: [{ replacementLineId: 'direct', itemId: 'black' }],
+      },
+      [item('black', { semanticColor: 'Black', displayHex: '#111111' })],
+    )
+
+    expect(overview.colorGroups).toEqual([
+      expect.objectContaining({
+        id: 'ivory',
+        label: 'Ivory',
+        lines: [
+          expect.objectContaining({
+            id: 'direct',
+            colorCategory: 'Ivory',
+            isColorCategoryDirect: true,
+            hasMultipleSemanticColors: false,
+          }),
+        ],
+      }),
+    ])
+  })
+
   it('matches a color as a word instead of finding Red inside Layered', () => {
     const overview = buildReplacementLineOverview(
       {
-        lines: [{ id: 'layered', name: 'Layered Top', styleIdentity: null }],
+        lines: [line('layered', 'Layered Top')],
         memberships: [],
       },
       [],
@@ -160,5 +211,45 @@ describe('Replacement Line overview', () => {
     expect(overview.colorGroups).toEqual([
       expect.objectContaining({ id: 'unassigned', label: '색상 확인 필요' }),
     ])
+  })
+
+  it('keeps archived Lines out of the Color Index and reports their representative', () => {
+    const active = line('active', 'Black Layer')
+    const archived: ReplacementLineRecord = {
+      ...line('archived', 'Old Black Layer'),
+      lifecycleStatus: 'archived',
+      representativeLineId: active.id,
+      archivedAt: '2026-08-05T00:00:00Z',
+    }
+    const overview = buildReplacementLineOverview(
+      {
+        lines: [active, archived],
+        memberships: [
+          { replacementLineId: active.id, itemId: 'active-item' },
+          { replacementLineId: archived.id, itemId: 'archived-item' },
+        ],
+      },
+      [
+        item('active-item', { semanticColor: 'Black' }),
+        item('archived-item', { semanticColor: 'Black' }),
+      ],
+    )
+
+    expect(overview.lines.map((entry) => entry.id)).toEqual(['active'])
+    expect(overview.colorGroups[0].lines.map((entry) => entry.id)).toEqual([
+      'active',
+    ])
+    expect(overview.archivedLines).toEqual([
+      expect.objectContaining({
+        id: 'archived',
+        representativeLineId: 'active',
+      }),
+    ])
+    expect(overview.summary).toMatchObject({
+      lineCount: 1,
+      archivedLineCount: 1,
+      membershipCount: 1,
+      uniqueItemCount: 1,
+    })
   })
 })

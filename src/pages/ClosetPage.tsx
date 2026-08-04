@@ -18,6 +18,7 @@ import {
 import { sortItems, type ItemSort } from '../lib/items'
 import { getItemStats } from '../lib/outfits'
 import { itemMatchesSeasonScope } from '../lib/seasons'
+import { COLLECTION_BATCH_SIZE } from '../lib/collection-pagination'
 
 const defaultSort: ItemSort = 'acquired-desc'
 const CLOSET_FILTER_STORAGE_KEY = 'closet-index:closet-filters:v2'
@@ -81,6 +82,7 @@ export function ClosetPage() {
   )
   const [unwornOnly, setUnwornOnly] = useState(initialFilters.unwornOnly)
   const [sort, setSort] = useState<ItemSort>(initialFilters.sort)
+  const [visibleItemCount, setVisibleItemCount] = useState(COLLECTION_BATCH_SIZE)
 
   useEffect(() => {
     const filters: StoredClosetFilters = {
@@ -99,6 +101,18 @@ export function ClosetPage() {
       // Storage can be unavailable in private browsing; filters still work in memory.
     }
   }, [categoryGroup, color, includeRetired, sort, unwornOnly])
+
+  useEffect(() => {
+    setVisibleItemCount(COLLECTION_BATCH_SIZE)
+  }, [
+    activeSeasons,
+    categoryGroup,
+    color,
+    includeRetired,
+    query,
+    sort,
+    unwornOnly,
+  ])
 
   const categoryGroups = useMemo(
     () => getAvailableItemCategoryGroups(data?.items ?? []),
@@ -261,30 +275,47 @@ export function ClosetPage() {
               }
             />
           ) : (
-            <div className="item-grid">
-              {items.map((item) => {
-                const stats = getItemStats(item.id, data.outfits, data.wearLogs)
+            <>
+              <div className="item-grid">
+                {items.slice(0, visibleItemCount).map((item) => {
+                  const stats = getItemStats(item.id, data.outfits, data.wearLogs)
 
-                return (
-                  <Link
-                    className="item-card"
-                    to={`/closet/${item.id}`}
-                    key={item.id}
-                    aria-label={`${item.name} 아이템 상세 보기`}
-                  >
-                    <ItemVisual item={item} className="item-visual--grid" />
-                    <span className="item-card__summary" aria-hidden="true">
-                      <span>착용 {stats.wearCount}회</span>
-                      <span>
-                        {stats.lastWornOn
-                          ? `최근 ${formatMonthDayYear(stats.lastWornOn)}`
-                          : '최근 기록 없음'}
+                  return (
+                    <Link
+                      className="item-card"
+                      to={`/closet/${item.id}`}
+                      key={item.id}
+                      aria-label={`${item.name} 아이템 상세 보기`}
+                    >
+                      <ItemVisual item={item} className="item-visual--grid" />
+                      <span className="item-card__summary" aria-hidden="true">
+                        <span>착용 {stats.wearCount}회</span>
+                        <span>
+                          {stats.lastWornOn
+                            ? `최근 ${formatMonthDayYear(stats.lastWornOn)}`
+                            : '최근 기록 없음'}
+                        </span>
                       </span>
-                    </span>
-                  </Link>
-                )
-              })}
-            </div>
+                    </Link>
+                  )
+                })}
+              </div>
+              {visibleItemCount < items.length && (
+                <div className="collection-load-more">
+                  <button
+                    className="button button--secondary"
+                    type="button"
+                    onClick={() =>
+                      setVisibleItemCount((current) =>
+                        Math.min(current + COLLECTION_BATCH_SIZE, items.length),
+                      )
+                    }
+                  >
+                    더 보기 ({Math.min(visibleItemCount, items.length)}/{items.length})
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </section>
       )}

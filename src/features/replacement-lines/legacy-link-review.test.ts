@@ -51,7 +51,7 @@ describe('Legacy Link review queue', () => {
       },
     ]
     const lines: ReplacementLineSnapshot = {
-      lines: [{ id: 'line', name: 'Daily Top', styleIdentity: null }],
+      lines: [{ id: 'line', name: 'Daily Top', styleIdentity: null, colorCategory: null, reviewStatus: 'ready', lifecycleStatus: 'active', representativeLineId: null, archivedAt: null, updatedAt: '2026-08-03T00:00:00Z' }],
       memberships: [
         { replacementLineId: 'line', itemId: 'item-a' },
         { replacementLineId: 'line', itemId: 'item-b' },

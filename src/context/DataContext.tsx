@@ -19,7 +19,6 @@ import type {
   OutfitCreateInput,
   OutfitUpdateInput,
   OutfitItemPlacementInput,
-  OutfitPreviewUploadInput,
   ReplacementLineSnapshot,
   ReplacementLineEdge,
   ReplacementLineEdgeConfirmationInput,
@@ -28,6 +27,11 @@ import type {
   ReplacementLineEdgeDisconnectInput,
   ReplacementLineEdgeDirectionUpdateInput,
   ReplacementLineManualEdgeInput,
+  ReplacementLineItemMoveInput,
+  ReplacementLineArchiveInput,
+  ReplacementLineColorUpdateInput,
+  ReplacementLineMergeInput,
+  ReplacementLineRecord,
   ReplacementLineStart,
   ReplacementLegacyLink,
   ReplacementLegacyLinkReviewInput,
@@ -79,6 +83,18 @@ interface DataState {
   createReplacementLineManualEdge: (
     input: ReplacementLineManualEdgeInput,
   ) => Promise<ReplacementLineEdge>
+  moveReplacementLineItem: (
+    input: ReplacementLineItemMoveInput,
+  ) => Promise<ReplacementLineRecord>
+  mergeReplacementLines: (
+    input: ReplacementLineMergeInput,
+  ) => Promise<ReplacementLineRecord>
+  setReplacementLineArchived: (
+    input: ReplacementLineArchiveInput,
+  ) => Promise<ReplacementLineRecord>
+  setReplacementLineColorCategory: (
+    input: ReplacementLineColorUpdateInput,
+  ) => Promise<ReplacementLineRecord>
   createItem: (input: ItemCreateInput) => Promise<Item>
   updateItem: (itemId: string, input: ItemWriteInput) => Promise<Item>
   replaceItemImage: (
@@ -98,10 +114,6 @@ interface DataState {
   setOutfitArchived: (outfitId: string, archived: boolean) => Promise<void>
   deleteOutfit: (outfitId: string) => Promise<void>
   updateOutfitItemPlacement: (input: OutfitItemPlacementInput) => Promise<void>
-  replaceOutfitPreview: (
-    outfitId: string,
-    input: OutfitPreviewUploadInput,
-  ) => Promise<void>
   saveDefaultWeatherLocation: (input: WeatherLocationInput) => Promise<void>
   fetchWeatherForecast: (
     input: WeatherForecastRequest,
@@ -200,11 +212,6 @@ export function DataProvider({
 
               return {
                 ...outfit,
-                preview: null,
-                previewState:
-                  outfit.preview || outfit.previewState === 'ready'
-                    ? 'stale'
-                    : (outfit.previewState ?? 'missing'),
                 itemPlacements: hasPlacement
                   ? placements.map((placement) =>
                       placement.itemId === input.itemId
@@ -373,15 +380,52 @@ export function DataProvider({
     [repository],
   )
 
-  const replaceOutfitPreview = useCallback(
-    async (outfitId: string, input: OutfitPreviewUploadInput) => {
-      if (!repository.replaceOutfitPreview) {
-        throw new Error('이 환경에서는 Outfit preview 저장을 지원하지 않습니다.')
+  const moveReplacementLineItem = useCallback(
+    (input: ReplacementLineItemMoveInput) => {
+      if (!repository.moveReplacementLineItem) {
+        return Promise.reject(
+          new Error('이 환경에서는 Replacement Line Item 이동을 지원하지 않습니다.'),
+        )
       }
-      await repository.replaceOutfitPreview(outfitId, input)
-      await refresh()
+      return repository.moveReplacementLineItem(input)
     },
-    [refresh, repository],
+    [repository],
+  )
+
+  const mergeReplacementLines = useCallback(
+    (input: ReplacementLineMergeInput) => {
+      if (!repository.mergeReplacementLines) {
+        return Promise.reject(
+          new Error('이 환경에서는 Replacement Line 병합을 지원하지 않습니다.'),
+        )
+      }
+      return repository.mergeReplacementLines(input)
+    },
+    [repository],
+  )
+
+  const setReplacementLineArchived = useCallback(
+    (input: ReplacementLineArchiveInput) => {
+      if (!repository.setReplacementLineArchived) {
+        return Promise.reject(
+          new Error('이 환경에서는 Replacement Line 보관을 지원하지 않습니다.'),
+        )
+      }
+      return repository.setReplacementLineArchived(input)
+    },
+    [repository],
+  )
+
+  const setReplacementLineColorCategory = useCallback(
+    (input: ReplacementLineColorUpdateInput) => {
+      if (!repository.setReplacementLineColorCategory) {
+        return Promise.reject(
+          new Error('이 환경에서는 Replacement Line 색상 수정을 지원하지 않습니다.'),
+        )
+      }
+      return repository.setReplacementLineColorCategory(input)
+    },
+    [repository],
   )
 
   const createOutfit = useCallback(
@@ -540,6 +584,10 @@ export function DataProvider({
       loadReplacementLineStarts,
       setReplacementLineStart,
       createReplacementLineManualEdge,
+      moveReplacementLineItem,
+      mergeReplacementLines,
+      setReplacementLineArchived,
+      setReplacementLineColorCategory,
       createItem,
       updateItem,
       replaceItemImage: (itemId, input) =>
@@ -556,7 +604,6 @@ export function DataProvider({
       deleteOutfit: (outfitId) =>
         mutate(() => repository.deleteOutfit(outfitId)),
       updateOutfitItemPlacement,
-      replaceOutfitPreview,
       saveDefaultWeatherLocation: (input) =>
         mutate(() => repository.saveDefaultWeatherLocation(input)),
       fetchWeatherForecast: (input) => repository.fetchWeatherForecast(input),
@@ -583,6 +630,10 @@ export function DataProvider({
       loadReplacementLineStarts,
       setReplacementLineStart,
       createReplacementLineManualEdge,
+      moveReplacementLineItem,
+      mergeReplacementLines,
+      setReplacementLineArchived,
+      setReplacementLineColorCategory,
       findMatchingOutfits,
       mutate,
       refresh,
@@ -590,7 +641,6 @@ export function DataProvider({
       setOutfitArchived,
       updateItem,
       updateOutfitItemPlacement,
-      replaceOutfitPreview,
     ],
   )
 

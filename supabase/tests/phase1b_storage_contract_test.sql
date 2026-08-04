@@ -1,6 +1,6 @@
 begin;
 
-select plan(14);
+select plan(11);
 
 select is(
   (
@@ -54,13 +54,6 @@ select has_index(
   'one pending or ready image exists per item variant'
 );
 
-select has_index(
-  'public',
-  'closet_outfit_previews',
-  'closet_outfit_previews_outfit_version_unique_idx',
-  'one preview exists per outfit composition version'
-);
-
 select is(
   (
     select count(*)
@@ -70,17 +63,6 @@ select is(
   ),
   1::bigint,
   'item image path ownership constraint exists'
-);
-
-select is(
-  (
-    select count(*)
-    from pg_constraint
-    where conrelid = 'public.closet_outfit_previews'::regclass
-      and conname = 'closet_outfit_previews_storage_path_matches_owner'
-  ),
-  1::bigint,
-  'outfit preview path ownership constraint exists'
 );
 
 select is(
@@ -97,22 +79,6 @@ select is(
   ),
   1::bigint,
   'item metadata is ready-only and member-only'
-);
-
-select is(
-  (
-    select count(*)
-    from pg_policies
-    where schemaname = 'public'
-      and tablename = 'closet_outfit_previews'
-      and policyname = 'closet_outfit_previews_select_ready_member'
-      and cmd = 'SELECT'
-      and roles = array['authenticated']::name[]
-      and qual like '%status = ''ready''%'
-      and qual like '%is_workspace_member%'
-  ),
-  1::bigint,
-  'outfit metadata is ready-only and member-only'
 );
 
 select is(
@@ -164,7 +130,7 @@ select is(
       )
       or (
         schemaname = 'public'
-        and tablename in ('closet_item_images', 'closet_outfit_previews')
+        and tablename = 'closet_item_images'
         and policyname like '%select_ready_member'
       )
     )

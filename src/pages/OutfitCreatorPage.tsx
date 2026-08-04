@@ -23,7 +23,6 @@ import {
 } from '../lib/outfit-composition'
 import { sortItems } from '../lib/items'
 import { outfitLabel } from '../lib/outfits'
-import { prepareOutfitPreview } from '../lib/outfit-preview'
 import {
   itemMatchesSeasonScope,
   SEASONS,
@@ -90,7 +89,6 @@ function buildDraftOutfit(
         zIndex: displayPlacement.zIndex,
       }
     }),
-    preview: null,
   }
 }
 
@@ -108,7 +106,6 @@ export function OutfitCreatorPage() {
     findMatchingOutfits,
     createOutfit,
     updateOutfit,
-    replaceOutfitPreview,
   } = useClosetData()
   const { activeSeasons } = useSeasonScope()
   const [outfitId] = useState(() => editOutfitId ?? crypto.randomUUID())
@@ -316,21 +313,8 @@ export function OutfitCreatorPage() {
               allowDuplicate,
               items,
             })
-      let previewWarning: string | null = null
-      if (!isEditing && imageCount === selectedItems.length) {
-        try {
-          const preview = await prepareOutfitPreview(saved, data?.items ?? [])
-          await replaceOutfitPreview(saved.id, preview)
-        } catch (cause) {
-          previewWarning =
-            cause instanceof Error
-              ? cause.message
-              : '착장 preview를 만들지 못했습니다.'
-        }
-      }
       navigate(`/outfits/${saved.id}`, {
         replace: true,
-        state: previewWarning ? { previewWarning } : undefined,
       })
     } catch (cause) {
       setSaveError(
@@ -612,7 +596,7 @@ export function OutfitCreatorPage() {
               {saving
                 ? isEditing
                   ? '변경 저장 중…'
-                  : 'Outfit과 preview 저장 중…'
+                  : 'Outfit 저장 중…'
                 : isEditing
                   ? '변경 저장'
                   : '새 Outfit 저장'}

@@ -1,6 +1,6 @@
 begin;
 
-select plan(37);
+select plan(36);
 
 select has_column(
   'public',
@@ -31,13 +31,6 @@ select has_column(
   'closet_outfits',
   'archived_at',
   'outfit archive state is separate from rating'
-);
-
-select has_column(
-  'public',
-  'closet_outfit_previews',
-  'stale_at',
-  'preview cache can be marked stale independently'
 );
 
 select ok(

@@ -8,7 +8,6 @@ import type {
   OutfitCreateInput,
   OutfitUpdateInput,
   OutfitItemPlacementInput,
-  OutfitPreviewUploadInput,
   ReplacementLineSnapshot,
   ReplacementLineEdge,
   ReplacementLineEdgeConfirmationInput,
@@ -17,6 +16,10 @@ import type {
   ReplacementLineEdgeDisconnectInput,
   ReplacementLineEdgeDirectionUpdateInput,
   ReplacementLineManualEdgeInput,
+  ReplacementLineItemMoveInput,
+  ReplacementLineArchiveInput,
+  ReplacementLineColorUpdateInput,
+  ReplacementLineMergeInput,
   ReplacementLineStart,
   ReplacementLegacyLink,
   ReplacementLegacyLinkReviewInput,
@@ -133,6 +136,22 @@ export class SupabaseRepository implements ClosetRepository {
     return this.replacementLines.createManualEdge(input)
   }
 
+  moveReplacementLineItem(input: ReplacementLineItemMoveInput) {
+    return this.replacementLines.moveItem(input)
+  }
+
+  mergeReplacementLines(input: ReplacementLineMergeInput) {
+    return this.replacementLines.mergeLines(input)
+  }
+
+  setReplacementLineArchived(input: ReplacementLineArchiveInput) {
+    return this.replacementLines.setArchived(input)
+  }
+
+  setReplacementLineColorCategory(input: ReplacementLineColorUpdateInput) {
+    return this.replacementLines.setColorCategory(input)
+  }
+
   createItem(input: ItemCreateInput) {
     return this.items.create(input)
   }
@@ -187,13 +206,6 @@ export class SupabaseRepository implements ClosetRepository {
 
   updateOutfitItemPlacement(input: OutfitItemPlacementInput) {
     return this.outfits.updateItemPlacement(input)
-  }
-
-  replaceOutfitPreview(
-    outfitId: string,
-    input: OutfitPreviewUploadInput,
-  ) {
-    return this.outfits.replacePreview(outfitId, input)
   }
 
   saveDefaultWeatherLocation(input: WeatherLocationInput) {

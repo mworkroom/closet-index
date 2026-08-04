@@ -11,6 +11,11 @@ import type {
   ReplacementLineEdgeDisconnectInput,
   ReplacementLineEdgeDirectionUpdateInput,
   ReplacementLineManualEdgeInput,
+  ReplacementLineItemMoveInput,
+  ReplacementLineArchiveInput,
+  ReplacementLineColorUpdateInput,
+  ReplacementLineMergeInput,
+  ReplacementLineRecord,
   ReplacementLineStart,
 } from '../../lib/types'
 
@@ -18,6 +23,12 @@ interface ReplacementLineRow {
   id: string
   name: string
   style_identity: string | null
+  color_category: string | null
+  review_status: ReplacementLineRecord['reviewStatus']
+  lifecycle_status: ReplacementLineRecord['lifecycleStatus']
+  representative_line_id: string | null
+  archived_at: string | null
+  updated_at: string
 }
 
 interface ReplacementLineMembershipRow {
@@ -85,6 +96,20 @@ function toLineEdge(row: ReplacementLineEdgeRow): ReplacementLineEdge {
   }
 }
 
+function toLine(row: ReplacementLineRow): ReplacementLineRecord {
+  return {
+    id: row.id,
+    name: row.name,
+    styleIdentity: row.style_identity,
+    colorCategory: row.color_category ?? null,
+    reviewStatus: row.review_status,
+    lifecycleStatus: row.lifecycle_status,
+    representativeLineId: row.representative_line_id,
+    archivedAt: row.archived_at,
+    updatedAt: row.updated_at,
+  }
+}
+
 export class SupabaseReplacementLineRepository {
   constructor(
     private readonly client: SupabaseClient,
@@ -92,11 +117,30 @@ export class SupabaseReplacementLineRepository {
   ) {}
 
   async load(): Promise<ReplacementLineSnapshot> {
-    const [linesResult, membershipsResult] = await Promise.all([
-      this.client
+    const loadLines = async () => {
+      const withColor = await this.client
         .from('closet_replacement_lines')
-        .select('id,name,style_identity')
-        .eq('workspace_id', this.workspaceId),
+        .select(
+          'id,name,style_identity,color_category,review_status,lifecycle_status,representative_line_id,archived_at,updated_at',
+        )
+        .eq('workspace_id', this.workspaceId)
+
+      const isPreColorMigration =
+        (withColor.error?.code === '42703' ||
+          withColor.error?.code === 'PGRST204') &&
+        withColor.error.message.includes('color_category')
+      if (!isPreColorMigration) return withColor
+
+      return this.client
+        .from('closet_replacement_lines')
+        .select(
+          'id,name,style_identity,review_status,lifecycle_status,representative_line_id,archived_at,updated_at',
+        )
+        .eq('workspace_id', this.workspaceId)
+    }
+
+    const [linesResult, membershipsResult] = await Promise.all([
+      loadLines(),
       this.client
         .from('closet_replacement_line_items')
         .select('replacement_line_id,item_id')
@@ -107,11 +151,7 @@ export class SupabaseReplacementLineRepository {
     if (membershipsResult.error) throw membershipsResult.error
 
     return {
-      lines: ((linesResult.data ?? []) as ReplacementLineRow[]).map((line) => ({
-        id: line.id,
-        name: line.name,
-        styleIdentity: line.style_identity,
-      })),
+      lines: ((linesResult.data ?? []) as ReplacementLineRow[]).map(toLine),
       memberships: (
         (membershipsResult.data ?? []) as ReplacementLineMembershipRow[]
       ).map((membership) => ({
@@ -119,6 +159,26 @@ export class SupabaseReplacementLineRepository {
         itemId: membership.item_id,
       })),
     }
+  }
+
+  async setColorCategory(
+    input: ReplacementLineColorUpdateInput,
+  ): Promise<ReplacementLineRecord> {
+    const { data, error } = await this.client.rpc(
+      'set_closet_replacement_line_color_category',
+      {
+        p_workspace_id: this.workspaceId,
+        p_line_id: input.lineId,
+        p_expected_updated_at: input.expectedUpdatedAt,
+        p_color_category: input.colorCategory,
+      },
+    )
+    if (error) throw error
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | ReplacementLineRow
+      | null
+    if (!row) throw new Error('저장된 Replacement Line 색상을 확인하지 못했습니다.')
+    return toLine(row)
   }
 
   async loadLegacyLinks(): Promise<ReplacementLegacyLink[]> {
@@ -327,5 +387,70 @@ export class SupabaseReplacementLineRepository {
       | null
     if (!row) throw new Error('추가한 계보 연결을 확인하지 못했습니다.')
     return toLineEdge(row)
+  }
+
+  async moveItem(
+    input: ReplacementLineItemMoveInput,
+  ): Promise<ReplacementLineRecord> {
+    const { data, error } = await this.client.rpc(
+      'move_closet_replacement_line_item',
+      {
+        p_workspace_id: this.workspaceId,
+        p_source_line_id: input.sourceLineId,
+        p_item_id: input.itemId,
+        p_target_line_id: input.targetLineId,
+        p_new_line_name: input.newLineName,
+        p_new_line_style_identity: input.newLineStyleIdentity,
+        p_expected_source_updated_at: input.expectedSourceUpdatedAt,
+        p_expected_target_updated_at: input.expectedTargetUpdatedAt,
+      },
+    )
+    if (error) throw error
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | ReplacementLineRow
+      | null
+    if (!row) throw new Error('이동한 Replacement Line을 확인하지 못했습니다.')
+    return toLine(row)
+  }
+
+  async mergeLines(
+    input: ReplacementLineMergeInput,
+  ): Promise<ReplacementLineRecord> {
+    const { data, error } = await this.client.rpc(
+      'merge_closet_replacement_lines',
+      {
+        p_workspace_id: this.workspaceId,
+        p_source_line_id: input.sourceLineId,
+        p_target_line_id: input.targetLineId,
+        p_expected_source_updated_at: input.expectedSourceUpdatedAt,
+        p_expected_target_updated_at: input.expectedTargetUpdatedAt,
+      },
+    )
+    if (error) throw error
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | ReplacementLineRow
+      | null
+    if (!row) throw new Error('병합한 대표 Replacement Line을 확인하지 못했습니다.')
+    return toLine(row)
+  }
+
+  async setArchived(
+    input: ReplacementLineArchiveInput,
+  ): Promise<ReplacementLineRecord> {
+    const { data, error } = await this.client.rpc(
+      'set_closet_replacement_line_archived',
+      {
+        p_workspace_id: this.workspaceId,
+        p_line_id: input.lineId,
+        p_archived: input.archived,
+        p_expected_updated_at: input.expectedUpdatedAt,
+      },
+    )
+    if (error) throw error
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | ReplacementLineRow
+      | null
+    if (!row) throw new Error('변경한 Replacement Line 상태를 확인하지 못했습니다.')
+    return toLine(row)
   }
 }

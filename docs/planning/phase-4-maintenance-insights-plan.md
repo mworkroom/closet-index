@@ -1,8 +1,8 @@
 # Closet Index Phase 4 Statistics & Replacement Lineage Plan
 
 - 최초 작성일: 2026-08-01
-- 최종 수정일: 2026-08-04
-- 상태: P4-0·P4-1A·P4-1B·P4-2A·P4-2B 완료, production Legacy Link 검토 49/49·45개 directed edge 확정·P4-2C 색상 인덱스·세대별 Lineage UI·edge 설명 편집 production 적용 및 검증 완료, 방향 편집·Line 관리 대기
+- 최종 수정일: 2026-08-05
+- 상태: P4-0·P4-1A·P4-1B·P4-2A·P4-2B 완료, production Legacy Link 검토 49/49·45개 directed edge 확정·P4-2C 색상 인덱스·세대별 Lineage UI·edge 설명 편집·Line 이동·Line 병합·보관·대표 Line production 적용 및 검증 완료
 - 목표 릴리스: Phase 4 Statistics & Replacement Lineage
 - 선행 상태: Phase 3 구현·검증·공개 완료, Phase 3.5 로컬 구현·검증 완료 및 공개 배포 전
 - 관련 문서: [Roadmap](./roadmap.md), [Product Plan](./product-plan.md), [Phase 3 Plan](./phase-3-visual-wardrobe-plan.md), [Phase 1 Data & Security Spec](./phase-1-data-security-spec.md), [P4-0 Baseline Audit](./phase-4-p4-0-baseline-audit.md)
@@ -54,7 +54,7 @@ Favorite는 More에서 관리하고, Item과 연결된 Outfit은 Item 상세의 
 - Supabase가 현재 쓰기 원본이며 Notion은 읽기 전용 보관본이다.
 - Item, Outfit, Outfit relation, Wear Log는 UUID로 연결된다.
 - 기존 Outfit의 Item 구성은 바꾸지 않는다. Item이 하나라도 달라지면 복제하거나 새 Outfit으로 저장한다.
-- 저장 Outfit Preview는 선택적 cache이며 통계 구현을 위해 새로 일괄 생성하지 않는다.
+- 저장 Outfit Preview cache는 제품에서 제거한다. Outfit 화면은 현재 `outfit_items + item_images`를 즉시 합성하고, cutout이 없을 때 색상 swatch를 사용한다.
 - 고해상도 원본 이미지를 원격에 장기 보관하지 않고 작은 화면에서 Item을 알아볼 수 있는 품질을 우선한다.
 
 ### 3.2 Item Statistics 원본
@@ -403,7 +403,7 @@ Legacy Link 검토 뒤 다음 편집을 연다.
 
 DAG를 수용하는 데이터 구조는 준비하되 가지 이름 상속, 합류 배지, 복잡한 branch 전용 UI는 실제 가지나 합류 사례가 확인된 뒤 확장한다.
 
-실사용 중 잘못 연결한 edge는 같은 Line 안에서 predecessor를 다시 고르거나 완전히 해제할 수 있다. 해제한 successor에 다른 confirmed incoming edge가 없다면 해당 Item을 명시적 시작점으로 보존한다. 이는 현재 Line 안의 계보 구조를 고치는 기능이며, 다른 Line으로 membership을 옮기거나 새 Line을 만드는 작업은 Line 관리 단계에서 별도로 다룬다.
+실사용 중 잘못 연결한 edge는 같은 Line 안에서 predecessor를 다시 고르거나 완전히 해제할 수 있다. 해제한 successor에 다른 confirmed incoming edge가 없다면 해당 Item을 명시적 시작점으로 보존한다. 다른 Line으로 membership을 옮기는 작업은 모든 edge를 먼저 해제한 Item에만 허용하고, Line 관리 폼과 atomic RPC에서 기존 Line 선택 또는 새 Line 생성을 처리한다.
 
 선택 이유는 매번 주관식으로 쓰지 않고 `단순 교체`, `멸종 후 교체`, `계승 👑` 세 가지 중 하나를 고른다. 기존 자유 입력 이유는 새 편집 폼의 기본값으로 복원하지 않고, 다음 수정 때 표준 선택지로 다시 판단한다. 분기 세대는 데스크톱에서 카드 왼쪽 바깥 rail과 elbow connector로 구분하고, 모바일에서는 카드 폭을 침범하지 않도록 들여쓰기를 줄인다.
 
@@ -515,9 +515,11 @@ P4-2B의 canonical pair schema, workspace RLS, 49-pair importer와 검토 화면
 - [x] 가지 이름·선택 이유 인라인 편집과 전용 RPC
 - [x] predecessor 재선택, edge 해제와 successor 시작점 전환
 - [x] 선택 이유 3종 드롭다운과 왼쪽 branch connector
-- [ ] Line 병합·보관·대표 Line
-- [ ] membership 변경 시 `needs_review`
-- [ ] 자동 분류보다 우선하는 Line 색상 category 직접 지정
+- [x] 연결 없는 Item의 기존·새 Line 이동 UI와 원자 RPC 로컬 구현
+- [x] Line 병합·보관·대표 Line 로컬 UI·원자 RPC 구현
+- [x] Line lifecycle production migration·인증 RPC·rollback·Advisor 검증
+- [x] membership 변경 시 `needs_review` production migration·인증 RPC·Advisor 검증
+- [x] 자동 분류보다 우선하는 Line 색상 category 직접 지정 로컬 구현
 - [x] 같은 크기 thumbnail의 세로형 Lineage UI
 - [x] 실제 가지가 있는 fixture로 분기 렌더링
 - [x] 12개 색상 tile의 Color Index와 밝기별 글자 대비
@@ -529,9 +531,15 @@ P4-2C의 첫 기반으로 완료한 49개 관계를 목록에서 다시 열고 �
 
 Line 선택이 필요한 1개 관계에는 기본값 없는 두 선택지를 제공하고, 선택 뒤 44개 자동 귀속 후보와 함께 45개 전체를 다시 확인해야 최종 저장 동작이 나타나게 했다. 최종 저장은 한 batch RPC와 한 transaction으로 처리해 중간 후보 하나라도 유효하지 않으면 앞서 처리한 edge까지 전부 rollback한다. production rollback fixture로 이 원자성을 검증한 뒤 J가 `Ivory Layered Sleeveless`를 선택하고 최종 저장해 현재 production에는 confirmed edge 45개가 있다.
 
+Line 관리의 첫 조각으로 계보 연결 전 Item을 기존 Line 또는 새 Line으로 옮기는 UI와 atomic RPC를 구현했다. 이동한 Item은 대상 Line의 명시적 시작점이 되고 source·target Line 모두 `needs_review`로 바뀐다. 기존 edge가 하나라도 남은 Item은 이력을 손상하지 않도록 이동을 거부한다. Demo 저장 지속성, Supabase RPC mapping, 라우트 전환, 데스크톱·390px 모바일 UI를 검증한 뒤 production migration `20260804183905_move_replacement_line_items`를 적용했다. 실제 workspace member 권한의 rollback fixture에서 기존 Line 이동과 새 Line 생성, membership·시작점·재검토 상태 변경을 확인했고 연결된 Item 이동 차단과 rollback 뒤 `53 Line · 165 membership · 87 edge · 25 start · needs_review 0` 유지를 재확인했다. RPC는 빈 `search_path`, 함수 내부 workspace membership 검사와 `authenticated` 단독 실행 권한을 사용하며 Advisor의 로그인 사용자용 `SECURITY DEFINER` 경고는 이 전용 쓰기 RPC에 대해 의도된 항목으로 검토했다.
+
+Line lifecycle로 삭제 대신 독립 보관·복원과 대표 Line 병합을 구현했다. 병합은 source membership·edge·유효한 시작점을 target에 원자적으로 합치고 겹치는 membership은 중복 없이 보존하며, source는 대표 Line을 가리키는 읽기 전용 보관 상태가 된다. 합친 graph의 cycle과 동일 edge 충돌은 변경 전에 차단하고 source·target을 모두 `needs_review`로 되돌린다. Color Index에서는 active Line만 보여 주고 관리 현황에서는 보관 Line과 대표 Line 연결을 다시 찾을 수 있다. production migration `20260804193058_manage_replacement_line_lifecycle` 적용 뒤 실제 workspace member claim의 transaction fixture에서 독립 보관·복원, stale·비회원 거절, archived child 수정 차단, 동일 edge·합친 graph cycle 차단과 병합 Line 직접 복원 거절을 확인했다. 실제로 두 Item을 공유하는 `Ivory Layered Summer → Ivory Layered Sleeveless` 병합도 rollback 안에서 실행해 membership `4 + 2 - 공유 2 = 4`, edge 2개, source 보관·대표 참조와 양쪽 `needs_review`를 검증했다. rollback 뒤 `53 Line · active 53 · archived 0 · 165 membership · 87 edge · 25 start · needs_review 0`과 적용 전 네 checksum이 모두 일치한다. 새 RPC 두 개는 빈 `search_path`, 함수 내부 workspace membership 검사와 `authenticated` 단독 실행 권한을 사용한다. Advisor의 두 signed-in `SECURITY DEFINER` 경고는 이 전용 쓰기 RPC에 대해 의도된 항목이며, 신규 lifecycle index의 미사용 안내는 기능 적용 직후라 예상되는 정보성 항목이다.
+
 확정된 edge만 읽어 각 Line의 시작점과 graph depth를 계산하는 상세 화면을 `/replacement-lines/:lineId`에 추가했다. 구매 연도는 정렬·세대 판정에 쓰지 않고 DAG의 위상 관계로 G0·G1·G2 이상을 계산하며, 실제 production의 G0→G1→G2 chain, 1→2 분기, 2→1 합류를 확인했다. Line membership에는 있지만 confirmed edge에 참여하지 않은 Item은 시작점으로 추정하지 않고 `계보 연결 전`으로 분리한다. 모든 세대는 같은 thumbnail slot, 상태 badge, 취득 연도와 선택 이유를 사용하며 실제 데이터에 없는 수량과 예정 상태는 만들지 않는다.
 
 긴 Style Identity·Line 목록을 첫 화면에서 제거하고, Line 이름의 색상 규칙과 기존 Item 팔레트 HEX를 결합한 Color Index를 추가했다. production의 53개 Line은 Black·Blue·Brown·Burgundy·Charcoal·Denim·Green·Grey·Ivory·Navy·Silver·White 12개 색상으로 누락 없이 분류된다. 색상 선택 상태는 URL query에 남겨 계보에서 뒤로 왔을 때 같은 색상 목록을 복원하며, Line 카드가 계보 상세를 직접 열어 membership 목록을 중복해서 보지 않게 했다.
+
+자동 제안을 사람이 정한 값으로 덮어쓸 수 있도록 기존 `closet_replacement_lines`에 nullable `color_category` column 하나와 인증된 optimistic update RPC를 추가하는 local migration을 작성했다. 별도 색상 table이나 자동 분류 이력은 만들지 않았다. 계보 상세의 Line 관리에서 20개 category를 선택·수정하거나 `자동 제안 사용`으로 되돌릴 수 있고, 직접 지정 값은 Line 이름·Item 팔레트 기반 제안보다 항상 우선한다. 새 frontend를 schema cleanup보다 먼저 안전하게 배포할 수 있도록 column 부재 오류에 한해서만 기존 Line SELECT로 재시도한다. local code와 계약 테스트는 완료했지만 production migration과 공개 배포는 아직 수행하지 않았다.
 
 확정된 edge의 `선택 이유`와 선택적인 `가지 이름`을 계보 Item 행에서 바로 수정하는 인라인 UI를 구현하고 production migration `20260803173959_revise_replacement_line_edge_details`를 적용했다. 전용 RPC는 workspace membership, 입력 길이, confirmed 상태와 화면이 읽은 `updated_at`을 다시 검사하며 predecessor·successor, Line, 출처와 상태는 변경하지 않는다. transaction rollback fixture에서 실제 수정 성공, stale `updated_at` 충돌, 비회원·anon 거절을 확인했고 원본 45개 edge와 표본 이유·시간이 그대로 유지되는 것을 재확인했다. 함수 실행 권한은 `authenticated`와 `service_role`에만 있으며 `public`·`anon`에는 없다. 색상 category는 현재 Line 이름과 팔레트 기반 자동 분류이고, J가 직접 지정한 값이 자동 분류보다 우선하는 편집 기능은 별도 후속 항목으로 남긴다.
 
@@ -630,7 +638,7 @@ Line 선택이 필요한 1개 관계에는 기본값 없는 두 선택지를 제
 - [ ] 각 연결 구성요소에 시작점이 있고 모든 Item이 시작점 또는 incoming edge를 가진다.
 - [x] G0·G1·G2가 구매 연도가 아니라 확인된 graph depth로 표시된다.
 - [x] 모든 세대의 thumbnail이 같은 크기이며 실제 가지가 있을 때만 branch를 표시한다.
-- [ ] Line 병합·보관·대표 Line과 재검토 상태가 안전하게 동작한다.
+- [x] Line 병합·보관·대표 Line과 재검토 상태가 안전하게 동작한다.
 
 ### Phase 4 전체 완료
 

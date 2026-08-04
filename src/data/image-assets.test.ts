@@ -34,26 +34,13 @@ function query(result: { data: unknown[] | null; error: unknown }) {
   return builder
 }
 
-function imageClient({
-  itemResult,
-  previewResult,
-  bucket,
-}: {
-  itemResult: { data: unknown[] | null; error: unknown }
-  previewResult: { data: unknown[] | null; error: unknown }
-  bucket: SignedUrlBucket
-}) {
+function imageClient(
+  itemResult: { data: unknown[] | null; error: unknown },
+  bucket: SignedUrlBucket,
+) {
   return {
-    from: vi.fn((table: string) =>
-      query(
-        table === 'closet_item_images'
-          ? itemResult
-          : previewResult,
-      ),
-    ),
-    storage: {
-      from: vi.fn(() => bucket),
-    },
+    from: vi.fn(() => query(itemResult)),
+    storage: { from: vi.fn(() => bucket) },
   } as unknown as SupabaseClient
 }
 
@@ -67,19 +54,15 @@ describe('SignedImageUrlCache', () => {
     await cache.resolve(bucket, ['one.webp'], 55 * 60 * 1000)
 
     expect(bucket.createSignedUrls).toHaveBeenCalledTimes(2)
-    expect(bucket.createSignedUrls).toHaveBeenNthCalledWith(
-      1,
-      ['one.webp'],
-      3600,
-    )
+    expect(bucket.createSignedUrls).toHaveBeenNthCalledWith(1, ['one.webp'], 3600)
   })
 })
 
 describe('loadReadyImageAssets', () => {
-  it('ready cutout과 Outfit의 최신 composition version만 서명한다', async () => {
+  it('ready Item cutout만 조회하고 서명한다', async () => {
     const bucket = signedBucket()
-    const client = imageClient({
-      itemResult: {
+    const client = imageClient(
+      {
         data: [
           {
             id: 'image-1',
@@ -91,35 +74,8 @@ describe('loadReadyImageAssets', () => {
         ],
         error: null,
       },
-      previewResult: {
-        data: [
-          {
-            id: 'preview-v1',
-            outfit_id: 'outfit-1',
-            storage_path: 'workspace/outfits/outfit-1/preview/v1.webp',
-            composition_version: 1,
-            width_px: 900,
-            height_px: 1200,
-            status: 'ready',
-            stale_at: null,
-            source_fingerprint: null,
-          },
-          {
-            id: 'preview-v2',
-            outfit_id: 'outfit-1',
-            storage_path: 'workspace/outfits/outfit-1/preview/v2.webp',
-            composition_version: 2,
-            width_px: 900,
-            height_px: 1200,
-            status: 'ready',
-            stale_at: null,
-            source_fingerprint: null,
-          },
-        ],
-        error: null,
-      },
       bucket,
-    })
+    )
 
     const result = await loadReadyImageAssets(
       client,
@@ -127,107 +83,15 @@ describe('loadReadyImageAssets', () => {
       new SignedImageUrlCache(),
     )
 
+    expect(client.from).toHaveBeenCalledTimes(1)
+    expect(client.from).toHaveBeenCalledWith('closet_item_images')
     expect(result.itemImages.get('item-1')).toMatchObject({
       id: 'image-1',
       widthPx: 800,
       heightPx: 1200,
     })
-    expect(result.outfitPreviews.get('outfit-1')).toMatchObject({
-      id: 'preview-v2',
-      compositionVersion: 2,
-    })
-    expect(result.outfitPreviewStates.get('outfit-1')).toBe('ready')
     expect(bucket.createSignedUrls).toHaveBeenCalledWith(
-      [
-        'workspace/items/item-1/cutout/image-1.webp',
-        'workspace/outfits/outfit-1/preview/v2.webp',
-      ],
-      3600,
-    )
-  })
-
-  it('한 metadata query가 실패해도 다른 이미지와 기본 데이터 경로를 유지한다', async () => {
-    const bucket = signedBucket()
-    const client = imageClient({
-      itemResult: { data: null, error: new Error('item metadata failed') },
-      previewResult: {
-        data: [
-          {
-            id: 'preview-1',
-            outfit_id: 'outfit-1',
-            storage_path: 'workspace/outfits/outfit-1/preview/v1.webp',
-            composition_version: 1,
-            width_px: 900,
-            height_px: 1200,
-            status: 'ready',
-            stale_at: null,
-            source_fingerprint: null,
-          },
-        ],
-        error: null,
-      },
-      bucket,
-    })
-
-    await expect(
-      loadReadyImageAssets(client, 'workspace', new SignedImageUrlCache()),
-    ).resolves.toMatchObject({
-      itemImages: new Map(),
-      outfitPreviews: new Map([
-        [
-          'outfit-1',
-          expect.objectContaining({
-            id: 'preview-1',
-          }),
-        ],
-      ]),
-    })
-  })
-
-  it('새 pending이 있어도 마지막 ready preview를 유지하고 관리 상태만 표시한다', async () => {
-    const bucket = signedBucket()
-    const client = imageClient({
-      itemResult: { data: [], error: null },
-      previewResult: {
-        data: [
-          {
-            id: 'preview-ready',
-            outfit_id: 'outfit-1',
-            storage_path: 'workspace/outfits/outfit-1/preview/v1.webp',
-            composition_version: 1,
-            width_px: 900,
-            height_px: 1200,
-            status: 'ready',
-            stale_at: null,
-            source_fingerprint: null,
-          },
-          {
-            id: 'preview-pending',
-            outfit_id: 'outfit-1',
-            storage_path: 'workspace/outfits/outfit-1/preview/v2.webp',
-            composition_version: 2,
-            width_px: 900,
-            height_px: 1200,
-            status: 'pending',
-            stale_at: null,
-            source_fingerprint: 'a'.repeat(64),
-          },
-        ],
-        error: null,
-      },
-      bucket,
-    })
-
-    const result = await loadReadyImageAssets(
-      client,
-      'workspace',
-      new SignedImageUrlCache(),
-    )
-
-    expect(result.outfitPreviews.get('outfit-1')?.id).toBe('preview-ready')
-    expect(result.outfitPreviewStates.get('outfit-1')).toBe('pending')
-    expect(bucket.createSignedUrls).toHaveBeenCalledWith(
-      ['workspace/outfits/outfit-1/preview/v1.webp'],
+      ['workspace/items/item-1/cutout/image-1.webp'],
       3600,
     )
   })
@@ -239,8 +103,8 @@ describe('loadReadyImageAssets', () => {
         error: new Error('signing failed'),
       })),
     }
-    const client = imageClient({
-      itemResult: {
+    const client = imageClient(
+      {
         data: [
           {
             id: 'image-1',
@@ -252,22 +116,17 @@ describe('loadReadyImageAssets', () => {
         ],
         error: null,
       },
-      previewResult: { data: [], error: null },
       bucket,
-    })
+    )
 
     await expect(
       loadReadyImageAssets(client, 'workspace', new SignedImageUrlCache()),
-    ).resolves.toEqual({
-      itemImages: new Map(),
-      outfitPreviews: new Map(),
-      outfitPreviewStates: new Map(),
-    })
+    ).resolves.toEqual({ itemImages: new Map() })
   })
 })
 
 describe('getImageRefreshDelay', () => {
-  it('가장 먼저 만료되는 signed URL보다 5분 먼저 갱신한다', () => {
+  it('가장 먼저 만료되는 Item signed URL보다 5분 먼저 갱신한다', () => {
     const now = Date.parse('2026-07-27T00:00:00.000Z')
     const data = {
       items: [

@@ -40,7 +40,7 @@ const edge = (
 })
 
 const snapshot: ReplacementLineSnapshot = {
-  lines: [{ id: 'line-a', name: 'Line A', styleIdentity: null }],
+  lines: [{ id: 'line-a', name: 'Line A', styleIdentity: null, colorCategory: null, reviewStatus: 'ready', lifecycleStatus: 'active', representativeLineId: null, archivedAt: null, updatedAt: '2026-08-03T00:00:00Z' }],
   memberships: ['a', 'b', 'c', 'd', 'e', 'f'].map((itemId) => ({
     replacementLineId: 'line-a',
     itemId,

@@ -1,6 +1,5 @@
 import type { Item, Outfit } from '../lib/types'
 import { outfitLabel } from '../lib/outfits'
-import { AssetImage } from './AssetImage'
 import { LayeredOutfitPreview } from './LayeredOutfitPreview'
 import { Swatch } from './Swatch'
 
@@ -10,6 +9,7 @@ interface OutfitVisualProps {
   className?: string
   maxSwatches?: number
   swatchSize?: 'small' | 'medium' | 'large'
+  imageLoading?: 'eager' | 'lazy'
 }
 
 export function OutfitVisual({
@@ -18,6 +18,7 @@ export function OutfitVisual({
   className = '',
   maxSwatches = 5,
   swatchSize = 'large',
+  imageLoading = 'lazy',
 }: OutfitVisualProps) {
   const label = outfitLabel(outfit, items)
   const resolvedItems = outfit.itemIds
@@ -26,48 +27,30 @@ export function OutfitVisual({
   const compositionItems = resolvedItems
     .slice(0, maxSwatches)
   const hasAnyCutout = resolvedItems.some((item) => Boolean(item.image))
-  const hasCompleteCutoutSet =
-    outfit.itemIds.length > 0 &&
-    resolvedItems.length === outfit.itemIds.length &&
-    resolvedItems.every((item) => Boolean(item.image))
 
   return (
     <div className={`outfit-visual ${className}`.trim()}>
-      {hasCompleteCutoutSet ? (
+      {hasAnyCutout ? (
         <LayeredOutfitPreview
           outfit={outfit}
           items={items}
           className="outfit-visual__layered"
+          loading={imageLoading}
         />
       ) : (
-        <AssetImage
-          asset={outfit.preview}
-          alt={`${label} 착장 미리보기`}
-          className="outfit-visual__image"
-          fallback={
-            hasAnyCutout ? (
-              <LayeredOutfitPreview
-                outfit={outfit}
-                items={items}
-                className="outfit-visual__layered"
-              />
-            ) : (
-              <div
-                className="outfit-visual__fallback"
-                aria-label={`${label} 구성 아이템 색상`}
-              >
-                {compositionItems.map((item) => (
-                  <Swatch
-                    key={item.id}
-                    color={item.displayHex}
-                    label={item.semanticColor ?? item.name}
-                    size={swatchSize}
-                  />
-                ))}
-              </div>
-            )
-          }
-        />
+        <div
+          className="outfit-visual__fallback"
+          aria-label={`${label} 구성 아이템 색상`}
+        >
+          {compositionItems.map((item) => (
+            <Swatch
+              key={item.id}
+              color={item.displayHex}
+              label={item.semanticColor ?? item.name}
+              size={swatchSize}
+            />
+          ))}
+        </div>
       )}
     </div>
   )

@@ -14,18 +14,6 @@ export interface ImageAsset {
   expiresAt: string | null
 }
 
-export interface OutfitPreview extends ImageAsset {
-  compositionVersion: number
-  sourceFingerprint: string | null
-}
-
-export type OutfitPreviewState =
-  | 'missing'
-  | 'pending'
-  | 'ready'
-  | 'stale'
-  | 'error'
-
 export interface OutfitItemPlacement {
   itemId: string
   slot: string | null
@@ -67,14 +55,6 @@ export interface ItemImageUploadInput {
   widthPx: number
   heightPx: number
   bytes: number
-}
-
-export interface OutfitPreviewUploadInput {
-  blob: Blob
-  widthPx: number
-  heightPx: number
-  bytes: number
-  sourceFingerprint: string
 }
 
 export interface OutfitItemWriteInput {
@@ -130,8 +110,6 @@ export interface Outfit {
   archivedAt?: string | null
   itemIds: string[]
   itemPlacements?: OutfitItemPlacement[]
-  preview?: OutfitPreview | null
-  previewState?: OutfitPreviewState
 }
 
 export interface SelectOption {
@@ -283,6 +261,44 @@ export interface ReplacementLineRecord {
   id: string
   name: string
   styleIdentity: string | null
+  colorCategory: string | null
+  reviewStatus: 'ready' | 'needs_review'
+  lifecycleStatus: 'active' | 'archived'
+  representativeLineId: string | null
+  archivedAt: string | null
+  updatedAt: string
+}
+
+export const REPLACEMENT_LINE_COLOR_CATEGORIES = [
+  'Black',
+  'Blue',
+  'Brown',
+  'Burgundy',
+  'Charcoal',
+  'Denim',
+  'Green',
+  'Grey',
+  'Ivory',
+  'Navy',
+  'Silver',
+  'White',
+  'Beige',
+  'Cream',
+  'Khaki',
+  'Orange',
+  'Pink',
+  'Purple',
+  'Red',
+  'Yellow',
+] as const
+
+export type ReplacementLineColorCategory =
+  (typeof REPLACEMENT_LINE_COLOR_CATEGORIES)[number]
+
+export interface ReplacementLineColorUpdateInput {
+  lineId: string
+  colorCategory: ReplacementLineColorCategory | null
+  expectedUpdatedAt: string
 }
 
 export interface ReplacementLineMembership {
@@ -382,6 +398,29 @@ export interface ReplacementLineManualEdgeInput {
   successorItemId: string
   branchName: string | null
   decisionReason: ReplacementLineDecisionReason
+}
+
+export interface ReplacementLineItemMoveInput {
+  sourceLineId: string
+  itemId: string
+  targetLineId: string | null
+  newLineName: string | null
+  newLineStyleIdentity: string | null
+  expectedSourceUpdatedAt: string
+  expectedTargetUpdatedAt: string | null
+}
+
+export interface ReplacementLineMergeInput {
+  sourceLineId: string
+  targetLineId: string
+  expectedSourceUpdatedAt: string
+  expectedTargetUpdatedAt: string
+}
+
+export interface ReplacementLineArchiveInput {
+  lineId: string
+  archived: boolean
+  expectedUpdatedAt: string
 }
 
 export interface RecommendationInput {

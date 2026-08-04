@@ -10,6 +10,12 @@ describe('SupabaseReplacementLineRepository', () => {
           id: 'line-a',
           name: 'Daily Tee',
           style_identity: 'Daily Uniform',
+          color_category: null,
+          review_status: 'ready',
+          lifecycle_status: 'active',
+          representative_line_id: null,
+          archived_at: null,
+          updated_at: '2026-08-03T00:00:00Z',
         },
       ],
       error: null,
@@ -40,6 +46,12 @@ describe('SupabaseReplacementLineRepository', () => {
           id: 'line-a',
           name: 'Daily Tee',
           styleIdentity: 'Daily Uniform',
+          colorCategory: null,
+          reviewStatus: 'ready',
+          lifecycleStatus: 'active',
+          representativeLineId: null,
+          archivedAt: null,
+          updatedAt: '2026-08-03T00:00:00Z',
         },
       ],
       memberships: [{ replacementLineId: 'line-a', itemId: 'item-a' }],
@@ -51,6 +63,57 @@ describe('SupabaseReplacementLineRepository', () => {
     )
     expect(lineEq).toHaveBeenCalledWith('workspace_id', 'workspace-a')
     expect(membershipEq).toHaveBeenCalledWith('workspace_id', 'workspace-a')
+  })
+
+  it('keeps Line reads working during the short pre-color-migration deployment window', async () => {
+    const lineEq = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: null,
+        error: {
+          code: '42703',
+          message: 'column closet_replacement_lines.color_category does not exist',
+        },
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: 'line-a',
+            name: 'Daily Tee',
+            style_identity: 'Daily Uniform',
+            review_status: 'ready',
+            lifecycle_status: 'active',
+            representative_line_id: null,
+            archived_at: null,
+            updated_at: '2026-08-03T00:00:00Z',
+          },
+        ],
+        error: null,
+      })
+    const membershipEq = vi.fn(async () => ({ data: [], error: null }))
+    const lineSelect = vi.fn(() => ({ eq: lineEq }))
+    const client = {
+      from: vi.fn((table: string) => ({
+        select:
+          table === 'closet_replacement_lines'
+            ? lineSelect
+            : vi.fn(() => ({ eq: membershipEq })),
+      })),
+    } as unknown as SupabaseClient
+
+    const repository = new SupabaseReplacementLineRepository(
+      client,
+      'workspace-a',
+    )
+
+    await expect(repository.load()).resolves.toMatchObject({
+      lines: [{ id: 'line-a', colorCategory: null }],
+    })
+    expect(lineSelect).toHaveBeenCalledTimes(2)
+    expect(lineSelect).toHaveBeenNthCalledWith(
+      2,
+      'id,name,style_identity,review_status,lifecycle_status,representative_line_id,archived_at,updated_at',
+    )
   })
 
   it('loads workspace-scoped Legacy Links and confirms reviews only through RPC', async () => {
@@ -295,6 +358,166 @@ describe('SupabaseReplacementLineRepository', () => {
         p_successor_item_id: 'item-b',
         p_branch_name: null,
         p_decision_reason: '단순 교체',
+      },
+    )
+  })
+
+  it('moves an Item through the atomic Line management RPC', async () => {
+    const movedRow = {
+      id: 'line-new',
+      name: 'Ivory Summer Cardigan',
+      style_identity: 'Summer Layer',
+      color_category: null,
+      review_status: 'needs_review',
+      lifecycle_status: 'active',
+      representative_line_id: null,
+      archived_at: null,
+      updated_at: '2026-08-05T00:00:00Z',
+    }
+    const rpc = vi.fn(async () => ({ data: movedRow, error: null }))
+    const repository = new SupabaseReplacementLineRepository(
+      { rpc } as unknown as SupabaseClient,
+      'workspace-a',
+    )
+
+    await expect(
+      repository.moveItem({
+        sourceLineId: 'line-a',
+        itemId: 'item-a',
+        targetLineId: null,
+        newLineName: 'Ivory Summer Cardigan',
+        newLineStyleIdentity: 'Summer Layer',
+        expectedSourceUpdatedAt: '2026-08-04T00:00:00Z',
+        expectedTargetUpdatedAt: null,
+      }),
+    ).resolves.toEqual({
+      id: 'line-new',
+      name: 'Ivory Summer Cardigan',
+      styleIdentity: 'Summer Layer',
+      colorCategory: null,
+      reviewStatus: 'needs_review',
+      lifecycleStatus: 'active',
+      representativeLineId: null,
+      archivedAt: null,
+      updatedAt: '2026-08-05T00:00:00Z',
+    })
+    expect(rpc).toHaveBeenCalledWith('move_closet_replacement_line_item', {
+      p_workspace_id: 'workspace-a',
+      p_source_line_id: 'line-a',
+      p_item_id: 'item-a',
+      p_target_line_id: null,
+      p_new_line_name: 'Ivory Summer Cardigan',
+      p_new_line_style_identity: 'Summer Layer',
+      p_expected_source_updated_at: '2026-08-04T00:00:00Z',
+      p_expected_target_updated_at: null,
+    })
+  })
+
+  it('merges and archives Lines only through lifecycle RPCs', async () => {
+    const targetRow = {
+      id: 'line-b',
+      name: 'Ivory Layered',
+      style_identity: 'Layered',
+      review_status: 'needs_review',
+      lifecycle_status: 'active',
+      representative_line_id: null,
+      archived_at: null,
+      updated_at: '2026-08-05T01:00:00Z',
+    }
+    const archivedRow = {
+      ...targetRow,
+      lifecycle_status: 'archived',
+      archived_at: '2026-08-05T02:00:00Z',
+      updated_at: '2026-08-05T02:00:00Z',
+    }
+    const rpc = vi
+      .fn()
+      .mockResolvedValueOnce({ data: targetRow, error: null })
+      .mockResolvedValueOnce({ data: archivedRow, error: null })
+    const repository = new SupabaseReplacementLineRepository(
+      { rpc } as unknown as SupabaseClient,
+      'workspace-a',
+    )
+
+    await expect(
+      repository.mergeLines({
+        sourceLineId: 'line-a',
+        targetLineId: 'line-b',
+        expectedSourceUpdatedAt: '2026-08-05T00:00:00Z',
+        expectedTargetUpdatedAt: '2026-08-05T00:00:00Z',
+      }),
+    ).resolves.toMatchObject({
+      id: 'line-b',
+      lifecycleStatus: 'active',
+      reviewStatus: 'needs_review',
+    })
+    expect(rpc).toHaveBeenNthCalledWith(1, 'merge_closet_replacement_lines', {
+      p_workspace_id: 'workspace-a',
+      p_source_line_id: 'line-a',
+      p_target_line_id: 'line-b',
+      p_expected_source_updated_at: '2026-08-05T00:00:00Z',
+      p_expected_target_updated_at: '2026-08-05T00:00:00Z',
+    })
+
+    await expect(
+      repository.setArchived({
+        lineId: 'line-b',
+        archived: true,
+        expectedUpdatedAt: '2026-08-05T01:00:00Z',
+      }),
+    ).resolves.toMatchObject({
+      id: 'line-b',
+      lifecycleStatus: 'archived',
+      archivedAt: '2026-08-05T02:00:00Z',
+    })
+    expect(rpc).toHaveBeenNthCalledWith(
+      2,
+      'set_closet_replacement_line_archived',
+      {
+        p_workspace_id: 'workspace-a',
+        p_line_id: 'line-b',
+        p_archived: true,
+        p_expected_updated_at: '2026-08-05T01:00:00Z',
+      },
+    )
+  })
+
+  it('sets a human-selected color category through an optimistic RPC', async () => {
+    const savedRow = {
+      id: 'line-a',
+      name: 'Layered Top',
+      style_identity: 'Layered',
+      color_category: 'Ivory',
+      review_status: 'ready',
+      lifecycle_status: 'active',
+      representative_line_id: null,
+      archived_at: null,
+      updated_at: '2026-08-05T03:00:00Z',
+    }
+    const rpc = vi.fn(async () => ({ data: savedRow, error: null }))
+    const repository = new SupabaseReplacementLineRepository(
+      { rpc } as unknown as SupabaseClient,
+      'workspace-a',
+    )
+
+    await expect(
+      repository.setColorCategory({
+        lineId: 'line-a',
+        colorCategory: 'Ivory',
+        expectedUpdatedAt: '2026-08-05T02:00:00Z',
+      }),
+    ).resolves.toMatchObject({
+      id: 'line-a',
+      colorCategory: 'Ivory',
+      updatedAt: '2026-08-05T03:00:00Z',
+    })
+    expect(rpc).toHaveBeenCalledWith(
+      'set_closet_replacement_line_color_category',
+      {
+        p_workspace_id: 'workspace-a',
+        p_line_id: 'line-a',
+        p_expected_updated_at: '2026-08-05T02:00:00Z',
+        p_color_category: 'Ivory',
       },
     )
   })

@@ -1,6 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AppData, Item, Outfit } from '../../lib/types'
-import { getOutfitPreviewFingerprint } from '../../lib/outfit-preview'
 import {
   emptyReadyImageAssets,
   loadReadyImageAssets,
@@ -147,28 +146,8 @@ export class SupabaseSnapshotRepository {
           itemScale: nullableNumericValue(link.scale),
           zIndex: link.z_index,
         })),
-        preview: imageAssets.outfitPreviews.get(row.id) ?? null,
-        previewState:
-          imageAssets.outfitPreviewStates.get(row.id) ?? 'missing',
       }
     })
-
-    await Promise.all(
-      outfits.map(async (outfit) => {
-        if (!outfit.preview?.sourceFingerprint) return
-        try {
-          const currentFingerprint = await getOutfitPreviewFingerprint(
-            outfit,
-            items,
-          )
-          if (currentFingerprint === outfit.preview.sourceFingerprint) return
-        } catch {
-          // A preview cache failure must not block the wardrobe data load.
-        }
-        if (outfit.previewState === 'ready') outfit.previewState = 'stale'
-        if (outfit.preview) outfit.preview = null
-      }),
-    )
 
     return {
       items,

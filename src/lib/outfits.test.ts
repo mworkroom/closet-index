@@ -33,7 +33,6 @@ describe('getItemStats monthly wear history', () => {
       displayName: null,
       rating: null,
       itemIds: ['item-a'],
-      previewState: 'missing',
     }
     const logs = Array.from({ length: 12 }, (_, index) =>
       wearLog(

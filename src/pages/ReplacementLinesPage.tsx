@@ -49,8 +49,13 @@ function ReplacementLineCard({ line }: { line: ReplacementLineOverviewRow }) {
       </span>
       <ChevronRight aria-hidden="true" size={18} />
 
-      {isEmpty || isSingle || line.hasMultipleLineItem || line.hasMultipleSemanticColors ? (
+      {isEmpty ||
+      isSingle ||
+      line.hasMultipleLineItem ||
+      line.hasMultipleSemanticColors ||
+      line.reviewStatus === 'needs_review' ? (
         <span className="replacement-line-warnings" aria-label="Line 점검 상태">
+          {line.reviewStatus === 'needs_review' ? <span>재검토 필요</span> : null}
           {isEmpty ? <span>빈 Line</span> : null}
           {isSingle ? <span>단일 Item</span> : null}
           {line.hasMultipleLineItem ? <span>복수 Line 소속</span> : null}
@@ -72,6 +77,32 @@ function ColorIndexCard({ group }: { group: ReplacementLineColorGroup }) {
     >
       <strong>{group.label}</strong>
       <span>{group.lines.length} Lines</span>
+    </Link>
+  )
+}
+
+function ArchivedLineCard({
+  line,
+  representativeName,
+}: {
+  line: ReplacementLineOverviewRow
+  representativeName: string | null
+}) {
+  return (
+    <Link
+      className="replacement-line-archived-card"
+      to={`/replacement-lines/${line.id}`}
+      aria-label={`${line.name} 보관된 Line 보기`}
+    >
+      <span>
+        <strong>{line.name}</strong>
+        <small>
+          {representativeName
+            ? `대표 Line · ${representativeName}`
+            : `${line.membershipCount} Item · 독립 보관`}
+        </small>
+      </span>
+      <ChevronRight aria-hidden="true" size={18} />
     </Link>
   )
 }
@@ -199,7 +230,7 @@ export function ReplacementLinesPage() {
               <span>
                 <strong>Line 관리 현황</strong>
                 <small>
-                  {overview.summary.lineCount} Lines · {overview.summary.membershipCount} Memberships
+                  {overview.summary.lineCount} 사용 중 · {overview.summary.archivedLineCount} 보관
                 </small>
               </span>
               <span>보기</span>
@@ -255,6 +286,36 @@ export function ReplacementLinesPage() {
                   <span className="legacy-link-status__pending">검토 데이터 준비 전</span>
                 )}
               </section>
+
+              {overview.archivedLines.length > 0 ? (
+                <section
+                  className="replacement-line-archived"
+                  aria-labelledby="archived-line-heading"
+                >
+                  <div className="section-heading">
+                    <h2 id="archived-line-heading">보관된 Line</h2>
+                    <span className="count">{overview.archivedLines.length} Lines</span>
+                  </div>
+                  <p className="muted">
+                    병합한 Line은 대표 Line을 따라가며, 독립 보관 Line은 상세에서 다시
+                    사용할 수 있습니다.
+                  </p>
+                  <div className="replacement-line-archived__list">
+                    {overview.archivedLines.map((line) => (
+                      <ArchivedLineCard
+                        line={line}
+                        representativeName={
+                          overview.lines.find(
+                            (candidate) =>
+                              candidate.id === line.representativeLineId,
+                          )?.name ?? null
+                        }
+                        key={line.id}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
             </div>
           </details>
         </>

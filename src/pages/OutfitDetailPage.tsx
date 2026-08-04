@@ -540,7 +540,7 @@ export function OutfitDetailPage() {
             {deleteConfirming && logs.length === 0 && (
               <div className="record-management__confirmation" role="alert">
                 <strong>이 Outfit을 영구 삭제할까요?</strong>
-                <p>구성 정보와 저장된 preview는 복구할 수 없습니다.</p>
+                <p>구성 정보는 복구할 수 없습니다.</p>
                 <div>
                   <button
                     type="button"

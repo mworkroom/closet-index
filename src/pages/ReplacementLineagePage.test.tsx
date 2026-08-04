@@ -126,7 +126,7 @@ describe('ReplacementLineagePage', () => {
       screen.getByText(/같은 Line의 시작점으로/),
     ).toBeInTheDocument()
     expect(
-      screen.getByText('다른 Line으로 옮기는 기능은 Line 관리 단계에서 추가합니다.'),
+      screen.getByText(/연결 해제 뒤.*다른 Line으로 옮길 수 있습니다/),
     ).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: '연결 해제' }))
@@ -301,5 +301,160 @@ describe('ReplacementLineagePage', () => {
         }),
       ]),
     )
+  })
+
+  it('moves an unconnected Item into a new Line and opens its reviewed lineage', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/replacement-lines/line-navy-tee']}>
+        <DataProvider repository={new DemoRepository()}>
+          <Routes>
+            <Route
+              path="/replacement-lines/:lineId"
+              element={<ReplacementLineagePage />}
+            />
+          </Routes>
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'Navy Tee' })
+    await user.click(
+      screen.getByRole('button', { name: '다른 Line으로 옮기기' }),
+    )
+    await user.selectOptions(screen.getByLabelText('옮길 Line'), '__new__')
+    await user.type(screen.getByLabelText(/새 Line 이름/), 'Navy Summer Tee')
+    await user.type(screen.getByLabelText('Style Identity (선택)'), 'Summer Daily')
+    await user.click(screen.getByRole('button', { name: 'Line 이동' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Navy Summer Tee' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('지정한 시작점')).toBeInTheDocument()
+    expect(
+      screen.getByText('Line membership이 변경되어 계보 재검토가 필요합니다.'),
+    ).toBeInTheDocument()
+  })
+
+  it('archives and restores a standalone Line without changing its lineage data', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/replacement-lines/line-navy-tee']}>
+        <DataProvider repository={new DemoRepository()}>
+          <Routes>
+            <Route
+              path="/replacement-lines/:lineId"
+              element={<ReplacementLineagePage />}
+            />
+          </Routes>
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'Navy Tee' })
+    await user.click(screen.getByRole('button', { name: 'Line 보관' }))
+    await user.click(screen.getByRole('button', { name: 'Line 보관' }))
+
+    expect(
+      await screen.findByText('보관된 Line입니다. 계보는 읽기 전용으로 표시됩니다.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: '시작점으로 지정' }),
+    ).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '다시 사용' }))
+    await user.click(screen.getByRole('button', { name: '다시 사용' }))
+
+    expect(
+      screen.queryByText('보관된 Line입니다. 계보는 읽기 전용으로 표시됩니다.'),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Line 보관' })).toBeInTheDocument()
+  })
+
+  it('changes the Line color category and keeps it editable', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/replacement-lines/line-navy-tee']}>
+        <DataProvider repository={new DemoRepository()}>
+          <Routes>
+            <Route
+              path="/replacement-lines/:lineId"
+              element={<ReplacementLineagePage />}
+            />
+          </Routes>
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'Navy Tee' })
+    expect(screen.getByText('Navy')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '색상 수정' }))
+    await user.selectOptions(screen.getByLabelText('Line 색상 category'), 'Blue')
+    await user.click(screen.getByRole('button', { name: '색상 저장' }))
+
+    expect(await screen.findByText('Blue')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '색상 수정' })).toBeInTheDocument()
+    const savedSnapshot = JSON.parse(
+      window.localStorage.getItem('closet-index-demo-replacement-lines:v1') ?? '{}',
+    )
+    expect(
+      savedSnapshot.lines.find(
+        (line: { id: string }) => line.id === 'line-navy-tee',
+      ),
+    ).toMatchObject({ colorCategory: 'Blue' })
+  })
+
+  it('merges the current Line into the chosen representative after explicit confirmation', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/replacement-lines/line-navy-tee']}>
+        <DataProvider repository={new DemoRepository()}>
+          <Routes>
+            <Route
+              path="/replacement-lines/:lineId"
+              element={<ReplacementLineagePage />}
+            />
+          </Routes>
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'Navy Tee' })
+    await user.click(
+      screen.getByRole('button', { name: '대표 Line으로 병합' }),
+    )
+    await user.selectOptions(screen.getByLabelText('대표 Line'), 'line-soft-layer')
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: '병합 대상과 변경 내용을 확인했습니다.',
+      }),
+    )
+    await user.click(screen.getByRole('button', { name: '이 Line을 병합' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Soft Layer' }),
+    ).toBeInTheDocument()
+    expect(
+      await screen.findByText(
+        'Line membership이 변경되어 계보 재검토가 필요합니다.',
+      ),
+    ).toBeInTheDocument()
+    expect(await screen.findByText('3 Item')).toBeInTheDocument()
+
+    const savedSnapshot = JSON.parse(
+      window.localStorage.getItem('closet-index-demo-replacement-lines:v1') ?? '{}',
+    )
+    expect(
+      savedSnapshot.lines.find(
+        (line: { id: string }) => line.id === 'line-navy-tee',
+      ),
+    ).toMatchObject({
+      lifecycleStatus: 'archived',
+      representativeLineId: 'line-soft-layer',
+    })
+    expect(savedSnapshot.memberships).toContainEqual({
+      replacementLineId: 'line-soft-layer',
+      itemId: 'item-tee',
+    })
   })
 })

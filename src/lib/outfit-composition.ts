@@ -350,4 +350,3 @@ export function composeOutfitLayers(
 }
 
 export const OUTFIT_COMPOSITION_CANVAS = compositionConfig.canvas
-export const OUTFIT_COMPOSITION_VERSION = compositionConfig.version

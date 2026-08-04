@@ -48,7 +48,8 @@ jobs:
           supabase test db --local
           supabase/tests/phase3_item_outfit_write_contract_test.sql
           supabase/tests/phase3_item_image_upload_contract_test.sql
-          supabase/tests/phase3_outfit_preview_cache_contract_test.sql
+          supabase/tests/outfit_preview_cleanup_contract_test.sql
+          supabase/tests/replacement_line_color_category_contract_test.sql
 
       - name: Stop isolated Supabase
         if: always()

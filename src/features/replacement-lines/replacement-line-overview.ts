@@ -15,6 +15,12 @@ export interface ReplacementLineOverviewRow {
   id: string
   name: string
   styleIdentity: string | null
+  colorCategory: string | null
+  isColorCategoryDirect: boolean
+  reviewStatus: 'ready' | 'needs_review'
+  lifecycleStatus: 'active' | 'archived'
+  representativeLineId: string | null
+  archivedAt: string | null
   semanticColor: string | null
   displayHex: string
   hasMultipleSemanticColors: boolean
@@ -43,8 +49,10 @@ export interface ReplacementLineOverview {
   groups: ReplacementLineOverviewGroup[]
   colorGroups: ReplacementLineColorGroup[]
   lines: ReplacementLineOverviewRow[]
+  archivedLines: ReplacementLineOverviewRow[]
   summary: {
     lineCount: number
+    archivedLineCount: number
     membershipCount: number
     uniqueItemCount: number
     activeItemCount: number
@@ -179,7 +187,7 @@ export function buildReplacementLineOverview(
     }
   }
 
-  const lines = snapshot.lines
+  const allLines = snapshot.lines
     .map<ReplacementLineOverviewRow>((line) => {
       const itemIds = membershipsByLine.get(line.id) ?? []
       const resolvedItems = itemIds
@@ -209,6 +217,7 @@ export function buildReplacementLineOverview(
           .filter((value): value is string => Boolean(value))
           .map(normalizeColor),
       )
+      const directColorCategory = line.colorCategory?.trim() || null
       const explicitLineColor = lineColorFromName(line.name)
       const nameNormalized = normalizeColor(line.name)
       const nameColor = knownColors.find(({ label }) =>
@@ -219,12 +228,17 @@ export function buildReplacementLineOverview(
           ? memberPaletteColorKeys
           : memberSemanticColorKeys
       const hasMultipleSemanticColors =
-        !explicitLineColor && !nameColor && memberColorKeys.size > 1
+        !directColorCategory &&
+        !explicitLineColor &&
+        !nameColor &&
+        memberColorKeys.size > 1
       const semanticColorKey = hasMultipleSemanticColors
         ? null
-        : explicitLineColor
-          ? normalizeColor(explicitLineColor)
-          : (nameColor?.key ?? [...memberColorKeys][0] ?? null)
+        : directColorCategory
+          ? normalizeColor(directColorCategory)
+          : explicitLineColor
+            ? normalizeColor(explicitLineColor)
+            : (nameColor?.key ?? [...memberColorKeys][0] ?? null)
       const semanticColor = semanticColorKey
         ? knownColors.find((color) => color.key === semanticColorKey) ?? null
         : null
@@ -237,7 +251,14 @@ export function buildReplacementLineOverview(
         id: line.id,
         name: line.name,
         styleIdentity: line.styleIdentity?.trim() || null,
-        semanticColor: explicitLineColor ?? semanticColor?.label ?? null,
+        colorCategory: directColorCategory,
+        isColorCategoryDirect: Boolean(directColorCategory),
+        reviewStatus: line.reviewStatus,
+        lifecycleStatus: line.lifecycleStatus,
+        representativeLineId: line.representativeLineId,
+        archivedAt: line.archivedAt,
+        semanticColor:
+          directColorCategory ?? explicitLineColor ?? semanticColor?.label ?? null,
         displayHex,
         hasMultipleSemanticColors,
         membershipCount: itemIds.length,
@@ -247,11 +268,21 @@ export function buildReplacementLineOverview(
           activeAcquiredDates.at(-1) ?? null,
         hiddenMembershipCount: itemIds.length - resolvedItems.length,
         hasMultipleLineItem: itemIds.some(
-          (itemId) => (lineIdsByItem.get(itemId)?.length ?? 0) > 1,
+          (itemId) =>
+            (lineIdsByItem
+              .get(itemId)
+              ?.filter(
+                (lineId) =>
+                  linesById.get(lineId)?.lifecycleStatus === 'active',
+              ).length ?? 0) > 1,
         ),
       }
     })
     .sort((left, right) => compareText(left.name, right.name))
+  const lines = allLines.filter((line) => line.lifecycleStatus === 'active')
+  const archivedLines = allLines.filter(
+    (line) => line.lifecycleStatus === 'archived',
+  )
 
   const groupMap = new Map<string, ReplacementLineOverviewRow[]>()
   for (const line of lines) {
@@ -297,8 +328,12 @@ export function buildReplacementLineOverview(
       return compareText(left.label, right.label)
     })
 
+  const activeMemberships = [...uniqueMemberships.values()].filter(
+    (membership) =>
+      linesById.get(membership.lineId)?.lifecycleStatus === 'active',
+  )
   const uniqueItemIds = new Set(
-    [...uniqueMemberships.values()].map((membership) => membership.itemId),
+    activeMemberships.map((membership) => membership.itemId),
   )
   const resolvedUniqueItems = [...uniqueItemIds]
     .map((itemId) => itemsById.get(itemId))
@@ -308,9 +343,11 @@ export function buildReplacementLineOverview(
     groups,
     colorGroups,
     lines,
+    archivedLines,
     summary: {
       lineCount: lines.length,
-      membershipCount: uniqueMemberships.size,
+      archivedLineCount: archivedLines.length,
+      membershipCount: activeMemberships.length,
       uniqueItemCount: uniqueItemIds.size,
       activeItemCount: resolvedUniqueItems.filter((item) => !item.retired).length,
       retiredItemCount: resolvedUniqueItems.filter((item) => item.retired).length,

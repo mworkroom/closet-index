@@ -10,7 +10,6 @@ import type {
   OutfitCreateInput,
   OutfitUpdateInput,
   OutfitItemPlacementInput,
-  OutfitPreviewUploadInput,
   ReplacementLineSnapshot,
   ReplacementLineEdge,
   ReplacementLineEdgeConfirmationInput,
@@ -19,6 +18,11 @@ import type {
   ReplacementLineEdgeDisconnectInput,
   ReplacementLineEdgeDirectionUpdateInput,
   ReplacementLineManualEdgeInput,
+  ReplacementLineItemMoveInput,
+  ReplacementLineArchiveInput,
+  ReplacementLineColorUpdateInput,
+  ReplacementLineMergeInput,
+  ReplacementLineRecord,
   ReplacementLineStart,
   ReplacementLegacyLink,
   ReplacementLegacyLinkReviewInput,
@@ -67,6 +71,18 @@ export interface ClosetRepository {
   createReplacementLineManualEdge?(
     input: ReplacementLineManualEdgeInput,
   ): Promise<ReplacementLineEdge>
+  moveReplacementLineItem?(
+    input: ReplacementLineItemMoveInput,
+  ): Promise<ReplacementLineRecord>
+  mergeReplacementLines?(
+    input: ReplacementLineMergeInput,
+  ): Promise<ReplacementLineRecord>
+  setReplacementLineArchived?(
+    input: ReplacementLineArchiveInput,
+  ): Promise<ReplacementLineRecord>
+  setReplacementLineColorCategory?(
+    input: ReplacementLineColorUpdateInput,
+  ): Promise<ReplacementLineRecord>
   createItem(input: ItemCreateInput): Promise<Item>
   updateItem(itemId: string, input: ItemWriteInput): Promise<Item>
   replaceItemImage(
@@ -87,10 +103,6 @@ export interface ClosetRepository {
   setOutfitArchived(outfitId: string, archived: boolean): Promise<void>
   deleteOutfit(outfitId: string): Promise<void>
   updateOutfitItemPlacement(input: OutfitItemPlacementInput): Promise<void>
-  replaceOutfitPreview?(
-    outfitId: string,
-    input: OutfitPreviewUploadInput,
-  ): Promise<void>
   saveDefaultWeatherLocation(
     input: WeatherLocationInput,
   ): Promise<WeatherLocation>

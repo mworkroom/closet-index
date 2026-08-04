@@ -35,8 +35,6 @@ describe('HomePage recommendation pagination', () => {
         ...structuredClone(sourceOutfit!),
         id: outfitId,
         displayName: `Pagination outfit ${index}`,
-        preview: null,
-        previewState: 'missing',
       })
       data.wearLogs.push(
         ...sourceLogs.map((log, logIndex) => ({
@@ -110,16 +108,12 @@ describe('HomePage recommendation pagination', () => {
         id: 'season-outfit-summer',
         displayName: 'Summer recommendation',
         itemIds: [summerItem.id],
-        preview: null,
-        previewState: 'missing',
       },
       {
         ...structuredClone(sourceOutfit),
         id: 'season-outfit-winter',
         displayName: 'Winter recommendation',
         itemIds: [winterItem.id],
-        preview: null,
-        previewState: 'missing',
       },
     ]
     data.wearLogs = [
