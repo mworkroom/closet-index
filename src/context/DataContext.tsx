@@ -27,7 +27,9 @@ import type {
   ReplacementLineEdgeDisconnectInput,
   ReplacementLineEdgeDirectionUpdateInput,
   ReplacementLineManualEdgeInput,
+  ReplacementLineItemAddInput,
   ReplacementLineItemMoveInput,
+  ReplacementLineItemRemoveInput,
   ReplacementLineArchiveInput,
   ReplacementLineColorUpdateInput,
   ReplacementLineDeleteInput,
@@ -89,6 +91,12 @@ interface DataState {
   moveReplacementLineItem: (
     input: ReplacementLineItemMoveInput,
   ) => Promise<ReplacementLineRecord>
+  addReplacementLineItem: (
+    input: ReplacementLineItemAddInput,
+  ) => Promise<ReplacementLineRecord>
+  removeReplacementLineItem: (
+    input: ReplacementLineItemRemoveInput,
+  ) => Promise<ReplacementLineRecord[]>
   mergeReplacementLines: (
     input: ReplacementLineMergeInput,
   ) => Promise<ReplacementLineRecord>
@@ -404,6 +412,30 @@ export function DataProvider({
     [repository],
   )
 
+  const addReplacementLineItem = useCallback(
+    (input: ReplacementLineItemAddInput) => {
+      if (!repository.addReplacementLineItem) {
+        return Promise.reject(
+          new Error('이 환경에서는 Replacement Line Item 추가를 지원하지 않습니다.'),
+        )
+      }
+      return repository.addReplacementLineItem(input)
+    },
+    [repository],
+  )
+
+  const removeReplacementLineItem = useCallback(
+    (input: ReplacementLineItemRemoveInput) => {
+      if (!repository.removeReplacementLineItem) {
+        return Promise.reject(
+          new Error('이 환경에서는 Replacement Line Item 제외를 지원하지 않습니다.'),
+        )
+      }
+      return repository.removeReplacementLineItem(input)
+    },
+    [repository],
+  )
+
   const mergeReplacementLines = useCallback(
     (input: ReplacementLineMergeInput) => {
       if (!repository.mergeReplacementLines) {
@@ -633,6 +665,8 @@ export function DataProvider({
       setReplacementLineStart,
       createReplacementLineManualEdge,
       moveReplacementLineItem,
+      addReplacementLineItem,
+      removeReplacementLineItem,
       mergeReplacementLines,
       setReplacementLineArchived,
       setReplacementLineColorCategory,
@@ -682,6 +716,8 @@ export function DataProvider({
       setReplacementLineStart,
       createReplacementLineManualEdge,
       moveReplacementLineItem,
+      addReplacementLineItem,
+      removeReplacementLineItem,
       mergeReplacementLines,
       setReplacementLineArchived,
       setReplacementLineColorCategory,

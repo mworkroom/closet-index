@@ -610,4 +610,64 @@ describe('SupabaseReplacementLineRepository', () => {
       },
     )
   })
+
+  it('adds an unassigned Item and removes it from every Line through membership RPCs', async () => {
+    const baseRow = {
+      id: 'line-a',
+      name: 'Brown Bottom',
+      style_identity: null,
+      color_category: 'Brown',
+      review_status: 'needs_review',
+      lifecycle_status: 'active',
+      representative_line_id: null,
+      archived_at: null,
+      updated_at: '2026-08-05T06:00:00Z',
+    }
+    const rpc = vi
+      .fn()
+      .mockResolvedValueOnce({ data: baseRow, error: null })
+      .mockResolvedValueOnce({
+        data: [
+          baseRow,
+          { ...baseRow, id: 'line-legacy', name: 'Legacy Brown Bottom' },
+        ],
+        error: null,
+      })
+    const repository = new SupabaseReplacementLineRepository(
+      { rpc } as unknown as SupabaseClient,
+      'workspace-a',
+    )
+
+    await expect(
+      repository.addItem({
+        lineId: 'line-a',
+        itemId: 'item-a',
+        expectedUpdatedAt: '2026-08-05T05:00:00Z',
+      }),
+    ).resolves.toMatchObject({ id: 'line-a', reviewStatus: 'needs_review' })
+    await expect(
+      repository.removeItem({
+        sourceLineId: 'line-a',
+        itemId: 'item-a',
+        expectedSourceUpdatedAt: '2026-08-05T06:00:00Z',
+      }),
+    ).resolves.toHaveLength(2)
+
+    expect(rpc).toHaveBeenNthCalledWith(1, 'add_closet_replacement_line_item', {
+      p_workspace_id: 'workspace-a',
+      p_line_id: 'line-a',
+      p_item_id: 'item-a',
+      p_expected_updated_at: '2026-08-05T05:00:00Z',
+    })
+    expect(rpc).toHaveBeenNthCalledWith(
+      2,
+      'remove_closet_replacement_line_item',
+      {
+        p_workspace_id: 'workspace-a',
+        p_source_line_id: 'line-a',
+        p_item_id: 'item-a',
+        p_expected_source_updated_at: '2026-08-05T06:00:00Z',
+      },
+    )
+  })
 })

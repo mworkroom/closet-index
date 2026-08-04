@@ -17,7 +17,9 @@ import type {
   ReplacementLineEdgeDisconnectInput,
   ReplacementLineEdgeDirectionUpdateInput,
   ReplacementLineManualEdgeInput,
+  ReplacementLineItemAddInput,
   ReplacementLineItemMoveInput,
+  ReplacementLineItemRemoveInput,
   ReplacementLineArchiveInput,
   ReplacementLineColorUpdateInput,
   ReplacementLineDeleteInput,
@@ -897,6 +899,103 @@ export class DemoRepository implements ClosetRepository {
     writeDemoReplacementLineSnapshot(snapshot)
     return structuredClone(
       snapshot.lines.find((line) => line.id === targetLine.id)!,
+    )
+  }
+
+  async addReplacementLineItem(
+    input: ReplacementLineItemAddInput,
+  ): Promise<ReplacementLineRecord> {
+    const snapshot = readDemoReplacementLineSnapshot()
+    const line = snapshot.lines.find((entry) => entry.id === input.lineId)
+    if (!line) throw new Error('Replacement Line을 찾지 못했습니다.')
+    if (line.lifecycleStatus !== 'active') {
+      throw new Error('사용 중인 Line에만 Item을 추가할 수 있습니다.')
+    }
+    if (line.updatedAt !== input.expectedUpdatedAt) {
+      throw new Error('Line이 변경되었습니다. 다시 불러와 주세요.')
+    }
+    if (!readData().items.some((item) => item.id === input.itemId)) {
+      throw new Error('추가할 Closet Item을 찾지 못했습니다.')
+    }
+    if (snapshot.memberships.some((entry) => entry.itemId === input.itemId)) {
+      throw new Error('이 Item은 이미 다른 Replacement Line에 속해 있습니다.')
+    }
+
+    const changedAt = new Date().toISOString()
+    snapshot.memberships.push({
+      replacementLineId: line.id,
+      itemId: input.itemId,
+    })
+    snapshot.lines = snapshot.lines.map((entry) =>
+      entry.id === line.id
+        ? { ...entry, reviewStatus: 'needs_review', updatedAt: changedAt }
+        : entry,
+    )
+    const starts = readDemoReplacementLineStarts()
+    starts.push({
+      replacementLineId: line.id,
+      itemId: input.itemId,
+      designatedAt: changedAt,
+    })
+    window.localStorage.setItem(LINEAGE_START_STORAGE_KEY, JSON.stringify(starts))
+    writeDemoReplacementLineSnapshot(snapshot)
+    return structuredClone(snapshot.lines.find((entry) => entry.id === line.id)!)
+  }
+
+  async removeReplacementLineItem(
+    input: ReplacementLineItemRemoveInput,
+  ): Promise<ReplacementLineRecord[]> {
+    const snapshot = readDemoReplacementLineSnapshot()
+    const sourceLine = snapshot.lines.find(
+      (entry) => entry.id === input.sourceLineId,
+    )
+    if (!sourceLine) throw new Error('Replacement Line을 찾지 못했습니다.')
+    if (sourceLine.lifecycleStatus !== 'active') {
+      throw new Error('사용 중인 Line에서만 Item을 뺄 수 있습니다.')
+    }
+    if (sourceLine.updatedAt !== input.expectedSourceUpdatedAt) {
+      throw new Error('Line이 변경되었습니다. 다시 불러와 주세요.')
+    }
+    if (
+      !snapshot.memberships.some(
+        (entry) =>
+          entry.replacementLineId === sourceLine.id &&
+          entry.itemId === input.itemId,
+      )
+    ) {
+      throw new Error('이 Item은 현재 Replacement Line에 속해 있지 않습니다.')
+    }
+    if (
+      readDemoReplacementLineEdges().some(
+        (edge) =>
+          edge.predecessorItemId === input.itemId ||
+          edge.successorItemId === input.itemId,
+      )
+    ) {
+      throw new Error('계보 연결을 모두 해제한 뒤 Line에서 빼 주세요.')
+    }
+
+    const affectedLineIds = new Set(
+      snapshot.memberships
+        .filter((entry) => entry.itemId === input.itemId)
+        .map((entry) => entry.replacementLineId),
+    )
+    const changedAt = new Date().toISOString()
+    snapshot.memberships = snapshot.memberships.filter(
+      (entry) => entry.itemId !== input.itemId,
+    )
+    snapshot.lines = snapshot.lines.map((entry) =>
+      affectedLineIds.has(entry.id)
+        ? { ...entry, reviewStatus: 'needs_review', updatedAt: changedAt }
+        : entry,
+    )
+    const starts = readDemoReplacementLineStarts().filter(
+      (start) => start.itemId !== input.itemId,
+    )
+    window.localStorage.setItem(LINEAGE_START_STORAGE_KEY, JSON.stringify(starts))
+    writeDemoReplacementLineSnapshot(snapshot)
+    return structuredClone(
+      snapshot.lines.filter((entry) => affectedLineIds.has(entry.id)),
     )
   }
 

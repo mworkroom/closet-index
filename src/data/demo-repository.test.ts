@@ -346,4 +346,49 @@ describe('DemoRepository wear log contract', () => {
       archivedAt: null,
     })
   })
+
+  it('Line 없는 Item을 시작점으로 추가한 뒤 모든 Line에서 뺀다', async () => {
+    const repository = new DemoRepository()
+    const before = await repository.loadReplacementLines()
+    const line = before.lines.find((entry) => entry.id === 'line-navy-tee')!
+
+    const addedLine = await repository.addReplacementLineItem({
+      lineId: line.id,
+      itemId: 'item-skirt',
+      expectedUpdatedAt: line.updatedAt,
+    })
+    expect(addedLine).toMatchObject({ reviewStatus: 'needs_review' })
+    await expect(repository.loadReplacementLines()).resolves.toMatchObject({
+      memberships: expect.arrayContaining([
+        { replacementLineId: line.id, itemId: 'item-skirt' },
+      ]),
+    })
+    await expect(repository.loadReplacementLineStarts()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          replacementLineId: line.id,
+          itemId: 'item-skirt',
+        }),
+      ]),
+    )
+
+    await expect(
+      repository.removeReplacementLineItem({
+        sourceLineId: line.id,
+        itemId: 'item-skirt',
+        expectedSourceUpdatedAt: addedLine.updatedAt,
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({ id: line.id, reviewStatus: 'needs_review' }),
+    ])
+    const after = await repository.loadReplacementLines()
+    expect(
+      after.memberships.some((membership) => membership.itemId === 'item-skirt'),
+    ).toBe(false)
+    expect(
+      (await repository.loadReplacementLineStarts()).some(
+        (start) => start.itemId === 'item-skirt',
+      ),
+    ).toBe(false)
+  })
 })

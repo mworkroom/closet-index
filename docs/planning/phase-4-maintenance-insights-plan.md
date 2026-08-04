@@ -516,11 +516,14 @@ P4-2B의 canonical pair schema, workspace RLS, 49-pair importer와 검토 화면
 - [x] predecessor 재선택, edge 해제와 successor 시작점 전환
 - [x] 선택 이유 3종 드롭다운과 왼쪽 branch connector
 - [x] 연결 없는 Item의 기존·새 Line 이동 UI와 원자 RPC 로컬 구현
+- [x] Line 없는 Closet Item 검색·추가와 edge 없는 Item의 전체 Line 제외 UI·원자 RPC 로컬 구현
+- [x] Item 추가·전체 Line 제외 production migration·인증 rollback·Advisor 검증
+- [ ] Item 추가·전체 Line 제외 frontend 공개 배포·실제 UI 검증
 - [x] Line 병합·보관·대표 Line 로컬 UI·원자 RPC 구현
 - [x] Line lifecycle production migration·인증 RPC·rollback·Advisor 검증
 - [x] membership 변경 시 `needs_review` production migration·인증 RPC·Advisor 검증
 - [x] 자동 분류보다 우선하는 Line 색상 category 직접 지정 production 적용·공개 UI 검증
-- [x] Line 재검토 완료·이름/Style Identity 수정·완전 빈 Line 삭제 로컬 구현
+- [x] Line 재검토 완료·이름/Style Identity 수정·완전 빈 Line 삭제 production 적용·rollback 검증
 - [x] 같은 크기 thumbnail의 세로형 Lineage UI
 - [x] 실제 가지가 있는 fixture로 분기 렌더링
 - [x] 12개 색상 tile의 Color Index와 밝기별 글자 대비
@@ -534,6 +537,8 @@ Line 선택이 필요한 1개 관계에는 기본값 없는 두 선택지를 제
 
 Line 관리의 첫 조각으로 계보 연결 전 Item을 기존 Line 또는 새 Line으로 옮기는 UI와 atomic RPC를 구현했다. 이동한 Item은 대상 Line의 명시적 시작점이 되고 source·target Line 모두 `needs_review`로 바뀐다. 기존 edge가 하나라도 남은 Item은 이력을 손상하지 않도록 이동을 거부한다. Demo 저장 지속성, Supabase RPC mapping, 라우트 전환, 데스크톱·390px 모바일 UI를 검증한 뒤 production migration `20260804183905_move_replacement_line_items`를 적용했다. 실제 workspace member 권한의 rollback fixture에서 기존 Line 이동과 새 Line 생성, membership·시작점·재검토 상태 변경을 확인했고 연결된 Item 이동 차단과 rollback 뒤 `53 Line · 165 membership · 87 edge · 25 start · needs_review 0` 유지를 재확인했다. RPC는 빈 `search_path`, 함수 내부 workspace membership 검사와 `authenticated` 단독 실행 권한을 사용하며 Advisor의 로그인 사용자용 `SECURITY DEFINER` 경고는 이 전용 쓰기 RPC에 대해 의도된 항목으로 검토했다.
 
+Line 관리의 후속으로 현재 어떤 Line에도 속하지 않은 Closet Item을 이름·category·색상으로 검색해 선택한 Line에 추가하고, edge가 없는 Item은 Closet Item을 삭제하지 않은 채 모든 Replacement Line membership에서 제외하는 흐름을 구현했다. 추가 Item은 명시적 시작점이 되고, 제외는 다중 membership까지 모두 제거하며 영향받은 Line을 `needs_review`로 바꾼다. predecessor·successor edge가 하나라도 있으면 먼저 연결 해제를 요구한다. 전체 58개 파일 269개 테스트, production build와 실제 Demo browser의 데스크톱·390px 왕복 흐름을 통과했다. production migration `20260804233509_manage_replacement_line_item_membership`을 적용하고 실제 member claim rollback fixture에서 추가·시작점·전체 제외·Item 보존과 stale·중복·edge·비회원 차단을 확인했다. rollback 뒤 `57 Line · 165 membership · 92 edge · 35 start · needs_review 1`이 유지되고 최근 검증 membership·start가 0개인 것을 재확인했다. 새 Advisor 성능 경고는 없고 signed-in 전용 `SECURITY DEFINER` 안내 두 건은 내부 workspace 검사와 최소 실행 권한을 확인한 의도된 경고다. frontend 공개 배포와 실제 production UI 검증은 남아 있다.
+
 Line lifecycle로 삭제 대신 독립 보관·복원과 대표 Line 병합을 구현했다. 병합은 source membership·edge·유효한 시작점을 target에 원자적으로 합치고 겹치는 membership은 중복 없이 보존하며, source는 대표 Line을 가리키는 읽기 전용 보관 상태가 된다. 합친 graph의 cycle과 동일 edge 충돌은 변경 전에 차단하고 source·target을 모두 `needs_review`로 되돌린다. Color Index에서는 active Line만 보여 주고 관리 현황에서는 보관 Line과 대표 Line 연결을 다시 찾을 수 있다. production migration `20260804193058_manage_replacement_line_lifecycle` 적용 뒤 실제 workspace member claim의 transaction fixture에서 독립 보관·복원, stale·비회원 거절, archived child 수정 차단, 동일 edge·합친 graph cycle 차단과 병합 Line 직접 복원 거절을 확인했다. 실제로 두 Item을 공유하는 `Ivory Layered Summer → Ivory Layered Sleeveless` 병합도 rollback 안에서 실행해 membership `4 + 2 - 공유 2 = 4`, edge 2개, source 보관·대표 참조와 양쪽 `needs_review`를 검증했다. rollback 뒤 `53 Line · active 53 · archived 0 · 165 membership · 87 edge · 25 start · needs_review 0`과 적용 전 네 checksum이 모두 일치한다. 새 RPC 두 개는 빈 `search_path`, 함수 내부 workspace membership 검사와 `authenticated` 단독 실행 권한을 사용한다. Advisor의 두 signed-in `SECURITY DEFINER` 경고는 이 전용 쓰기 RPC에 대해 의도된 항목이며, 신규 lifecycle index의 미사용 안내는 기능 적용 직후라 예상되는 정보성 항목이다.
 
 확정된 edge만 읽어 각 Line의 시작점과 graph depth를 계산하는 상세 화면을 `/replacement-lines/:lineId`에 추가했다. 구매 연도는 정렬·세대 판정에 쓰지 않고 DAG의 위상 관계로 G0·G1·G2 이상을 계산하며, 실제 production의 G0→G1→G2 chain, 1→2 분기, 2→1 합류를 확인했다. Line membership에는 있지만 confirmed edge에 참여하지 않은 Item은 시작점으로 추정하지 않고 `계보 연결 전`으로 분리한다. 모든 세대는 같은 thumbnail slot, 상태 badge, 취득 연도와 선택 이유를 사용하며 실제 데이터에 없는 수량과 예정 상태는 만들지 않는다.
@@ -542,7 +547,7 @@ Line lifecycle로 삭제 대신 독립 보관·복원과 대표 Line 병합을 �
 
 자동 제안을 사람이 정한 값으로 덮어쓸 수 있도록 기존 `closet_replacement_lines`에 nullable `color_category` column 하나와 인증된 optimistic update RPC를 추가했다. 별도 색상 table이나 자동 분류 이력은 만들지 않았다. 계보 상세의 Line 관리에서 20개 category를 선택·수정하거나 `자동 제안 사용`으로 되돌릴 수 있고, 직접 지정 값은 Line 이름·Item 팔레트 기반 제안보다 항상 우선한다. 새 frontend를 schema cleanup보다 먼저 안전하게 배포할 수 있도록 column 부재 오류에 한해서만 기존 Line SELECT로 재시도한다. production migration `20260804213528_add_replacement_line_color_category` 적용 뒤 공개 앱에서 `Royal Blue Summer Top`을 Blue로 저장하고 다시 자동 제안으로 초기화해 nullable source of truth와 실제 저장 경로를 확인했다. 현재 53개 Line의 직접 지정 값은 모두 null이며 J가 앱에서 천천히 채울 수 있다.
 
-membership 이동 뒤 남던 `needs_review` 상태를 사람이 마무리할 수 있도록 `재검토 완료` action을 추가하고, 같은 Line 관리 화면에서 이름과 선택적인 Style Identity를 수정할 수 있게 했다. Item뿐 아니라 edge·시작점·병합 대표 참조까지 전부 없는 active standalone Line만 완전히 삭제할 수 있으며, 나머지는 기존 보관·병합 흐름을 사용한다. 세 동작은 기존 Line table을 그대로 쓰는 authenticated 전용 RPC로 설계해 새 table을 만들지 않았고 workspace membership, row lock, `updated_at` optimistic concurrency를 다시 검사한다. local migration·Demo/Supabase repository·UI·자동 테스트는 완료했으며 production migration과 공개 배포는 아직 진행하지 않았다.
+membership 이동 뒤 남던 `needs_review` 상태를 사람이 마무리할 수 있도록 `재검토 완료` action을 추가하고, 같은 Line 관리 화면에서 이름과 선택적인 Style Identity를 수정할 수 있게 했다. Item뿐 아니라 edge·시작점·병합 대표 참조까지 전부 없는 active standalone Line만 완전히 삭제할 수 있으며, 나머지는 기존 보관·병합 흐름을 사용한다. 세 동작은 기존 Line table을 그대로 쓰는 authenticated 전용 RPC로 설계해 새 table을 만들지 않았고 workspace membership, row lock, `updated_at` optimistic concurrency를 다시 검사한다. production migration `20260804230012_manage_replacement_line_review_and_metadata`를 적용하고 실제 workspace member claim으로 `Black Flat Shoes → Black Shoes Flat` 정보 수정을 transaction 안에서 실행해 반환값과 timestamp 전진을 확인한 뒤 rollback했다. 기존 `56 Line · 165 membership · 90 edge · 32 start`와 원본 Line 이름·Style Identity는 그대로 유지된다.
 
 확정된 edge의 `선택 이유`와 선택적인 `가지 이름`을 계보 Item 행에서 바로 수정하는 인라인 UI를 구현하고 production migration `20260803173959_revise_replacement_line_edge_details`를 적용했다. 전용 RPC는 workspace membership, 입력 길이, confirmed 상태와 화면이 읽은 `updated_at`을 다시 검사하며 predecessor·successor, Line, 출처와 상태는 변경하지 않는다. transaction rollback fixture에서 실제 수정 성공, stale `updated_at` 충돌, 비회원·anon 거절을 확인했고 원본 45개 edge와 표본 이유·시간이 그대로 유지되는 것을 재확인했다. 함수 실행 권한은 `authenticated`와 `service_role`에만 있으며 `public`·`anon`에는 없다. 색상 category는 현재 Line 이름과 팔레트 기반 자동 분류이고, J가 직접 지정한 값이 자동 분류보다 우선하는 편집 기능은 별도 후속 항목으로 남긴다.
 
@@ -642,6 +647,7 @@ membership 이동 뒤 남던 `needs_review` 상태를 사람이 마무리할 수
 - [x] G0·G1·G2가 구매 연도가 아니라 확인된 graph depth로 표시된다.
 - [x] 모든 세대의 thumbnail이 같은 크기이며 실제 가지가 있을 때만 branch를 표시한다.
 - [x] Line 병합·보관·대표 Line과 재검토 상태가 안전하게 동작한다.
+- [ ] Line 미소속 Item 추가와 Item의 전체 Line 제외가 공개 frontend UI에서 검증된다.
 
 ### Phase 4 전체 완료
 

@@ -16,7 +16,9 @@ import type {
   ReplacementLineEdgeConnectionUpdateInput,
   ReplacementLineEdgeDirectionUpdateInput,
   ReplacementLineManualEdgeInput,
+  ReplacementLineItemAddInput,
   ReplacementLineItemMoveInput,
+  ReplacementLineItemRemoveInput,
   ReplacementLineArchiveInput,
   ReplacementLineColorUpdateInput,
   ReplacementLineColorCategory,
@@ -38,6 +40,102 @@ function acquisitionLabel(acquiredOn: string | null) {
   return acquiredOn ? acquiredOn.slice(0, 4) : '취득연도 미상'
 }
 
+function RemoveLineMembershipControl({
+  item,
+  hasLineageConnection,
+  onRemove,
+}: {
+  item: Item
+  hasLineageConnection: boolean
+  onRemove: (itemId: string) => Promise<void>
+}) {
+  const [confirming, setConfirming] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  const handleRemove = async () => {
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await onRemove(item.id)
+    } catch (cause) {
+      setSaveError(
+        cause instanceof Error ? cause.message : 'Item을 Line에서 빼지 못했습니다.',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (hasLineageConnection) {
+    return (
+      <div className="lineage-membership-remove lineage-membership-remove--blocked">
+        <button
+          className="lineage-edge-edit-button lineage-edge-edit-button--direction"
+          type="button"
+          disabled
+        >
+          Line에서 빼기
+        </button>
+        <small>계보 연결을 먼저 모두 해제해 주세요.</small>
+      </div>
+    )
+  }
+
+  if (!confirming) {
+    return (
+      <div className="lineage-membership-remove">
+        <button
+          className="lineage-edge-edit-button lineage-edge-edit-button--direction"
+          type="button"
+          onClick={() => {
+            setConfirming(true)
+            setSaveError(null)
+          }}
+        >
+          Line에서 빼기
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="lineage-membership-remove__confirmation" role="alert">
+      <p>
+        <strong>{item.name}</strong>을 어떤 Replacement Line에도 속하지 않게
+        뺄까요?
+      </p>
+      <small>Closet Item과 이미지는 삭제되지 않습니다.</small>
+      {saveError ? (
+        <p className="form-error" role="alert">
+          {saveError}
+        </p>
+      ) : null}
+      <div className="lineage-edge-form__actions">
+        <button
+          className="button button--secondary"
+          type="button"
+          onClick={() => {
+            setConfirming(false)
+            setSaveError(null)
+          }}
+          disabled={saving}
+        >
+          취소
+        </button>
+        <button
+          className="button button--danger"
+          type="button"
+          onClick={() => void handleRemove()}
+          disabled={saving}
+        >
+          {saving ? '빼는 중…' : '모든 Line에서 빼기'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 interface LineageItemRowProps {
   node: ReplacementLineageNode
   members: Item[]
@@ -51,6 +149,8 @@ interface LineageItemRowProps {
     input: ReplacementLineEdgeDirectionUpdateInput,
   ) => Promise<void>
   onSetStart: (itemId: string, isStart: boolean) => Promise<void>
+  onRemoveItem: (itemId: string) => Promise<void>
+  hasLineageConnection: boolean
   readOnly: boolean
 }
 
@@ -61,6 +161,8 @@ function LineageItemRow({
   onDisconnectEdge,
   onReverseEdge,
   onSetStart,
+  onRemoveItem,
+  hasLineageConnection,
   readOnly,
 }: LineageItemRowProps) {
   const statusLabel = node.item.retired ? 'Retired' : '사용 중'
@@ -276,6 +378,14 @@ function LineageItemRow({
         </div>
       ) : null}
 
+      {!readOnly && !editingEdge && !reversingEdge ? (
+        <RemoveLineMembershipControl
+          item={node.item}
+          hasLineageConnection={hasLineageConnection}
+          onRemove={onRemoveItem}
+        />
+      ) : null}
+
       {editingEdge ? (
         <form className="lineage-edge-form" onSubmit={handleSubmit}>
           <p className="lineage-edge-form__context">{node.item.name}의 연결 수정</p>
@@ -436,6 +546,8 @@ function LineageGeneration({
   onDisconnectEdge,
   onReverseEdge,
   onSetStart,
+  onRemoveItem,
+  connectedItemIds,
   readOnly,
 }: {
   generation: ReplacementLineageGeneration
@@ -444,6 +556,8 @@ function LineageGeneration({
   onDisconnectEdge: LineageItemRowProps['onDisconnectEdge']
   onReverseEdge: LineageItemRowProps['onReverseEdge']
   onSetStart: LineageItemRowProps['onSetStart']
+  onRemoveItem: LineageItemRowProps['onRemoveItem']
+  connectedItemIds: ReadonlySet<string>
   readOnly: boolean
 }) {
   const isBranched = generation.groups.length > 1
@@ -488,6 +602,8 @@ function LineageGeneration({
                       onDisconnectEdge={onDisconnectEdge}
                       onReverseEdge={onReverseEdge}
                       onSetStart={onSetStart}
+                      onRemoveItem={onRemoveItem}
+                      hasLineageConnection={connectedItemIds.has(node.item.id)}
                       readOnly={readOnly}
                     />
                   ))}
@@ -510,6 +626,8 @@ function UnconnectedLineageItem({
   onSetStart,
   onCreateManualEdge,
   onMoveItem,
+  onRemoveItem,
+  hasLineageConnection,
   readOnly,
 }: {
   item: Item
@@ -520,6 +638,8 @@ function UnconnectedLineageItem({
   onSetStart: (itemId: string, isStart: boolean) => Promise<void>
   onCreateManualEdge: (input: ReplacementLineManualEdgeInput) => Promise<void>
   onMoveItem: (input: ReplacementLineItemMoveInput) => Promise<void>
+  onRemoveItem: (itemId: string) => Promise<void>
+  hasLineageConnection: boolean
   readOnly: boolean
 }) {
   const [connecting, setConnecting] = useState(false)
@@ -655,6 +775,11 @@ function UnconnectedLineageItem({
           >
             다른 Line으로 옮기기
           </button>
+          <RemoveLineMembershipControl
+            item={item}
+            hasLineageConnection={hasLineageConnection}
+            onRemove={onRemoveItem}
+          />
         </div>
       ) : connecting ? (
         <form className="lineage-manual-edge-form" onSubmit={handleConnect}>
@@ -863,6 +988,8 @@ interface LineManagementPanelProps {
   line: ReplacementLineRecord
   lines: ReplacementLineRecord[]
   membershipCount: number
+  availableItems: Item[]
+  onAddItem: (input: ReplacementLineItemAddInput) => Promise<void>
   onMerge: (input: ReplacementLineMergeInput) => Promise<void>
   onSetArchived: (input: ReplacementLineArchiveInput) => Promise<void>
   onSetColorCategory: (input: ReplacementLineColorUpdateInput) => Promise<void>
@@ -874,6 +1001,8 @@ function LineManagementPanel({
   line,
   lines,
   membershipCount,
+  availableItems,
+  onAddItem,
   onMerge,
   onSetArchived,
   onSetColorCategory,
@@ -881,12 +1010,21 @@ function LineManagementPanel({
   onDelete,
 }: LineManagementPanelProps) {
   const [action, setAction] = useState<
-    'details' | 'color' | 'merge' | 'archive' | 'restore' | 'delete' | null
+    | 'details'
+    | 'color'
+    | 'add-item'
+    | 'merge'
+    | 'archive'
+    | 'restore'
+    | 'delete'
+    | null
   >(null)
   const [targetLineId, setTargetLineId] = useState('')
   const [colorCategory, setColorCategory] = useState('')
   const [name, setName] = useState('')
   const [styleIdentity, setStyleIdentity] = useState('')
+  const [itemSearch, setItemSearch] = useState('')
+  const [selectedItemId, setSelectedItemId] = useState('')
   const [acknowledged, setAcknowledged] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -902,6 +1040,26 @@ function LineManagementPanel({
   const selectedTarget = targetLines.find(
     (candidate) => candidate.id === targetLineId,
   )
+  const normalizedItemSearch = itemSearch.trim().toLocaleLowerCase('ko-KR')
+  const matchingItems = useMemo(
+    () =>
+      [...availableItems]
+        .sort((left, right) => left.name.localeCompare(right.name, 'ko'))
+        .filter((item) => {
+          if (!normalizedItemSearch) return true
+          return [
+            item.name,
+            item.category,
+            item.semanticColor,
+            item.paletteName,
+          ].some((value) =>
+            value?.toLocaleLowerCase('ko-KR').includes(normalizedItemSearch),
+          )
+        }),
+    [availableItems, normalizedItemSearch],
+  )
+  const visibleItems = matchingItems.slice(0, 24)
+  const selectedItem = availableItems.find((item) => item.id === selectedItemId)
 
   const resetAction = () => {
     setAction(null)
@@ -909,6 +1067,8 @@ function LineManagementPanel({
     setColorCategory('')
     setName('')
     setStyleIdentity('')
+    setItemSearch('')
+    setSelectedItemId('')
     setAcknowledged(false)
     setSaveError(null)
   }
@@ -1023,6 +1183,27 @@ function LineManagementPanel({
           ? cause.message
           : '빈 Replacement Line을 삭제하지 못했습니다.',
       )
+      setSaving(false)
+    }
+  }
+
+  const handleAddItem = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!selectedItem) return
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await onAddItem({
+        lineId: line.id,
+        itemId: selectedItem.id,
+        expectedUpdatedAt: line.updatedAt,
+      })
+      resetAction()
+    } catch (cause) {
+      setSaveError(
+        cause instanceof Error ? cause.message : 'Item을 Replacement Line에 추가하지 못했습니다.',
+      )
+    } finally {
       setSaving(false)
     }
   }
@@ -1239,6 +1420,17 @@ function LineManagementPanel({
               <button
                 className="button button--secondary"
                 type="button"
+                onClick={() => {
+                  setAction('add-item')
+                  setSaveError(null)
+                }}
+                disabled={availableItems.length === 0}
+              >
+                Item 추가
+              </button>
+              <button
+                className="button button--secondary"
+                type="button"
                 onClick={() => setAction('merge')}
                 disabled={targetLines.length === 0}
               >
@@ -1264,6 +1456,85 @@ function LineManagementPanel({
                 </button>
               ) : null}
             </div>
+          ) : null}
+
+          {action === 'add-item' ? (
+            <form
+              className="lineage-line-management__form"
+              onSubmit={handleAddItem}
+            >
+              <div className="lineage-item-picker__summary">
+                <strong>Line 없는 Item {availableItems.length}개</strong>
+                <span>추가한 Item은 이 Line의 시작점으로 지정됩니다.</span>
+              </div>
+              <label className="field">
+                <span>Item 검색</span>
+                <input
+                  type="search"
+                  value={itemSearch}
+                  onChange={(event) => {
+                    setItemSearch(event.target.value)
+                    setSelectedItemId('')
+                  }}
+                  placeholder="이름, category, 색상"
+                  autoFocus
+                />
+              </label>
+              {visibleItems.length > 0 ? (
+                <div className="lineage-item-picker__results" aria-label="추가할 Item">
+                  {visibleItems.map((item) => (
+                    <button
+                      className={`lineage-item-picker__option${
+                        selectedItemId === item.id
+                          ? ' lineage-item-picker__option--selected'
+                          : ''
+                      }`}
+                      type="button"
+                      aria-pressed={selectedItemId === item.id}
+                      onClick={() => setSelectedItemId(item.id)}
+                      key={item.id}
+                    >
+                      <ItemVisual item={item} className="item-visual--lineage-small" />
+                      <span>
+                        <strong>{item.name}</strong>
+                        <small>
+                          {item.category} · {item.retired ? 'Retired' : '사용 중'}
+                        </small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="muted">검색 조건에 맞는 Line 없는 Item이 없습니다.</p>
+              )}
+              {matchingItems.length > visibleItems.length ? (
+                <p className="muted">
+                  검색 결과가 많아 24개만 표시했습니다. 이름이나 색상을 더 입력해 주세요.
+                </p>
+              ) : null}
+              {selectedItem ? (
+                <p className="lineage-item-picker__selection">
+                  선택 · <strong>{selectedItem.name}</strong>
+                </p>
+              ) : null}
+              <div className="lineage-edge-form__actions">
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={resetAction}
+                  disabled={saving}
+                >
+                  취소
+                </button>
+                <button
+                  className="button button--primary"
+                  type="submit"
+                  disabled={saving || !selectedItem}
+                >
+                  {saving ? '추가 중…' : '선택한 Item 추가'}
+                </button>
+              </div>
+            </form>
           ) : null}
 
           {action === 'merge' ? (
@@ -1398,6 +1669,8 @@ export function ReplacementLineagePage() {
     setReplacementLineStart,
     createReplacementLineManualEdge,
     moveReplacementLineItem,
+    addReplacementLineItem,
+    removeReplacementLineItem,
     mergeReplacementLines,
     setReplacementLineArchived,
     setReplacementLineColorCategory,
@@ -1533,6 +1806,67 @@ export function ReplacementLineagePage() {
     [moveReplacementLineItem, navigate],
   )
 
+  const addItem = useCallback(
+    async (input: ReplacementLineItemAddInput) => {
+      const savedLine = await addReplacementLineItem(input)
+      setSnapshot((current) =>
+        current
+          ? {
+              lines: current.lines.map((line) =>
+                line.id === savedLine.id ? savedLine : line,
+              ),
+              memberships: [
+                ...current.memberships.filter(
+                  (membership) => membership.itemId !== input.itemId,
+                ),
+                {
+                  replacementLineId: savedLine.id,
+                  itemId: input.itemId,
+                },
+              ],
+            }
+          : current,
+      )
+      setStarts((current) => [
+        ...(current?.filter((start) => start.itemId !== input.itemId) ?? []),
+        {
+          replacementLineId: savedLine.id,
+          itemId: input.itemId,
+          designatedAt: new Date().toISOString(),
+        },
+      ])
+    },
+    [addReplacementLineItem],
+  )
+
+  const removeItem = useCallback(
+    async (itemId: string) => {
+      const sourceLine = snapshot?.lines.find((line) => line.id === lineId)
+      if (!sourceLine) throw new Error('현재 Replacement Line을 찾지 못했습니다.')
+      const input: ReplacementLineItemRemoveInput = {
+        sourceLineId: sourceLine.id,
+        itemId,
+        expectedSourceUpdatedAt: sourceLine.updatedAt,
+      }
+      const savedLines = await removeReplacementLineItem(input)
+      const savedById = new Map(savedLines.map((line) => [line.id, line]))
+      setSnapshot((current) =>
+        current
+          ? {
+              lines: current.lines.map((line) => savedById.get(line.id) ?? line),
+              memberships: current.memberships.filter(
+                (membership) => membership.itemId !== itemId,
+              ),
+            }
+          : current,
+      )
+      setStarts((current) =>
+        current?.filter((start) => start.itemId !== itemId) ?? current,
+      )
+    },
+    [lineId, removeReplacementLineItem, snapshot],
+  )
+
   const mergeLines = useCallback(
     async (input: ReplacementLineMergeInput) => {
       const targetLine = await mergeReplacementLines(input)
@@ -1625,6 +1959,22 @@ export function ReplacementLineagePage() {
         : null,
     [data, edges, lineId, snapshot, starts],
   )
+  const availableItems = useMemo(() => {
+    if (!data || !snapshot) return []
+    const assignedItemIds = new Set(
+      snapshot.memberships.map((membership) => membership.itemId),
+    )
+    return data.items.filter((item) => !assignedItemIds.has(item.id))
+  }, [data, snapshot])
+  const connectedItemIds = useMemo(() => {
+    const result = new Set<string>()
+    for (const edge of edges ?? []) {
+      if (edge.replacementLineId !== lineId) continue
+      result.add(edge.predecessorItemId)
+      result.add(edge.successorItemId)
+    }
+    return result
+  }, [edges, lineId])
   const lineName =
     lineage?.line.name ??
     snapshot?.lines.find((line) => line.id === lineId)?.name ??
@@ -1698,6 +2048,8 @@ export function ReplacementLineagePage() {
                   onDisconnectEdge={disconnectEdge}
                   onReverseEdge={reverseEdge}
                   onSetStart={setStart}
+                  onRemoveItem={removeItem}
+                  connectedItemIds={connectedItemIds}
                   readOnly={lineage.line.lifecycleStatus === 'archived'}
                   key={generation.depth}
                 />
@@ -1736,6 +2088,8 @@ export function ReplacementLineagePage() {
                     onSetStart={setStart}
                     onCreateManualEdge={createManualEdge}
                     onMoveItem={moveItem}
+                    onRemoveItem={removeItem}
+                    hasLineageConnection={connectedItemIds.has(item.id)}
                     readOnly={lineage.line.lifecycleStatus === 'archived'}
                     key={item.id}
                   />
@@ -1749,6 +2103,8 @@ export function ReplacementLineagePage() {
             line={lineage.line}
             lines={snapshot?.lines ?? []}
             membershipCount={lineage.members.length}
+            availableItems={availableItems}
+            onAddItem={addItem}
             onMerge={mergeLines}
             onSetArchived={setLineArchived}
             onSetColorCategory={setLineColorCategory}

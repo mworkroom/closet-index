@@ -40,7 +40,7 @@
 | `phase3_outfit_preview_cache` | `20260731200415` | `20260731220215` |
 | `add_safe_item_outfit_deletion` | `20260802013109` | `20260802015500` |
 
-현재 production catalog의 16개 table, 주요 column, foreign key, 5개 trigger, 2개 통계 view, 23개 public Closet RPC는 local migration의 최종 상태와 구조적으로 맞는다. 남은 history 차이는 위의 기존 timestamp 불일치 4쌍뿐이다. Supabase migration history 목록은 SQL checksum을 제공하지 않으므로, 이름이 같은 migration 본문의 byte 단위 동일성까지 확인한 결과로 해석하면 안 된다.
+현재 production catalog의 16개 table, 주요 column, foreign key, 5개 trigger, 2개 통계 view, 28개 public Closet RPC는 적용 완료된 local migration의 최종 상태와 구조적으로 맞는다. 남은 history 차이는 위의 기존 timestamp 불일치 4쌍뿐이다. Supabase migration history 목록은 SQL checksum을 제공하지 않으므로, 이름이 같은 migration 본문의 byte 단위 동일성까지 확인한 결과로 해석하면 안 된다.
 
 ## 3. 공통 규칙
 
@@ -172,7 +172,7 @@
 - 주요 columns: `id`, `name`, `style_identity`, `review_status`, `lifecycle_status`, `representative_line_id`, `archived_at`, `updated_at`.
 - foreign keys: `(workspace_id, representative_line_id)` self FK `ON DELETE RESTRICT`.
 - 읽기: `src/data/supabase/replacement-lines.ts`, Replacement Line 목록·Lineage 화면, Phase 4 audit script.
-- 쓰기: Item 이동, Line 병합, 보관·복원 RPC. 초기 import도 생성한다.
+- 쓰기: Item 이동, Line 병합, 보관·복원, 재검토 완료, 이름·Style Identity·색상 수정과 빈 Line 삭제 RPC. 초기 import도 생성한다.
 - trigger/dependency: membership·edge·start FK와 lifecycle RPC가 연결된다.
 - 유지 이유와 cleanup: Line의 핵심 원본이다. production migration `20260804213528_add_replacement_line_color_category`은 이 table에 사람이 읽을 수 있는 nullable `color_category` 하나만 추가했으며 별도 색상 table은 만들지 않았다. 기존 팔레트 HEX는 입력 제안·tile 표시에만 활용하고 모든 active Line의 직접 값이 채워진 뒤 자동 fallback 제거를 검토한다.
 
@@ -181,7 +181,7 @@
 - 주요 columns: `replacement_line_id`, `item_id`, `created_at`.
 - foreign keys: Line `ON DELETE CASCADE`, Item `ON DELETE RESTRICT`.
 - 읽기: `src/data/supabase/replacement-lines.ts`, Phase 4 audit script.
-- 쓰기: Item 이동·Line 병합 RPC와 초기 import.
+- 쓰기: Item 이동·Line 병합, Line 미소속 Item 추가·전체 Line 제외 RPC와 초기 import.
 - trigger/dependency: `require_active_closet_replacement_line_membership`; edge와 start의 composite FK가 이 membership을 참조한다.
 - 유지 이유와 cleanup: “어떤 Item이 어떤 Line인가”의 source of truth다.
 
@@ -250,6 +250,11 @@
 | `merge_closet_replacement_lines(workspace, source, target, expected_source, expected_target)` | `mergeLines`; Line 관리 UI | lines, line_items, edges, starts | membership·edge·start 병합과 source 보관, cycle/충돌 검사 | 필요 |
 | `set_closet_replacement_line_archived(workspace, line, archived, expected_updated_at)` | `setArchived`; Line 관리 UI | lines | lifecycle·대표 관계·동시성 규칙 적용 | 필요 |
 | `set_closet_replacement_line_color_category(workspace, line, expected_updated_at, color_category)` | `setColorCategory`; Line 관리 UI | lines | 사람의 대표 색상 지정과 optimistic concurrency | 필요 |
+| `acknowledge_closet_replacement_line_review(workspace, line, expected_updated_at)` | `acknowledgeReview`; Lineage 재검토 완료 UI | lines, edges | pending edge 재확인과 Line review 상태 변경 | 필요 |
+| `update_closet_replacement_line_details(workspace, line, expected_updated_at, name, style_identity)` | `updateDetails`; Line 관리 UI | lines | 이름·Style Identity 검증과 optimistic concurrency | 필요 |
+| `delete_empty_closet_replacement_line(workspace, line, expected_updated_at)` | `deleteEmpty`; 빈 Line 삭제 UI | lines, line_items, edges, starts | 모든 dependency 재확인 뒤 빈 Line만 삭제 | 필요 |
+| `add_closet_replacement_line_item(workspace, line, item, expected_updated_at)` | `addItem`; Line 관리의 Item 추가 UI | items, lines, line_items, starts | Line 미소속 재확인·membership·start·review 상태를 원자 처리 | 필요 |
+| `remove_closet_replacement_line_item(workspace, source, item, expected_source_updated_at)` | `removeItem`; 계보 Item의 Line에서 빼기 UI | items, lines, line_items, edges, starts | 모든 edge 차단·전체 membership/start 제거·영향 Line review 전환 | 필요 |
 
 ## 6. Trigger와 view dependency
 

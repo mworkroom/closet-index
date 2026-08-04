@@ -67,6 +67,16 @@ describe('ReplacementLineagePage', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('2026')).toBeInTheDocument()
     expect(screen.getByText('2025')).toBeInTheDocument()
+    const connectedItem = screen
+      .getByRole('link', { name: '아이보리 니트 Item 상세 보기' })
+      .closest<HTMLElement>('.lineage-item')
+    expect(connectedItem).not.toBeNull()
+    expect(
+      within(connectedItem!).getByRole('button', { name: 'Line에서 빼기' }),
+    ).toBeDisabled()
+    expect(
+      within(connectedItem!).getByText('계보 연결을 먼저 모두 해제해 주세요.'),
+    ).toBeInTheDocument()
     expect(
       screen.queryByText('선택 이유 · 구매일이 아니라 확인한 대체 관계'),
     ).not.toBeInTheDocument()
@@ -569,5 +579,65 @@ describe('ReplacementLineagePage', () => {
       replacementLineId: 'line-soft-layer',
       itemId: 'item-tee',
     })
+  })
+
+  it('adds a Line-free Closet Item and can remove it without deleting the Item', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/replacement-lines/line-navy-tee']}>
+        <DataProvider repository={new DemoRepository()}>
+          <Routes>
+            <Route
+              path="/replacement-lines/:lineId"
+              element={<ReplacementLineagePage />}
+            />
+          </Routes>
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'Navy Tee' })
+    await user.click(screen.getByRole('button', { name: 'Item 추가' }))
+    await user.type(screen.getByLabelText('Item 검색'), '차콜')
+    await user.click(screen.getByRole('button', { name: /차콜 스커트/ }))
+    await user.click(screen.getByRole('button', { name: '선택한 Item 추가' }))
+
+    const addedItemLink = await screen.findByRole('link', {
+      name: '차콜 스커트 Item 상세 보기',
+    })
+    expect(screen.getByText('지정한 시작점')).toBeInTheDocument()
+    expect(
+      screen.getByText('Line membership이 변경되어 계보 재검토가 필요합니다.'),
+    ).toBeInTheDocument()
+
+    const addedItem = addedItemLink.closest<HTMLElement>('.lineage-item')
+    expect(addedItem).not.toBeNull()
+    await user.click(
+      within(addedItem!).getByRole('button', { name: 'Line에서 빼기' }),
+    )
+    expect(
+      screen.getByText(/어떤 Replacement Line에도 속하지 않게/),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Closet Item과 이미지는 삭제되지 않습니다.'),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '모든 Line에서 빼기' }))
+
+    expect(
+      screen.queryByRole('link', { name: '차콜 스커트 Item 상세 보기' }),
+    ).not.toBeInTheDocument()
+    const savedSnapshot = JSON.parse(
+      window.localStorage.getItem('closet-index-demo-replacement-lines:v1') ?? '{}',
+    )
+    expect(
+      savedSnapshot.memberships.some(
+        (membership: { itemId: string }) => membership.itemId === 'item-skirt',
+      ),
+    ).toBe(false)
+    expect(
+      (await new DemoRepository().load()).items.some(
+        (item) => item.id === 'item-skirt',
+      ),
+    ).toBe(true)
   })
 })

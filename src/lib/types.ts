@@ -427,6 +427,18 @@ export interface ReplacementLineItemMoveInput {
   expectedTargetUpdatedAt: string | null
 }
 
+export interface ReplacementLineItemAddInput {
+  lineId: string
+  itemId: string
+  expectedUpdatedAt: string
+}
+
+export interface ReplacementLineItemRemoveInput {
+  sourceLineId: string
+  itemId: string
+  expectedSourceUpdatedAt: string
+}
+
 export interface ReplacementLineMergeInput {
   sourceLineId: string
   targetLineId: string

@@ -11,7 +11,9 @@ import type {
   ReplacementLineEdgeDisconnectInput,
   ReplacementLineEdgeDirectionUpdateInput,
   ReplacementLineManualEdgeInput,
+  ReplacementLineItemAddInput,
   ReplacementLineItemMoveInput,
+  ReplacementLineItemRemoveInput,
   ReplacementLineArchiveInput,
   ReplacementLineColorUpdateInput,
   ReplacementLineDeleteInput,
@@ -467,6 +469,46 @@ export class SupabaseReplacementLineRepository {
       | null
     if (!row) throw new Error('이동한 Replacement Line을 확인하지 못했습니다.')
     return toLine(row)
+  }
+
+  async addItem(
+    input: ReplacementLineItemAddInput,
+  ): Promise<ReplacementLineRecord> {
+    const { data, error } = await this.client.rpc(
+      'add_closet_replacement_line_item',
+      {
+        p_workspace_id: this.workspaceId,
+        p_line_id: input.lineId,
+        p_item_id: input.itemId,
+        p_expected_updated_at: input.expectedUpdatedAt,
+      },
+    )
+    if (error) throw error
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | ReplacementLineRow
+      | null
+    if (!row) throw new Error('Item을 추가한 Replacement Line을 확인하지 못했습니다.')
+    return toLine(row)
+  }
+
+  async removeItem(
+    input: ReplacementLineItemRemoveInput,
+  ): Promise<ReplacementLineRecord[]> {
+    const { data, error } = await this.client.rpc(
+      'remove_closet_replacement_line_item',
+      {
+        p_workspace_id: this.workspaceId,
+        p_source_line_id: input.sourceLineId,
+        p_item_id: input.itemId,
+        p_expected_source_updated_at: input.expectedSourceUpdatedAt,
+      },
+    )
+    if (error) throw error
+    const rows = (Array.isArray(data) ? data : data ? [data] : []) as ReplacementLineRow[]
+    if (rows.length === 0) {
+      throw new Error('Item을 제외한 Replacement Line을 확인하지 못했습니다.')
+    }
+    return rows.map(toLine)
   }
 
   async mergeLines(

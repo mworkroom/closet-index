@@ -16,7 +16,9 @@ import type {
   ReplacementLineEdgeDisconnectInput,
   ReplacementLineEdgeDirectionUpdateInput,
   ReplacementLineManualEdgeInput,
+  ReplacementLineItemAddInput,
   ReplacementLineItemMoveInput,
+  ReplacementLineItemRemoveInput,
   ReplacementLineArchiveInput,
   ReplacementLineColorUpdateInput,
   ReplacementLineDeleteInput,
@@ -141,6 +143,14 @@ export class SupabaseRepository implements ClosetRepository {
 
   moveReplacementLineItem(input: ReplacementLineItemMoveInput) {
     return this.replacementLines.moveItem(input)
+  }
+
+  addReplacementLineItem(input: ReplacementLineItemAddInput) {
+    return this.replacementLines.addItem(input)
+  }
+
+  removeReplacementLineItem(input: ReplacementLineItemRemoveInput) {
+    return this.replacementLines.removeItem(input)
   }
 
   mergeReplacementLines(input: ReplacementLineMergeInput) {
