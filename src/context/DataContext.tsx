@@ -23,7 +23,9 @@ import type {
   ReplacementLineSnapshot,
   ReplacementLineEdge,
   ReplacementLineEdgeConfirmationInput,
+  ReplacementLineEdgeConnectionUpdateInput,
   ReplacementLineEdgeDetailsUpdateInput,
+  ReplacementLineEdgeDisconnectInput,
   ReplacementLineEdgeDirectionUpdateInput,
   ReplacementLineManualEdgeInput,
   ReplacementLineStart,
@@ -56,6 +58,14 @@ interface DataState {
     edgeId: string,
     input: ReplacementLineEdgeDetailsUpdateInput,
   ) => Promise<ReplacementLineEdge>
+  updateReplacementLineEdgeConnection: (
+    edgeId: string,
+    input: ReplacementLineEdgeConnectionUpdateInput,
+  ) => Promise<ReplacementLineEdge>
+  disconnectReplacementLineEdge: (
+    edgeId: string,
+    input: ReplacementLineEdgeDisconnectInput,
+  ) => Promise<boolean>
   reverseReplacementLineEdge: (
     edgeId: string,
     input: ReplacementLineEdgeDirectionUpdateInput,
@@ -290,6 +300,30 @@ export function DataProvider({
     [repository],
   )
 
+  const updateReplacementLineEdgeConnection = useCallback(
+    (edgeId: string, input: ReplacementLineEdgeConnectionUpdateInput) => {
+      if (!repository.updateReplacementLineEdgeConnection) {
+        return Promise.reject(
+          new Error('이 환경에서는 Lineage 부모 연결 수정을 지원하지 않습니다.'),
+        )
+      }
+      return repository.updateReplacementLineEdgeConnection(edgeId, input)
+    },
+    [repository],
+  )
+
+  const disconnectReplacementLineEdge = useCallback(
+    (edgeId: string, input: ReplacementLineEdgeDisconnectInput) => {
+      if (!repository.disconnectReplacementLineEdge) {
+        return Promise.reject(
+          new Error('이 환경에서는 Lineage 연결 해제를 지원하지 않습니다.'),
+        )
+      }
+      return repository.disconnectReplacementLineEdge(edgeId, input)
+    },
+    [repository],
+  )
+
   const reverseReplacementLineEdge = useCallback(
     (edgeId: string, input: ReplacementLineEdgeDirectionUpdateInput) => {
       if (!repository.reverseReplacementLineEdge) {
@@ -500,6 +534,8 @@ export function DataProvider({
       loadReplacementLineEdges,
       confirmReplacementLineEdges,
       updateReplacementLineEdgeDetails,
+      updateReplacementLineEdgeConnection,
+      disconnectReplacementLineEdge,
       reverseReplacementLineEdge,
       loadReplacementLineStarts,
       setReplacementLineStart,
@@ -541,6 +577,8 @@ export function DataProvider({
       loadReplacementLineEdges,
       confirmReplacementLineEdges,
       updateReplacementLineEdgeDetails,
+      updateReplacementLineEdgeConnection,
+      disconnectReplacementLineEdge,
       reverseReplacementLineEdge,
       loadReplacementLineStarts,
       setReplacementLineStart,

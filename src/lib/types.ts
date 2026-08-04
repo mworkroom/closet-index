@@ -346,6 +346,26 @@ export interface ReplacementLineEdgeDetailsUpdateInput {
   decisionReason: string
 }
 
+export const REPLACEMENT_LINE_DECISION_REASONS = [
+  '단순 교체',
+  '멸종 후 교체',
+  '계승 👑',
+] as const
+
+export type ReplacementLineDecisionReason =
+  (typeof REPLACEMENT_LINE_DECISION_REASONS)[number]
+
+export interface ReplacementLineEdgeConnectionUpdateInput {
+  expectedUpdatedAt: string
+  predecessorItemId: string
+  branchName: string | null
+  decisionReason: ReplacementLineDecisionReason
+}
+
+export interface ReplacementLineEdgeDisconnectInput {
+  expectedUpdatedAt: string
+}
+
 export interface ReplacementLineEdgeDirectionUpdateInput {
   expectedUpdatedAt: string
 }
@@ -361,7 +381,7 @@ export interface ReplacementLineManualEdgeInput {
   predecessorItemId: string
   successorItemId: string
   branchName: string | null
-  decisionReason: string
+  decisionReason: ReplacementLineDecisionReason
 }
 
 export interface RecommendationInput {

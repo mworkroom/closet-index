@@ -13,7 +13,9 @@ import type {
   ReplacementLineSnapshot,
   ReplacementLineEdge,
   ReplacementLineEdgeConfirmationInput,
+  ReplacementLineEdgeConnectionUpdateInput,
   ReplacementLineEdgeDetailsUpdateInput,
+  ReplacementLineEdgeDisconnectInput,
   ReplacementLineEdgeDirectionUpdateInput,
   ReplacementLineManualEdgeInput,
   ReplacementLineStart,
@@ -26,6 +28,7 @@ import type {
   WearLog,
   WearLogInput,
 } from '../lib/types'
+import { REPLACEMENT_LINE_DECISION_REASONS } from '../lib/types'
 import { demoData } from './demo-data'
 import type { ClosetRepository } from './repository'
 
@@ -432,6 +435,114 @@ export class DemoRepository implements ClosetRepository {
     return structuredClone(updated)
   }
 
+  async updateReplacementLineEdgeConnection(
+    edgeId: string,
+    input: ReplacementLineEdgeConnectionUpdateInput,
+  ) {
+    const edges = readDemoReplacementLineEdges()
+    const index = edges.findIndex((edge) => edge.id === edgeId)
+    if (index < 0) throw new Error('수정할 계보 연결을 찾지 못했습니다.')
+
+    const current = edges[index]
+    if (current.updatedAt !== input.expectedUpdatedAt) {
+      throw new Error(
+        '다른 곳에서 계보 연결이 변경되었습니다. 다시 불러온 뒤 수정해 주세요.',
+      )
+    }
+    if (current.status !== 'confirmed') {
+      throw new Error('확정된 계보 연결만 수정할 수 있습니다.')
+    }
+    if (input.predecessorItemId === current.successorItemId) {
+      throw new Error('자기 자신을 이전 Item으로 선택할 수 없습니다.')
+    }
+
+    const isMember = demoReplacementLineSnapshot.memberships.some(
+      (membership) =>
+        membership.replacementLineId === current.replacementLineId &&
+        membership.itemId === input.predecessorItemId,
+    )
+    if (!isMember) throw new Error('같은 Line의 Item만 이전 Item으로 선택할 수 있습니다.')
+
+    const decisionReason = input.decisionReason.trim()
+    const branchName = input.branchName?.trim() || null
+    if (!(REPLACEMENT_LINE_DECISION_REASONS as readonly string[]).includes(decisionReason)) {
+      throw new Error('선택 이유를 목록에서 골라 주세요.')
+    }
+    if (branchName && branchName.length > 200) {
+      throw new Error('가지 이름은 200자 이하로 입력해 주세요.')
+    }
+    if (
+      current.predecessorItemId === input.predecessorItemId &&
+      current.decisionReason === decisionReason &&
+      current.branchName === branchName
+    ) {
+      throw new Error('변경된 내용이 없습니다.')
+    }
+
+    const changedAt = new Date(
+      Math.max(Date.now(), new Date(current.updatedAt).getTime() + 1),
+    ).toISOString()
+    const updated: ReplacementLineEdge = {
+      ...current,
+      predecessorItemId: input.predecessorItemId,
+      sourceLegacyLinkId: null,
+      sourceKind: 'manual',
+      decisionReason,
+      branchName,
+      confirmedAt: changedAt,
+      updatedAt: changedAt,
+    }
+    const nextEdges = edges.map((edge) => (edge.id === edgeId ? updated : edge))
+    if (hasLineageCycle(nextEdges)) {
+      throw new Error('Replacement Line 계보에는 cycle을 만들 수 없습니다.')
+    }
+
+    window.localStorage.setItem(LINEAGE_EDGE_STORAGE_KEY, JSON.stringify(nextEdges))
+    return structuredClone(updated)
+  }
+
+  async disconnectReplacementLineEdge(
+    edgeId: string,
+    input: ReplacementLineEdgeDisconnectInput,
+  ) {
+    const edges = readDemoReplacementLineEdges()
+    const current = edges.find((edge) => edge.id === edgeId)
+    if (!current) throw new Error('해제할 계보 연결을 찾지 못했습니다.')
+    if (current.updatedAt !== input.expectedUpdatedAt) {
+      throw new Error(
+        '다른 곳에서 계보 연결이 변경되었습니다. 다시 불러온 뒤 수정해 주세요.',
+      )
+    }
+    if (current.status !== 'confirmed') {
+      throw new Error('확정된 계보 연결만 해제할 수 있습니다.')
+    }
+
+    const nextEdges = edges.filter((edge) => edge.id !== edgeId)
+    const shouldBeStart = !nextEdges.some(
+      (edge) =>
+        edge.replacementLineId === current.replacementLineId &&
+        edge.successorItemId === current.successorItemId &&
+        edge.status === 'confirmed',
+    )
+    window.localStorage.setItem(LINEAGE_EDGE_STORAGE_KEY, JSON.stringify(nextEdges))
+
+    if (shouldBeStart) {
+      const starts = readDemoReplacementLineStarts().filter(
+        (start) =>
+          start.replacementLineId !== current.replacementLineId ||
+          start.itemId !== current.successorItemId,
+      )
+      starts.push({
+        replacementLineId: current.replacementLineId,
+        itemId: current.successorItemId,
+        designatedAt: new Date().toISOString(),
+      })
+      window.localStorage.setItem(LINEAGE_START_STORAGE_KEY, JSON.stringify(starts))
+    }
+
+    return shouldBeStart
+  }
+
   async reverseReplacementLineEdge(
     edgeId: string,
     input: ReplacementLineEdgeDirectionUpdateInput,
@@ -586,9 +697,8 @@ export class DemoRepository implements ClosetRepository {
 
     const decisionReason = input.decisionReason.trim()
     const branchName = input.branchName?.trim() || null
-    if (!decisionReason) throw new Error('선택 이유를 입력해 주세요.')
-    if (decisionReason.length > 2000) {
-      throw new Error('선택 이유는 2,000자 이하로 입력해 주세요.')
+    if (!(REPLACEMENT_LINE_DECISION_REASONS as readonly string[]).includes(decisionReason)) {
+      throw new Error('선택 이유를 목록에서 골라 주세요.')
     }
     if (branchName && branchName.length > 200) {
       throw new Error('가지 이름은 200자 이하로 입력해 주세요.')

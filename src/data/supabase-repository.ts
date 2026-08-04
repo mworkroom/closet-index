@@ -12,7 +12,9 @@ import type {
   ReplacementLineSnapshot,
   ReplacementLineEdge,
   ReplacementLineEdgeConfirmationInput,
+  ReplacementLineEdgeConnectionUpdateInput,
   ReplacementLineEdgeDetailsUpdateInput,
+  ReplacementLineEdgeDisconnectInput,
   ReplacementLineEdgeDirectionUpdateInput,
   ReplacementLineManualEdgeInput,
   ReplacementLineStart,
@@ -90,6 +92,20 @@ export class SupabaseRepository implements ClosetRepository {
     input: ReplacementLineEdgeDetailsUpdateInput,
   ): Promise<ReplacementLineEdge> {
     return this.replacementLines.updateEdgeDetails(edgeId, input)
+  }
+
+  updateReplacementLineEdgeConnection(
+    edgeId: string,
+    input: ReplacementLineEdgeConnectionUpdateInput,
+  ): Promise<ReplacementLineEdge> {
+    return this.replacementLines.updateEdgeConnection(edgeId, input)
+  }
+
+  disconnectReplacementLineEdge(
+    edgeId: string,
+    input: ReplacementLineEdgeDisconnectInput,
+  ): Promise<boolean> {
+    return this.replacementLines.disconnectEdge(edgeId, input)
   }
 
   reverseReplacementLineEdge(

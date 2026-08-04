@@ -403,6 +403,10 @@ Legacy Link 검토 뒤 다음 편집을 연다.
 
 DAG를 수용하는 데이터 구조는 준비하되 가지 이름 상속, 합류 배지, 복잡한 branch 전용 UI는 실제 가지나 합류 사례가 확인된 뒤 확장한다.
 
+실사용 중 잘못 연결한 edge는 같은 Line 안에서 predecessor를 다시 고르거나 완전히 해제할 수 있다. 해제한 successor에 다른 confirmed incoming edge가 없다면 해당 Item을 명시적 시작점으로 보존한다. 이는 현재 Line 안의 계보 구조를 고치는 기능이며, 다른 Line으로 membership을 옮기거나 새 Line을 만드는 작업은 Line 관리 단계에서 별도로 다룬다.
+
+선택 이유는 매번 주관식으로 쓰지 않고 `단순 교체`, `멸종 후 교체`, `계승 👑` 세 가지 중 하나를 고른다. 기존 자유 입력 이유는 새 편집 폼의 기본값으로 복원하지 않고, 다음 수정 때 표준 선택지로 다시 판단한다. 분기 세대는 데스크톱에서 카드 왼쪽 바깥 rail과 elbow connector로 구분하고, 모바일에서는 카드 폭을 침범하지 않도록 들여쓰기를 줄인다.
+
 ## 9. 데이터와 보안
 
 ### 9.1 기존 원본
@@ -509,6 +513,8 @@ P4-2B의 canonical pair schema, workspace RLS, 49-pair importer와 검토 화면
 - [x] 시작점과 predecessor·successor 편집
 - [x] cycle·self-edge·workspace 불일치 차단
 - [x] 가지 이름·선택 이유 인라인 편집과 전용 RPC
+- [x] predecessor 재선택, edge 해제와 successor 시작점 전환
+- [x] 선택 이유 3종 드롭다운과 왼쪽 branch connector
 - [ ] Line 병합·보관·대표 Line
 - [ ] membership 변경 시 `needs_review`
 - [ ] 자동 분류보다 우선하는 Line 색상 category 직접 지정
@@ -532,6 +538,8 @@ Line 선택이 필요한 1개 관계에는 기본값 없는 두 선택지를 제
 기존 confirmed edge의 predecessor·successor를 확인 뒤 교환하는 `방향 바꾸기` UI와 production migration `20260803182849_reverse_replacement_line_edge`를 추가했다. 방향 전환 RPC는 출처 Legacy Link의 검토 결정을 반대로 revise해 append-only revision을 남긴 뒤 같은 edge를 다시 confirmed로 만들며, 이 과정을 한 transaction에서 처리한다. 기존 cycle trigger가 새 방향을 검증하므로 순환이 생기면 Legacy revision과 edge 변경이 함께 rollback되고, 화면이 읽은 edge `updated_at`과 workspace membership도 다시 검사한다. production rollback fixture에서 edge 방향 교환, Legacy 결정 반전, revision 증가, timestamp 전진과 confirmed 유지, stale·비회원 거절을 확인한 뒤 원본 45개 edge와 표본 revision이 그대로인 것을 재확인했다. 명시적 시작점 지정과 신규 수동 관계 생성은 별도 후속 데이터 구조로 남긴다.
 
 명시적 시작점과 Legacy Link가 없는 신규 연결을 위해 production migration `20260803185015_add_replacement_line_starts_and_manual_edges`를 적용했다. 시작점은 별도 table에 저장해 incoming edge와 동시에 존재하지 못하게 하고, 수동 edge는 기존 Legacy Link 출처를 흉내 내지 않도록 `source_kind = 'manual'`과 nullable `source_legacy_link_id`로 구분한다. `계보 연결 전` Item에서 시작점으로 지정하거나 Line의 다른 Item을 predecessor로 골라 선택 이유·가지 이름과 함께 연결할 수 있으며, G0에서도 명시적 시작점을 지정·해제할 수 있다. 새 RPC는 workspace membership, Line membership, self-edge, 중복, cycle과 시작점 충돌을 다시 검사하며 table 직접 쓰기는 열지 않는다. production rollback fixture에서 시작점 지정·해제, 수동 edge 생성, incoming Item의 시작점 지정 거절, cycle과 비회원 쓰기 거절을 확인했고, rollback 뒤 기존 confirmed edge 45개·수동 edge 0개·명시적 시작점 0개가 유지됐다. 기능은 준비됐지만 실제 미연결 Item을 시작점 또는 incoming edge로 분류하는 판단은 J가 앱에서 차례로 저장해야 하므로 전체 데이터 완료 조건은 아직 열어 둔다.
+
+실사용 정정 도구로 기존 confirmed edge의 predecessor, 선택 이유와 가지 이름을 한 폼에서 다시 고르고, edge를 해제해 successor를 같은 Line의 명시적 시작점으로 전환했다. 선택 이유는 `단순 교체`, `멸종 후 교체`, `계승 👑`로 제한하고 기존 자유 입력 이유는 다음 편집 때 빈 선택으로 다시 판단하게 한다. 여러 G0에서 갈라진 세대는 prototype처럼 카드 왼쪽 rail에 연결하고 모바일에서는 들여쓰기를 줄였다. production migration `20260804010637_edit_replacement_line_connections` 적용 뒤 transaction rollback fixture로 부모 변경, stale 충돌, edge 해제, G0 전환과 비회원 거절을 확인했고, J가 저장한 현재 `57 confirmed edge · 12 manual edge · 4 explicit start`와 전체 checksum이 그대로 유지됐다. 다른 Line으로 Item을 옮기거나 새 Line을 만드는 membership 편집은 Line 관리 후속 작업으로 남는다.
 
 ### P4-3. 통합 검증과 공개
 

@@ -13,11 +13,15 @@ import {
 import type {
   Item,
   ReplacementLineEdge,
-  ReplacementLineEdgeDetailsUpdateInput,
+  ReplacementLineEdgeConnectionUpdateInput,
   ReplacementLineEdgeDirectionUpdateInput,
   ReplacementLineManualEdgeInput,
   ReplacementLineSnapshot,
   ReplacementLineStart,
+} from '../lib/types'
+import {
+  REPLACEMENT_LINE_DECISION_REASONS,
+  type ReplacementLineDecisionReason,
 } from '../lib/types'
 
 function acquisitionLabel(acquiredOn: string | null) {
@@ -26,10 +30,12 @@ function acquisitionLabel(acquiredOn: string | null) {
 
 interface LineageItemRowProps {
   node: ReplacementLineageNode
+  members: Item[]
   onUpdateEdge: (
     edgeId: string,
-    input: ReplacementLineEdgeDetailsUpdateInput,
+    input: ReplacementLineEdgeConnectionUpdateInput,
   ) => Promise<void>
+  onDisconnectEdge: (edge: ReplacementLineEdge) => Promise<void>
   onReverseEdge: (
     edgeId: string,
     input: ReplacementLineEdgeDirectionUpdateInput,
@@ -39,7 +45,9 @@ interface LineageItemRowProps {
 
 function LineageItemRow({
   node,
+  members,
   onUpdateEdge,
+  onDisconnectEdge,
   onReverseEdge,
   onSetStart,
 }: LineageItemRowProps) {
@@ -49,14 +57,24 @@ function LineageItemRow({
     null,
   )
   const [decisionReason, setDecisionReason] = useState('')
+  const [predecessorItemId, setPredecessorItemId] = useState('')
   const [branchName, setBranchName] = useState('')
+  const [confirmingDisconnect, setConfirmingDisconnect] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
   const startEditing = (edge: ReplacementLineEdge) => {
     setEditingEdge(edge)
-    setDecisionReason(edge.decisionReason)
+    setPredecessorItemId(edge.predecessorItemId)
+    setDecisionReason(
+      (REPLACEMENT_LINE_DECISION_REASONS as readonly string[]).includes(
+        edge.decisionReason,
+      )
+        ? edge.decisionReason
+        : '',
+    )
     setBranchName(edge.branchName ?? '')
+    setConfirmingDisconnect(false)
     setSaveError(null)
   }
 
@@ -67,6 +85,7 @@ function LineageItemRow({
 
   const cancelEditing = () => {
     setEditingEdge(null)
+    setConfirmingDisconnect(false)
     setSaveError(null)
   }
 
@@ -75,25 +94,45 @@ function LineageItemRow({
   const hasChanges = Boolean(
     editingEdge &&
       (editingEdge.decisionReason !== normalizedReason ||
+        editingEdge.predecessorItemId !== predecessorItemId ||
         editingEdge.branchName !== normalizedBranchName),
   )
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!editingEdge || !normalizedReason || !hasChanges) return
+    if (!editingEdge || !predecessorItemId || !normalizedReason || !hasChanges) return
 
     setSaving(true)
     setSaveError(null)
     try {
       await onUpdateEdge(editingEdge.id, {
         expectedUpdatedAt: editingEdge.updatedAt,
-        decisionReason: normalizedReason,
+        predecessorItemId,
+        decisionReason: normalizedReason as ReplacementLineDecisionReason,
         branchName: normalizedBranchName,
       })
       setEditingEdge(null)
     } catch (cause) {
       setSaveError(
         cause instanceof Error ? cause.message : '계승 정보를 저장하지 못했습니다.',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDisconnect = async () => {
+    if (!editingEdge) return
+
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await onDisconnectEdge(editingEdge)
+      setEditingEdge(null)
+      setConfirmingDisconnect(false)
+    } catch (cause) {
+      setSaveError(
+        cause instanceof Error ? cause.message : '계보 연결을 해제하지 못했습니다.',
       )
     } finally {
       setSaving(false)
@@ -144,7 +183,10 @@ function LineageItemRow({
         <span className="lineage-item-row__body">
           <strong>{node.item.name}</strong>
           <span>{acquisitionLabel(node.item.acquiredOn)}</span>
-          {node.reason ? (
+          {node.reason &&
+          (REPLACEMENT_LINE_DECISION_REASONS as readonly string[]).includes(
+            node.reason,
+          ) ? (
             <span className="lineage-item-row__reason">선택 이유 · {node.reason}</span>
           ) : null}
           {node.branchName ? (
@@ -171,7 +213,7 @@ function LineageItemRow({
             )
             const buttonLabel =
               node.incomingEdges.length === 1
-                ? '계승 정보 수정'
+                ? '연결 수정'
                 : `${predecessor?.name ?? '이전 Item'} 연결 수정`
             return (
               <span className="lineage-edge-action-group" key={edge.id}>
@@ -179,7 +221,7 @@ function LineageItemRow({
                   className="lineage-edge-edit-button"
                   type="button"
                   onClick={() => startEditing(edge)}
-                  aria-label={`${predecessor?.name ?? '이전 Item'}에서 ${node.item.name}으로 이어진 계승 정보 수정`}
+                  aria-label={`${predecessor?.name ?? '이전 Item'}에서 ${node.item.name}으로 이어진 연결 수정`}
                 >
                   {buttonLabel}
                 </button>
@@ -221,21 +263,38 @@ function LineageItemRow({
 
       {editingEdge ? (
         <form className="lineage-edge-form" onSubmit={handleSubmit}>
-          <p className="lineage-edge-form__context">
-            {node.predecessors.find(
-              (item) => item.id === editingEdge.predecessorItemId,
-            )?.name ?? '이전 Item'}{' '}
-            → {node.item.name}
-          </p>
+          <p className="lineage-edge-form__context">{node.item.name}의 연결 수정</p>
           <label className="field">
-            <span>선택 이유</span>
-            <textarea
-              value={decisionReason}
-              onChange={(event) => setDecisionReason(event.target.value)}
-              maxLength={2000}
+            <span>이전 Item</span>
+            <select
+              value={predecessorItemId}
+              onChange={(event) => setPredecessorItemId(event.target.value)}
               required
               autoFocus
-            />
+            >
+              {members
+                .filter((item) => item.id !== node.item.id)
+                .map((item) => (
+                  <option value={item.id} key={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>선택 이유</span>
+            <select
+              value={decisionReason}
+              onChange={(event) => setDecisionReason(event.target.value)}
+              required
+            >
+              <option value="">선택해 주세요</option>
+              {REPLACEMENT_LINE_DECISION_REASONS.map((reason) => (
+                <option value={reason} key={reason}>
+                  {reason}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="field">
             <span>가지 이름 (선택)</span>
@@ -263,11 +322,49 @@ function LineageItemRow({
             <button
               className="button button--primary"
               type="submit"
-              disabled={saving || !normalizedReason || !hasChanges}
+              disabled={
+                saving || !predecessorItemId || !normalizedReason || !hasChanges
+              }
             >
               {saving ? '저장 중…' : '저장'}
             </button>
           </div>
+          {!confirmingDisconnect ? (
+            <button
+              className="lineage-edge-disconnect-button"
+              type="button"
+              onClick={() => setConfirmingDisconnect(true)}
+              disabled={saving}
+            >
+              계보에서 빼기
+            </button>
+          ) : (
+            <div className="lineage-edge-disconnect-confirmation" role="alert">
+              <p>
+                이 부모 연결을 해제하고 {node.item.name}을 같은 Line의 시작점으로
+                둘까요?
+              </p>
+              <small>다른 Line으로 옮기는 기능은 Line 관리 단계에서 추가합니다.</small>
+              <div className="lineage-edge-form__actions">
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={() => setConfirmingDisconnect(false)}
+                  disabled={saving}
+                >
+                  계속 편집
+                </button>
+                <button
+                  className="button button--danger"
+                  type="button"
+                  onClick={() => void handleDisconnect()}
+                  disabled={saving}
+                >
+                  {saving ? '빼는 중…' : '연결 해제'}
+                </button>
+              </div>
+            </div>
+          )}
         </form>
       ) : null}
 
@@ -319,12 +416,16 @@ function LineageItemRow({
 
 function LineageGeneration({
   generation,
+  members,
   onUpdateEdge,
+  onDisconnectEdge,
   onReverseEdge,
   onSetStart,
 }: {
   generation: ReplacementLineageGeneration
+  members: Item[]
   onUpdateEdge: LineageItemRowProps['onUpdateEdge']
+  onDisconnectEdge: LineageItemRowProps['onDisconnectEdge']
   onReverseEdge: LineageItemRowProps['onReverseEdge']
   onSetStart: LineageItemRowProps['onSetStart']
 }) {
@@ -347,28 +448,34 @@ function LineageGeneration({
         {generation.groups.map((group, groupIndex) => {
           const headingId = `lineage-generation-${generation.depth}-${groupIndex}`
           return (
-            <section
-              className={`lineage-generation-card lineage-generation-card--${group.kind}`}
-              aria-labelledby={headingId}
+            <div
+              className="lineage-generation-branch"
               key={group.id}
             >
-              <header>
-                <h2 id={headingId}>
-                  G{generation.depth} · {group.label}
-                </h2>
-              </header>
-              <div className="lineage-generation-card__items">
-                {group.nodes.map((node) => (
-                  <LineageItemRow
-                    key={node.item.id}
-                    node={node}
-                    onUpdateEdge={onUpdateEdge}
-                    onReverseEdge={onReverseEdge}
-                    onSetStart={onSetStart}
-                  />
-                ))}
-              </div>
-            </section>
+              <section
+                className={`lineage-generation-card lineage-generation-card--${group.kind}`}
+                aria-labelledby={headingId}
+              >
+                <header>
+                  <h2 id={headingId}>
+                    G{generation.depth} · {group.label}
+                  </h2>
+                </header>
+                <div className="lineage-generation-card__items">
+                  {group.nodes.map((node) => (
+                    <LineageItemRow
+                      key={node.item.id}
+                      node={node}
+                      members={members}
+                      onUpdateEdge={onUpdateEdge}
+                      onDisconnectEdge={onDisconnectEdge}
+                      onReverseEdge={onReverseEdge}
+                      onSetStart={onSetStart}
+                    />
+                  ))}
+                </div>
+              </section>
+            </div>
           )
         })}
       </div>
@@ -422,7 +529,7 @@ function UnconnectedLineageItem({
         replacementLineId,
         predecessorItemId,
         successorItemId: item.id,
-        decisionReason: normalizedReason,
+        decisionReason: normalizedReason as ReplacementLineDecisionReason,
         branchName: branchName.trim() || null,
       })
     } catch (cause) {
@@ -494,12 +601,18 @@ function UnconnectedLineageItem({
           </label>
           <label className="field">
             <span>선택 이유</span>
-            <textarea
+            <select
               value={decisionReason}
               onChange={(event) => setDecisionReason(event.target.value)}
-              maxLength={2000}
               required
-            />
+            >
+              <option value="">선택해 주세요</option>
+              {REPLACEMENT_LINE_DECISION_REASONS.map((reason) => (
+                <option value={reason} key={reason}>
+                  {reason}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="field">
             <span>가지 이름 (선택)</span>
@@ -546,7 +659,8 @@ export function ReplacementLineagePage() {
     data,
     loadReplacementLines,
     loadReplacementLineEdges,
-    updateReplacementLineEdgeDetails,
+    updateReplacementLineEdgeConnection,
+    disconnectReplacementLineEdge,
     reverseReplacementLineEdge,
     loadReplacementLineStarts,
     setReplacementLineStart,
@@ -586,14 +700,42 @@ export function ReplacementLineagePage() {
   }, [load])
 
   const updateEdge = useCallback(
-    async (edgeId: string, input: ReplacementLineEdgeDetailsUpdateInput) => {
-      const updatedEdge = await updateReplacementLineEdgeDetails(edgeId, input)
+    async (edgeId: string, input: ReplacementLineEdgeConnectionUpdateInput) => {
+      const updatedEdge = await updateReplacementLineEdgeConnection(edgeId, input)
       setEdges((current) =>
         current?.map((edge) => (edge.id === updatedEdge.id ? updatedEdge : edge)) ??
         current,
       )
     },
-    [updateReplacementLineEdgeDetails],
+    [updateReplacementLineEdgeConnection],
+  )
+
+  const disconnectEdge = useCallback(
+    async (edge: ReplacementLineEdge) => {
+      const isStart = await disconnectReplacementLineEdge(edge.id, {
+        expectedUpdatedAt: edge.updatedAt,
+      })
+      setEdges((current) => current?.filter((entry) => entry.id !== edge.id) ?? current)
+      if (isStart) {
+        setStarts((current) => {
+          const withoutItem =
+            current?.filter(
+              (start) =>
+                start.replacementLineId !== edge.replacementLineId ||
+                start.itemId !== edge.successorItemId,
+            ) ?? []
+          return [
+            ...withoutItem,
+            {
+              replacementLineId: edge.replacementLineId,
+              itemId: edge.successorItemId,
+              designatedAt: new Date().toISOString(),
+            },
+          ]
+        })
+      }
+    },
+    [disconnectReplacementLineEdge],
   )
 
   const reverseEdge = useCallback(
@@ -698,7 +840,9 @@ export function ReplacementLineagePage() {
               {lineage.generations.map((generation) => (
                 <LineageGeneration
                   generation={generation}
+                  members={lineage.members}
                   onUpdateEdge={updateEdge}
+                  onDisconnectEdge={disconnectEdge}
                   onReverseEdge={reverseEdge}
                   onSetStart={setStart}
                   key={generation.depth}

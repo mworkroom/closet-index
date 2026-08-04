@@ -6,7 +6,9 @@ import type {
   ReplacementLineSnapshot,
   ReplacementLineEdge,
   ReplacementLineEdgeConfirmationInput,
+  ReplacementLineEdgeConnectionUpdateInput,
   ReplacementLineEdgeDetailsUpdateInput,
+  ReplacementLineEdgeDisconnectInput,
   ReplacementLineEdgeDirectionUpdateInput,
   ReplacementLineManualEdgeInput,
   ReplacementLineStart,
@@ -210,6 +212,45 @@ export class SupabaseReplacementLineRepository {
       | null
     if (!row) throw new Error('수정된 계보 연결을 확인하지 못했습니다.')
     return toLineEdge(row)
+  }
+
+  async updateEdgeConnection(
+    edgeId: string,
+    input: ReplacementLineEdgeConnectionUpdateInput,
+  ): Promise<ReplacementLineEdge> {
+    const { data, error } = await this.client.rpc(
+      'update_closet_replacement_line_edge_connection',
+      {
+        p_workspace_id: this.workspaceId,
+        p_edge_id: edgeId,
+        p_expected_updated_at: input.expectedUpdatedAt,
+        p_predecessor_item_id: input.predecessorItemId,
+        p_branch_name: input.branchName,
+        p_decision_reason: input.decisionReason,
+      },
+    )
+    if (error) throw error
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | ReplacementLineEdgeRow
+      | null
+    if (!row) throw new Error('수정된 계보 연결을 확인하지 못했습니다.')
+    return toLineEdge(row)
+  }
+
+  async disconnectEdge(
+    edgeId: string,
+    input: ReplacementLineEdgeDisconnectInput,
+  ): Promise<boolean> {
+    const { data, error } = await this.client.rpc(
+      'disconnect_closet_replacement_line_edge',
+      {
+        p_workspace_id: this.workspaceId,
+        p_edge_id: edgeId,
+        p_expected_updated_at: input.expectedUpdatedAt,
+      },
+    )
+    if (error) throw error
+    return Boolean(data)
   }
 
   async reverseEdge(

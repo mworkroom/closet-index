@@ -67,17 +67,20 @@ describe('ReplacementLineagePage', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('2026')).toBeInTheDocument()
     expect(screen.getByText('2025')).toBeInTheDocument()
-    expect(screen.getByText('선택 이유 · 구매일이 아니라 확인한 대체 관계')).toBeInTheDocument()
+    expect(
+      screen.queryByText('선택 이유 · 구매일이 아니라 확인한 대체 관계'),
+    ).not.toBeInTheDocument()
 
-    await user.click(screen.getByText('계승 정보 수정'))
+    await user.click(screen.getByText('연결 수정'))
+    expect(screen.getByLabelText('이전 Item')).toHaveValue('item-cardigan')
     const reasonField = screen.getByLabelText('선택 이유')
-    await user.clear(reasonField)
-    await user.type(reasonField, '레이어드 균형이 더 좋아서 선택')
+    expect(reasonField).toHaveValue('')
+    await user.selectOptions(reasonField, '계승 👑')
     await user.type(screen.getByLabelText('가지 이름 (선택)'), '여유로운 핏')
     await user.click(screen.getByRole('button', { name: '저장' }))
 
     expect(
-      await screen.findByText('선택 이유 · 레이어드 균형이 더 좋아서 선택'),
+      await screen.findByText('선택 이유 · 계승 👑'),
     ).toBeInTheDocument()
     expect(screen.getByText('가지 · 여유로운 핏')).toBeInTheDocument()
     expect(
@@ -87,8 +90,10 @@ describe('ReplacementLineagePage', () => {
     ).toEqual([
       expect.objectContaining({
         id: 'edge-layer',
-        decisionReason: '레이어드 균형이 더 좋아서 선택',
+        decisionReason: '계승 👑',
         branchName: '여유로운 핏',
+        sourceLegacyLinkId: null,
+        sourceKind: 'manual',
       }),
     ])
 
@@ -96,6 +101,58 @@ describe('ReplacementLineagePage', () => {
       screen.getByRole('link', { name: '아이보리 니트 Item 상세 보기' }),
     )
     expect(screen.getByText('Item 상세 도착')).toBeInTheDocument()
+  })
+
+  it('disconnects an incoming edge and keeps the child as an explicit G0 start', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/replacement-lines/line-soft-layer']}>
+        <DataProvider repository={new DemoRepository()}>
+          <Routes>
+            <Route
+              path="/replacement-lines/:lineId"
+              element={<ReplacementLineagePage />}
+            />
+          </Routes>
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'Soft Layer' })
+    await user.click(screen.getByText('연결 수정'))
+    await user.click(screen.getByRole('button', { name: '계보에서 빼기' }))
+
+    expect(
+      screen.getByText(/같은 Line의 시작점으로/),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('다른 Line으로 옮기는 기능은 Line 관리 단계에서 추가합니다.'),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '연결 해제' }))
+
+    const generationZero = await screen.findByRole('heading', {
+      name: 'G0 · 시작 아이템',
+    })
+    expect(
+      within(generationZero.closest('section')!).getByText('아이보리 니트'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('지정한 시작점')).toBeInTheDocument()
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('closet-index-demo-lineage-edges:v1') ?? '[]',
+      ),
+    ).toEqual([])
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('closet-index-demo-lineage-starts:v1') ?? '[]',
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        replacementLineId: 'line-soft-layer',
+        itemId: 'item-knit',
+      }),
+    ])
   })
 
   it('reverses a confirmed edge only after confirmation and recalculates generations', async () => {
@@ -217,7 +274,7 @@ describe('ReplacementLineagePage', () => {
     expect(targetCard).not.toBeNull()
     await user.click(within(targetCard!).getByRole('button', { name: '계보에 연결' }))
     await user.selectOptions(screen.getByLabelText('이전 Item'), 'item-loafers')
-    await user.type(screen.getByLabelText('선택 이유'), '기존 로퍼 다음 운동화')
+    await user.selectOptions(screen.getByLabelText('선택 이유'), '단순 교체')
     await user.click(screen.getByRole('button', { name: '연결 저장' }))
 
     const generationZero = screen
@@ -240,7 +297,7 @@ describe('ReplacementLineagePage', () => {
           successorItemId: 'item-shoes',
           sourceLegacyLinkId: null,
           sourceKind: 'manual',
-          decisionReason: '기존 로퍼 다음 운동화',
+          decisionReason: '단순 교체',
         }),
       ]),
     )

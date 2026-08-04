@@ -223,6 +223,40 @@ describe('SupabaseReplacementLineRepository', () => {
     )
 
     await expect(
+      repository.updateEdgeConnection('edge-a', {
+        expectedUpdatedAt: '2026-08-03T01:00:00Z',
+        predecessorItemId: 'item-c',
+        branchName: '여름 계열',
+        decisionReason: '계승 👑',
+      }),
+    ).resolves.toMatchObject({ id: 'edge-a' })
+    expect(rpc).toHaveBeenCalledWith(
+      'update_closet_replacement_line_edge_connection',
+      {
+        p_workspace_id: 'workspace-a',
+        p_edge_id: 'edge-a',
+        p_expected_updated_at: '2026-08-03T01:00:00Z',
+        p_predecessor_item_id: 'item-c',
+        p_branch_name: '여름 계열',
+        p_decision_reason: '계승 👑',
+      },
+    )
+
+    await expect(
+      repository.disconnectEdge('edge-a', {
+        expectedUpdatedAt: '2026-08-03T01:00:00Z',
+      }),
+    ).resolves.toBe(true)
+    expect(rpc).toHaveBeenCalledWith(
+      'disconnect_closet_replacement_line_edge',
+      {
+        p_workspace_id: 'workspace-a',
+        p_edge_id: 'edge-a',
+        p_expected_updated_at: '2026-08-03T01:00:00Z',
+      },
+    )
+
+    await expect(
       repository.reverseEdge('edge-a', {
         expectedUpdatedAt: '2026-08-03T01:00:00Z',
       }),
@@ -249,7 +283,7 @@ describe('SupabaseReplacementLineRepository', () => {
         predecessorItemId: 'item-a',
         successorItemId: 'item-b',
         branchName: null,
-        decisionReason: '직접 확인한 연결',
+        decisionReason: '단순 교체',
       }),
     ).resolves.toMatchObject({ id: 'edge-a' })
     expect(rpc).toHaveBeenCalledWith(
@@ -260,7 +294,7 @@ describe('SupabaseReplacementLineRepository', () => {
         p_predecessor_item_id: 'item-a',
         p_successor_item_id: 'item-b',
         p_branch_name: null,
-        p_decision_reason: '직접 확인한 연결',
+        p_decision_reason: '단순 교체',
       },
     )
   })

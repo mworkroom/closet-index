@@ -1,62 +1,50 @@
-# Replacement Lineage Design QA
+# Replacement Lineage Connection Editing Design QA
 
-## Comparison Target
+## Evidence
 
-- Source visual truth: `C:\Users\Marion\AppData\Local\Temp\codex-clipboard-9aded771-17de-4c4c-a041-b3f0cb97d9ec.png`
-- Implementation screenshot: `C:\Users\Marion\.codex\visualizations\2026\08\02\019fc39b-4007-7d02-b2d2-f879b2f0d060\phase4-lineage-black-hoodie-mobile-viewport.png`
-- Source state: `ITEM LINEAGE · Ivory Layered` reference with G0, a multi-row G1 card, and predecessor-specific G2 cards.
-- Implementation state: signed-in production `Black Hoodie Winter` with confirmed G0→G1→G2 edges. Item names, counts, images, years, reasons, and statuses intentionally use real production data instead of the reference fixture.
+- Source visual truth: `C:/Users/Marion/Desktop/IMG 005.png`
+- Supporting prototype: `C:/Users/Marion/AppData/Local/Temp/codex-clipboard-41b24963-9129-44dc-88ee-69fa24fd9f21.png`
+- Implementation route: `http://127.0.0.1:5173/replacement-lines/361f66af-29b2-80f9-88ce-cb9e0eb09b6a`
+- Desktop implementation screenshot: `C:/Users/Marion/.codex/visualizations/2026/08/02/019fc39b-4007-7d02-b2d2-f879b2f0d060/closet-index-lineage-left-branches.png`
+- Mobile implementation screenshot: `C:/Users/Marion/.codex/visualizations/2026/08/02/019fc39b-4007-7d02-b2d2-f879b2f0d060/closet-index-lineage-left-branches-mobile-viewport.png`
+- Connection edit screenshot: `C:/Users/Marion/.codex/visualizations/2026/08/02/019fc39b-4007-7d02-b2d2-f879b2f0d060/closet-index-lineage-edit-form.png`
+- Combined comparison: `C:/Users/Marion/.codex/visualizations/2026/08/02/019fc39b-4007-7d02-b2d2-f879b2f0d060/closet-index-lineage-branch-comparison.png`
 
-## Viewport And Normalization
+## Normalization
 
-- Browser viewport override: 390 × 844 CSS px.
-- Effective app capture: 375 × 811 px at device scale factor 1.
-- Source image: 864 × 1821 px.
-- Density normalization: source scaled to 375 px width is approximately 375 × 790 px. The implementation capture was compared at the same 375 px content width; the remaining height difference is real-content length, not device chrome.
-- Desktop confirmation: 862 × 1200 viewport, effective width 847 px, no horizontal overflow.
+- Source pixels: 1045 × 1097, 72 dpi.
+- Desktop implementation pixels: 1264 × 1694, 72 dpi.
+- Desktop CSS viewport: the Codex in-app browser default viewport; full-page capture used.
+- Mobile CSS viewport: 390 × 844; viewport capture used.
+- Density normalization: both desktop comparison panels were resized to 700 px width while preserving aspect ratio. The dynamic content differs below the shared Black Skirt branch region, so judgment is limited to the matching G0 and G1 region.
+- State: authenticated Black Skirt lineage with two G0 items and two G1 branch groups. The connection edit state was separately captured on Black Cardigan.
 
 ## Full-view Comparison Evidence
 
-- Information architecture matches the source: back control, `ITEM LINEAGE`, Line name, Active/Retired summary, rounded generation groups, equal thumbnail slots, edge-derived G labels, item metadata, reason, and status badge.
-- The vertical connector stays aligned with the thumbnail column and reads top-to-bottom without horizontal scrolling.
-- Production content is shorter than the reference fixture, but the G0·G1·G2 composition, density, hierarchy, card proportions, border treatment, and muted status palette remain faithful.
-- The separate production `Navy Blouse Summer` check renders one G0 predecessor and two real G1 successors in a single equal-row candidate card.
-- Focused-region comparison was not required: at original capture size the header, generation labels, thumbnails, reasons, and badges are all readable in the full-view evidence. DOM and computed-layout checks additionally confirmed badge bounds and title/summary alignment.
+The implementation keeps the prototype's light card surfaces, compact item rows, equal image slots, generation headers, and status pills. For the user-marked branch case, the two G1 cards are indented and joined by a continuous rail with horizontal elbows on the left, instead of drawing branch marks inside or over the cards.
 
-## Required Fidelity Surfaces
+## Focused Region Comparison Evidence
 
-- Fonts and typography: existing Pretendard stack retained; eyebrow tracking, compact bold generation labels, item hierarchy, wrapping, and small metadata match the source character. Long Korean names wrap without clipping.
-- Spacing and layout rhythm: title and summary share the same x-axis; mobile generation cards occupy approximately 81% of the effective width, matching the source proportion; card/header/row spacing is consistent.
-- Colors and visual tokens: existing white, soft grey, line grey, muted ink, pale green Active badge, and neutral Retired badge map closely to the source and preserve text labels in addition to color.
-- Image quality and asset fidelity: real stored Item cutout images are reused with `object-fit: contain`; no placeholder, generated substitute, or reconstructed product image is used. All generations use the same thumbnail dimensions.
-- Copy and content: generation text, `사용 중`, `Retired`, acquisition year, and `선택 이유` are sourced from actual app data. The reference-only `1벌` and future `이어짐` state are not invented where the data model has no such value.
+The combined comparison focuses on the matching G0-to-G1 Black Skirt region because that is where the requested connector placement is visible. A separate connection-edit screenshot verifies the predecessor selector, the three decision-reason options, the optional branch name, and the detach affordance. No additional crop was needed because both the connector rail and item-card controls remain readable in these captures.
 
-## Findings And Comparison History
+## Findings
 
-### Iteration 1
+- No actionable P0, P1, or P2 difference remains for the requested scope.
+- Typography: the implementation preserves the existing app type scale and hierarchy rather than copying the prototype's larger editorial scale; this is an intentional consistency choice.
+- Spacing and layout: the desktop branch rail matches the marked left-side placement. At 390 px the indent is reduced and measured content stays inside the viewport.
+- Colors and tokens: neutral cards, dividers, muted metadata, status colors, and danger treatment use the existing Closet Index tokens with adequate separation.
+- Image quality: real Closet Index item images are reused with consistent crops and no placeholder or generated substitutes.
+- Copy and content: edit labels and reasons are concise, and `계보에서 빼기` opens a confirmation explaining that the Item becomes a start in the same Line.
+- Interaction and accessibility: native selects expose their options, save remains disabled until a valid change exists, detach requires a second confirmation, and browser console error/warning count was zero.
 
-- [P2] The Active/Retired summary initially started at the page edge instead of aligning under the Line title. It was moved into the shared topbar subtitle slot.
-- [P2] Mobile generation cards initially used the full standard page width and appeared wider than the reference. A 16 px inner mobile margin was added while retaining the existing desktop frame.
-- [P1] During the independent DataProvider load, the page could briefly show `Replacement Line을 찾을 수 없습니다.` before Item data arrived. The not-found state now requires loaded app data, so the loading state remains stable.
+## Comparison History
 
-### Iteration 2
+- Pass 1: no P0/P1/P2 finding. No visual correction iteration was required after the combined comparison.
 
-- The revised mobile capture aligns the title and summary at x=74 px.
-- Generation cards render at x=36 px with 303.2 px width inside the effective 375 px app width, matching the reference proportion.
-- No actionable P0, P1, or P2 visual difference remains. Content differences are expected production-data differences.
+## Residual Test Gaps
 
-## Browser Verification
+- Browser QA intentionally did not submit an update or detach action against J's live lineage data. The production RPCs were instead verified with a transaction rollback fixture covering update, stale concurrency rejection, detach, explicit-start creation, and nonmember rejection; the live row counts and checksums were unchanged afterward.
 
-- Page identity: `Closet Index` at `/replacement-lines/:lineId`.
-- Meaningful DOM: production G0, G1, and G2 headings and Item links rendered.
-- Framework overlay: none.
-- Console warning/error: none on desktop, mobile, branch, and final revised captures.
-- Responsive layout: desktop and 390 × 844 mobile override; `scrollWidth === clientWidth` in both checks.
-- Interaction: Replacement Lines Overview → expand `Black Hoodie Winter` → `계보 보기` → G0·G1·G2 render → Item row → Item detail URL → browser back → lineage restored.
-- Data boundary: `Ivory Layered` shows two connected generation cards and eight `계보 연결 전` membership rows instead of inventing eight additional G0 roots.
-
-## Follow-up Polish
-
-- P3: If a future data model adds a planned-successor state, add the outlined `이어짐` badge shown in the reference. Do not infer it from current Active Items.
+## Final Result
 
 final result: passed

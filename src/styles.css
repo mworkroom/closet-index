@@ -4348,29 +4348,40 @@ button:disabled {
 }
 
 .lineage-generation__groups--branched {
+  padding-left: 54px;
+}
+
+.lineage-generation-branch {
   position: relative;
-  padding-left: 38px;
+  min-width: 0;
 }
 
-.lineage-generation__groups--branched::before {
+.lineage-generation__groups--branched .lineage-generation-branch::before {
   position: absolute;
-  top: 0;
-  bottom: 50%;
-  left: 13px;
-  width: 24px;
-  border-bottom: 1px solid #a8a8a3;
-  border-left: 1px solid #a8a8a3;
-  border-radius: 0 0 0 7px;
+  top: 27px;
+  left: -40px;
+  width: 40px;
+  border-top: 1px solid #8f918f;
   content: '';
 }
 
-.lineage-generation__groups--branched .lineage-generation-card::before {
+.lineage-generation__groups--branched .lineage-generation-branch::after {
   position: absolute;
-  top: 26px;
-  left: -25px;
-  width: 24px;
-  border-top: 1px solid #a8a8a3;
+  top: -14px;
+  bottom: -14px;
+  left: -40px;
+  border-left: 1px solid #8f918f;
   content: '';
+}
+
+.lineage-generation__groups--branched
+  .lineage-generation-branch:first-child::after {
+  top: -24px;
+}
+
+.lineage-generation__groups--branched
+  .lineage-generation-branch:last-child::after {
+  bottom: calc(100% - 27px);
 }
 
 .lineage-generation-card {
@@ -4553,6 +4564,41 @@ button:disabled {
   min-height: 42px;
 }
 
+.lineage-edge-disconnect-button {
+  justify-self: end;
+  border: 0;
+  background: transparent;
+  padding: 4px 2px;
+  cursor: pointer;
+  color: var(--danger);
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.lineage-edge-disconnect-confirmation {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #ead5d1;
+  border-radius: 12px;
+  background: var(--danger-soft);
+  padding: 12px;
+}
+
+.lineage-edge-disconnect-confirmation p {
+  color: var(--danger);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.lineage-edge-disconnect-confirmation small {
+  color: #765d58;
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
 .lineage-unconnected {
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -4667,7 +4713,16 @@ button:disabled {
   }
 
   .lineage-generation__groups--branched {
-    padding-left: 30px;
+    padding-left: 28px;
+  }
+
+  .lineage-generation__groups--branched .lineage-generation-branch::before {
+    left: -20px;
+    width: 20px;
+  }
+
+  .lineage-generation__groups--branched .lineage-generation-branch::after {
+    left: -20px;
   }
 
   .lineage-status-badge {

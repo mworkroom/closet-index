@@ -14,7 +14,9 @@ import type {
   ReplacementLineSnapshot,
   ReplacementLineEdge,
   ReplacementLineEdgeConfirmationInput,
+  ReplacementLineEdgeConnectionUpdateInput,
   ReplacementLineEdgeDetailsUpdateInput,
+  ReplacementLineEdgeDisconnectInput,
   ReplacementLineEdgeDirectionUpdateInput,
   ReplacementLineManualEdgeInput,
   ReplacementLineStart,
@@ -44,6 +46,14 @@ export interface ClosetRepository {
     edgeId: string,
     input: ReplacementLineEdgeDetailsUpdateInput,
   ): Promise<ReplacementLineEdge>
+  updateReplacementLineEdgeConnection?(
+    edgeId: string,
+    input: ReplacementLineEdgeConnectionUpdateInput,
+  ): Promise<ReplacementLineEdge>
+  disconnectReplacementLineEdge?(
+    edgeId: string,
+    input: ReplacementLineEdgeDisconnectInput,
+  ): Promise<boolean>
   reverseReplacementLineEdge?(
     edgeId: string,
     input: ReplacementLineEdgeDirectionUpdateInput,
