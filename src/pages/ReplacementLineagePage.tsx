@@ -20,8 +20,11 @@ import type {
   ReplacementLineArchiveInput,
   ReplacementLineColorUpdateInput,
   ReplacementLineColorCategory,
+  ReplacementLineDeleteInput,
+  ReplacementLineDetailsUpdateInput,
   ReplacementLineMergeInput,
   ReplacementLineRecord,
+  ReplacementLineReviewInput,
   ReplacementLineSnapshot,
   ReplacementLineStart,
 } from '../lib/types'
@@ -801,6 +804,61 @@ function UnconnectedLineageItem({
   )
 }
 
+interface LineReviewAlertProps {
+  pendingEdgeCount: number
+  onAcknowledge: () => Promise<void>
+}
+
+function LineReviewAlert({
+  pendingEdgeCount,
+  onAcknowledge,
+}: LineReviewAlertProps) {
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  const handleAcknowledge = async () => {
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await onAcknowledge()
+    } catch (cause) {
+      setSaveError(
+        cause instanceof Error
+          ? cause.message
+          : 'Replacement Line 재검토를 완료하지 못했습니다.',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="lineage-page-alert lineage-page-alert--membership">
+      <div className="lineage-page-alert__content">
+        <p role="status">Line membership이 변경되어 계보 재검토가 필요합니다.</p>
+        <button
+          className="button button--secondary lineage-page-alert__action"
+          type="button"
+          onClick={() => void handleAcknowledge()}
+          disabled={saving || pendingEdgeCount > 0}
+        >
+          {saving ? '저장 중…' : '재검토 완료'}
+        </button>
+      </div>
+      {pendingEdgeCount > 0 ? (
+        <p className="lineage-page-alert__hint">
+          재검토가 필요한 연결 {pendingEdgeCount}개를 먼저 확인해 주세요.
+        </p>
+      ) : null}
+      {saveError ? (
+        <p className="form-error lineage-page-alert__error" role="alert">
+          {saveError}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
 interface LineManagementPanelProps {
   line: ReplacementLineRecord
   lines: ReplacementLineRecord[]
@@ -808,6 +866,8 @@ interface LineManagementPanelProps {
   onMerge: (input: ReplacementLineMergeInput) => Promise<void>
   onSetArchived: (input: ReplacementLineArchiveInput) => Promise<void>
   onSetColorCategory: (input: ReplacementLineColorUpdateInput) => Promise<void>
+  onUpdateDetails: (input: ReplacementLineDetailsUpdateInput) => Promise<void>
+  onDelete: (input: ReplacementLineDeleteInput) => Promise<void>
 }
 
 function LineManagementPanel({
@@ -817,12 +877,16 @@ function LineManagementPanel({
   onMerge,
   onSetArchived,
   onSetColorCategory,
+  onUpdateDetails,
+  onDelete,
 }: LineManagementPanelProps) {
   const [action, setAction] = useState<
-    'color' | 'merge' | 'archive' | 'restore' | null
+    'details' | 'color' | 'merge' | 'archive' | 'restore' | 'delete' | null
   >(null)
   const [targetLineId, setTargetLineId] = useState('')
   const [colorCategory, setColorCategory] = useState('')
+  const [name, setName] = useState('')
+  const [styleIdentity, setStyleIdentity] = useState('')
   const [acknowledged, setAcknowledged] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -843,6 +907,8 @@ function LineManagementPanel({
     setAction(null)
     setTargetLineId('')
     setColorCategory('')
+    setName('')
+    setStyleIdentity('')
     setAcknowledged(false)
     setSaveError(null)
   }
@@ -916,6 +982,51 @@ function LineManagementPanel({
     }
   }
 
+  const handleDetails = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const normalizedName = name.trim()
+    const normalizedStyleIdentity = styleIdentity.trim() || null
+    if (!normalizedName) return
+
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await onUpdateDetails({
+        lineId: line.id,
+        name: normalizedName,
+        styleIdentity: normalizedStyleIdentity,
+        expectedUpdatedAt: line.updatedAt,
+      })
+      resetAction()
+    } catch (cause) {
+      setSaveError(
+        cause instanceof Error
+          ? cause.message
+          : 'Replacement Line 정보를 저장하지 못했습니다.',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await onDelete({
+        lineId: line.id,
+        expectedUpdatedAt: line.updatedAt,
+      })
+    } catch (cause) {
+      setSaveError(
+        cause instanceof Error
+          ? cause.message
+          : '빈 Replacement Line을 삭제하지 못했습니다.',
+      )
+      setSaving(false)
+    }
+  }
+
   return (
     <section
       className="section lineage-line-management"
@@ -930,6 +1041,77 @@ function LineManagementPanel({
           {line.lifecycleStatus === 'archived' ? '보관됨' : `${membershipCount} Item`}
         </span>
       </div>
+
+      <div className="lineage-line-management__details">
+        <div>
+          <span>Line 이름</span>
+          <strong>{line.name}</strong>
+        </div>
+        <div>
+          <span>Style Identity</span>
+          <strong>{line.styleIdentity ?? '미지정'}</strong>
+        </div>
+        {line.lifecycleStatus === 'active' && action !== 'details' ? (
+          <button
+            className="lineage-edge-edit-button"
+            type="button"
+            onClick={() => {
+              setAction('details')
+              setName(line.name)
+              setStyleIdentity(line.styleIdentity ?? '')
+              setSaveError(null)
+            }}
+          >
+            정보 수정
+          </button>
+        ) : null}
+      </div>
+
+      {action === 'details' ? (
+        <form className="lineage-line-management__form" onSubmit={handleDetails}>
+          <label className="field">
+            <span>Line 이름</span>
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              maxLength={200}
+              required
+              autoFocus
+            />
+          </label>
+          <label className="field">
+            <span>Style Identity (선택)</span>
+            <input
+              value={styleIdentity}
+              onChange={(event) => setStyleIdentity(event.target.value)}
+              maxLength={200}
+              placeholder="예: Soft Structure"
+            />
+          </label>
+          <div className="lineage-edge-form__actions">
+            <button
+              className="button button--secondary"
+              type="button"
+              onClick={resetAction}
+              disabled={saving}
+            >
+              취소
+            </button>
+            <button
+              className="button button--primary"
+              type="submit"
+              disabled={
+                saving ||
+                !name.trim() ||
+                (name.trim() === line.name &&
+                  (styleIdentity.trim() || null) === line.styleIdentity)
+              }
+            >
+              {saving ? '저장 중…' : 'Line 정보 저장'}
+            </button>
+          </div>
+        </form>
+      ) : null}
 
       <div className="lineage-line-management__color">
         <span>대표 색상 category</span>
@@ -1069,6 +1251,18 @@ function LineManagementPanel({
               >
                 Line 보관
               </button>
+              {membershipCount === 0 ? (
+                <button
+                  className="button button--danger"
+                  type="button"
+                  onClick={() => {
+                    setAction('delete')
+                    setSaveError(null)
+                  }}
+                >
+                  빈 Line 삭제
+                </button>
+              ) : null}
             </div>
           ) : null}
 
@@ -1151,6 +1345,33 @@ function LineManagementPanel({
               </div>
             </div>
           ) : null}
+
+          {action === 'delete' ? (
+            <div className="lineage-line-management__confirmation" role="alert">
+              <p className="lineage-line-management__warning">
+                Item·계보 연결·시작점이 모두 비어 있는 이 Line을 완전히 삭제합니다. 이
+                작업은 되돌릴 수 없습니다.
+              </p>
+              <div className="lineage-edge-form__actions">
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={resetAction}
+                  disabled={saving}
+                >
+                  취소
+                </button>
+                <button
+                  className="button button--danger"
+                  type="button"
+                  onClick={() => void handleDelete()}
+                  disabled={saving}
+                >
+                  {saving ? '삭제 중…' : '빈 Line 완전 삭제'}
+                </button>
+              </div>
+            </div>
+          ) : null}
         </>
       )}
 
@@ -1180,6 +1401,9 @@ export function ReplacementLineagePage() {
     mergeReplacementLines,
     setReplacementLineArchived,
     setReplacementLineColorCategory,
+    acknowledgeReplacementLineReview,
+    updateReplacementLineDetails,
+    deleteEmptyReplacementLine,
   } = useClosetData()
   const [snapshot, setSnapshot] = useState<ReplacementLineSnapshot | null>(null)
   const [edges, setEdges] = useState<ReplacementLineEdge[] | null>(null)
@@ -1351,6 +1575,49 @@ export function ReplacementLineagePage() {
     [setReplacementLineColorCategory],
   )
 
+  const acknowledgeLineReview = useCallback(
+    async (input: ReplacementLineReviewInput) => {
+      const savedLine = await acknowledgeReplacementLineReview(input)
+      setSnapshot((current) =>
+        current
+          ? {
+              ...current,
+              lines: current.lines.map((line) =>
+                line.id === savedLine.id ? savedLine : line,
+              ),
+            }
+          : current,
+      )
+    },
+    [acknowledgeReplacementLineReview],
+  )
+
+  const updateLineDetails = useCallback(
+    async (input: ReplacementLineDetailsUpdateInput) => {
+      const savedLine = await updateReplacementLineDetails(input)
+      setSnapshot((current) =>
+        current
+          ? {
+              ...current,
+              lines: current.lines.map((line) =>
+                line.id === savedLine.id ? savedLine : line,
+              ),
+            }
+          : current,
+      )
+    },
+    [updateReplacementLineDetails],
+  )
+
+  const deleteLine = useCallback(
+    async (input: ReplacementLineDeleteInput) => {
+      const deleted = await deleteEmptyReplacementLine(input)
+      if (!deleted) throw new Error('빈 Replacement Line 삭제 결과를 확인하지 못했습니다.')
+      navigate('/replacement-lines')
+    },
+    [deleteEmptyReplacementLine, navigate],
+  )
+
   const lineage = useMemo(
     () =>
       data && snapshot && edges && starts
@@ -1393,9 +1660,15 @@ export function ReplacementLineagePage() {
             </p>
           ) : null}
           {lineage.line.reviewStatus === 'needs_review' ? (
-            <p className="lineage-page-alert lineage-page-alert--membership" role="status">
-              Line membership이 변경되어 계보 재검토가 필요합니다.
-            </p>
+            <LineReviewAlert
+              pendingEdgeCount={lineage.needsReviewEdgeCount}
+              onAcknowledge={() =>
+                acknowledgeLineReview({
+                  lineId: lineage.line.id,
+                  expectedUpdatedAt: lineage.line.updatedAt,
+                })
+              }
+            />
           ) : null}
           {lineage.line.lifecycleStatus === 'archived' ? (
             <p className="lineage-page-alert lineage-page-alert--archived" role="status">
@@ -1479,6 +1752,8 @@ export function ReplacementLineagePage() {
             onMerge={mergeLines}
             onSetArchived={setLineArchived}
             onSetColorCategory={setLineColorCategory}
+            onUpdateDetails={updateLineDetails}
+            onDelete={deleteLine}
           />
         </>
       ) : null}

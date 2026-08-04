@@ -521,4 +521,93 @@ describe('SupabaseReplacementLineRepository', () => {
       },
     )
   })
+
+  it('completes review, updates details, and deletes an empty Line through explicit RPCs', async () => {
+    const baseRow = {
+      id: 'line-a',
+      name: 'Brown Bottom',
+      style_identity: null,
+      color_category: 'Brown',
+      review_status: 'needs_review',
+      lifecycle_status: 'active',
+      representative_line_id: null,
+      archived_at: null,
+      updated_at: '2026-08-05T03:00:00Z',
+    }
+    const rpc = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: { ...baseRow, review_status: 'ready', updated_at: '2026-08-05T04:00:00Z' },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          ...baseRow,
+          name: 'Brown Bottom Summer',
+          style_identity: 'Summer Bottom',
+          review_status: 'ready',
+          updated_at: '2026-08-05T05:00:00Z',
+        },
+        error: null,
+      })
+      .mockResolvedValueOnce({ data: true, error: null })
+    const repository = new SupabaseReplacementLineRepository(
+      { rpc } as unknown as SupabaseClient,
+      'workspace-a',
+    )
+
+    await expect(
+      repository.acknowledgeReview({
+        lineId: 'line-a',
+        expectedUpdatedAt: '2026-08-05T03:00:00Z',
+      }),
+    ).resolves.toMatchObject({ reviewStatus: 'ready' })
+    await expect(
+      repository.updateDetails({
+        lineId: 'line-a',
+        name: 'Brown Bottom Summer',
+        styleIdentity: 'Summer Bottom',
+        expectedUpdatedAt: '2026-08-05T04:00:00Z',
+      }),
+    ).resolves.toMatchObject({
+      name: 'Brown Bottom Summer',
+      styleIdentity: 'Summer Bottom',
+    })
+    await expect(
+      repository.deleteEmpty({
+        lineId: 'line-a',
+        expectedUpdatedAt: '2026-08-05T05:00:00Z',
+      }),
+    ).resolves.toBe(true)
+
+    expect(rpc).toHaveBeenNthCalledWith(
+      1,
+      'acknowledge_closet_replacement_line_review',
+      {
+        p_workspace_id: 'workspace-a',
+        p_line_id: 'line-a',
+        p_expected_updated_at: '2026-08-05T03:00:00Z',
+      },
+    )
+    expect(rpc).toHaveBeenNthCalledWith(
+      2,
+      'update_closet_replacement_line_details',
+      {
+        p_workspace_id: 'workspace-a',
+        p_line_id: 'line-a',
+        p_expected_updated_at: '2026-08-05T04:00:00Z',
+        p_name: 'Brown Bottom Summer',
+        p_style_identity: 'Summer Bottom',
+      },
+    )
+    expect(rpc).toHaveBeenNthCalledWith(
+      3,
+      'delete_empty_closet_replacement_line',
+      {
+        p_workspace_id: 'workspace-a',
+        p_line_id: 'line-a',
+        p_expected_updated_at: '2026-08-05T05:00:00Z',
+      },
+    )
+  })
 })

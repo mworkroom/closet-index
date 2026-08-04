@@ -20,8 +20,11 @@ import type {
   ReplacementLineItemMoveInput,
   ReplacementLineArchiveInput,
   ReplacementLineColorUpdateInput,
+  ReplacementLineDeleteInput,
+  ReplacementLineDetailsUpdateInput,
   ReplacementLineMergeInput,
   ReplacementLineRecord,
+  ReplacementLineReviewInput,
   ReplacementLineStart,
   ReplacementLegacyLink,
   ReplacementLegacyLinkReviewInput,
@@ -1082,6 +1085,118 @@ export class DemoRepository implements ClosetRepository {
     )
     writeDemoReplacementLineSnapshot(snapshot)
     return structuredClone(savedLine)
+  }
+
+  async acknowledgeReplacementLineReview(
+    input: ReplacementLineReviewInput,
+  ): Promise<ReplacementLineRecord> {
+    const snapshot = readDemoReplacementLineSnapshot()
+    const line = snapshot.lines.find((entry) => entry.id === input.lineId)
+    if (!line) throw new Error('Replacement Line을 찾지 못했습니다.')
+    if (line.updatedAt !== input.expectedUpdatedAt) {
+      throw new Error('Line이 변경되었습니다. 다시 불러와 주세요.')
+    }
+    if (line.lifecycleStatus !== 'active') {
+      throw new Error('사용 중인 Line만 재검토를 완료할 수 있습니다.')
+    }
+    if (
+      readDemoReplacementLineEdges().some(
+        (edge) =>
+          edge.replacementLineId === line.id && edge.status === 'needs_review',
+      )
+    ) {
+      throw new Error('재검토가 필요한 연결을 먼저 확인해 주세요.')
+    }
+
+    const savedLine: ReplacementLineRecord = {
+      ...line,
+      reviewStatus: 'ready',
+      updatedAt: new Date().toISOString(),
+    }
+    snapshot.lines = snapshot.lines.map((entry) =>
+      entry.id === savedLine.id ? savedLine : entry,
+    )
+    writeDemoReplacementLineSnapshot(snapshot)
+    return structuredClone(savedLine)
+  }
+
+  async updateReplacementLineDetails(
+    input: ReplacementLineDetailsUpdateInput,
+  ): Promise<ReplacementLineRecord> {
+    const snapshot = readDemoReplacementLineSnapshot()
+    const line = snapshot.lines.find((entry) => entry.id === input.lineId)
+    if (!line) throw new Error('Replacement Line을 찾지 못했습니다.')
+    if (line.updatedAt !== input.expectedUpdatedAt) {
+      throw new Error('Line이 변경되었습니다. 다시 불러와 주세요.')
+    }
+    if (line.lifecycleStatus !== 'active') {
+      throw new Error('보관된 Line 정보는 수정할 수 없습니다.')
+    }
+
+    const name = input.name.trim()
+    const styleIdentity = input.styleIdentity?.trim() || null
+    if (!name) throw new Error('Line 이름을 입력해 주세요.')
+    if (name.length > 200 || (styleIdentity?.length ?? 0) > 200) {
+      throw new Error('Line 이름과 Style Identity는 200자 이하로 입력해 주세요.')
+    }
+
+    const savedLine: ReplacementLineRecord = {
+      ...line,
+      name,
+      styleIdentity,
+      updatedAt: new Date().toISOString(),
+    }
+    snapshot.lines = snapshot.lines.map((entry) =>
+      entry.id === savedLine.id ? savedLine : entry,
+    )
+    writeDemoReplacementLineSnapshot(snapshot)
+    return structuredClone(savedLine)
+  }
+
+  async deleteEmptyReplacementLine(
+    input: ReplacementLineDeleteInput,
+  ): Promise<boolean> {
+    const snapshot = readDemoReplacementLineSnapshot()
+    const line = snapshot.lines.find((entry) => entry.id === input.lineId)
+    if (!line) throw new Error('Replacement Line을 찾지 못했습니다.')
+    if (line.updatedAt !== input.expectedUpdatedAt) {
+      throw new Error('Line이 변경되었습니다. 다시 불러와 주세요.')
+    }
+    if (line.lifecycleStatus !== 'active' || line.representativeLineId) {
+      throw new Error('사용 중인 독립 Line만 삭제할 수 있습니다.')
+    }
+    if (
+      snapshot.memberships.some(
+        (membership) => membership.replacementLineId === line.id,
+      )
+    ) {
+      throw new Error('Item이 남아 있는 Line은 삭제할 수 없습니다.')
+    }
+    if (
+      readDemoReplacementLineEdges().some(
+        (edge) => edge.replacementLineId === line.id,
+      )
+    ) {
+      throw new Error('계보 연결이 남아 있는 Line은 삭제할 수 없습니다.')
+    }
+    if (
+      readDemoReplacementLineStarts().some(
+        (start) => start.replacementLineId === line.id,
+      )
+    ) {
+      throw new Error('시작점이 남아 있는 Line은 삭제할 수 없습니다.')
+    }
+    if (
+      snapshot.lines.some(
+        (entry) => entry.representativeLineId === line.id,
+      )
+    ) {
+      throw new Error('다른 Line이 대표 Line으로 참조하고 있어 삭제할 수 없습니다.')
+    }
+
+    snapshot.lines = snapshot.lines.filter((entry) => entry.id !== line.id)
+    writeDemoReplacementLineSnapshot(snapshot)
+    return true
   }
 
   async createItem(input: ItemCreateInput) {

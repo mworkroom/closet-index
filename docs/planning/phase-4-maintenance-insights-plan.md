@@ -520,6 +520,7 @@ P4-2B의 canonical pair schema, workspace RLS, 49-pair importer와 검토 화면
 - [x] Line lifecycle production migration·인증 RPC·rollback·Advisor 검증
 - [x] membership 변경 시 `needs_review` production migration·인증 RPC·Advisor 검증
 - [x] 자동 분류보다 우선하는 Line 색상 category 직접 지정 production 적용·공개 UI 검증
+- [x] Line 재검토 완료·이름/Style Identity 수정·완전 빈 Line 삭제 로컬 구현
 - [x] 같은 크기 thumbnail의 세로형 Lineage UI
 - [x] 실제 가지가 있는 fixture로 분기 렌더링
 - [x] 12개 색상 tile의 Color Index와 밝기별 글자 대비
@@ -540,6 +541,8 @@ Line lifecycle로 삭제 대신 독립 보관·복원과 대표 Line 병합을 �
 긴 Style Identity·Line 목록을 첫 화면에서 제거하고, Line 이름의 색상 규칙과 기존 Item 팔레트 HEX를 결합한 Color Index를 추가했다. production의 53개 Line은 Black·Blue·Brown·Burgundy·Charcoal·Denim·Green·Grey·Ivory·Navy·Silver·White 12개 색상으로 누락 없이 분류된다. 색상 선택 상태는 URL query에 남겨 계보에서 뒤로 왔을 때 같은 색상 목록을 복원하며, Line 카드가 계보 상세를 직접 열어 membership 목록을 중복해서 보지 않게 했다.
 
 자동 제안을 사람이 정한 값으로 덮어쓸 수 있도록 기존 `closet_replacement_lines`에 nullable `color_category` column 하나와 인증된 optimistic update RPC를 추가했다. 별도 색상 table이나 자동 분류 이력은 만들지 않았다. 계보 상세의 Line 관리에서 20개 category를 선택·수정하거나 `자동 제안 사용`으로 되돌릴 수 있고, 직접 지정 값은 Line 이름·Item 팔레트 기반 제안보다 항상 우선한다. 새 frontend를 schema cleanup보다 먼저 안전하게 배포할 수 있도록 column 부재 오류에 한해서만 기존 Line SELECT로 재시도한다. production migration `20260804213528_add_replacement_line_color_category` 적용 뒤 공개 앱에서 `Royal Blue Summer Top`을 Blue로 저장하고 다시 자동 제안으로 초기화해 nullable source of truth와 실제 저장 경로를 확인했다. 현재 53개 Line의 직접 지정 값은 모두 null이며 J가 앱에서 천천히 채울 수 있다.
+
+membership 이동 뒤 남던 `needs_review` 상태를 사람이 마무리할 수 있도록 `재검토 완료` action을 추가하고, 같은 Line 관리 화면에서 이름과 선택적인 Style Identity를 수정할 수 있게 했다. Item뿐 아니라 edge·시작점·병합 대표 참조까지 전부 없는 active standalone Line만 완전히 삭제할 수 있으며, 나머지는 기존 보관·병합 흐름을 사용한다. 세 동작은 기존 Line table을 그대로 쓰는 authenticated 전용 RPC로 설계해 새 table을 만들지 않았고 workspace membership, row lock, `updated_at` optimistic concurrency를 다시 검사한다. local migration·Demo/Supabase repository·UI·자동 테스트는 완료했으며 production migration과 공개 배포는 아직 진행하지 않았다.
 
 확정된 edge의 `선택 이유`와 선택적인 `가지 이름`을 계보 Item 행에서 바로 수정하는 인라인 UI를 구현하고 production migration `20260803173959_revise_replacement_line_edge_details`를 적용했다. 전용 RPC는 workspace membership, 입력 길이, confirmed 상태와 화면이 읽은 `updated_at`을 다시 검사하며 predecessor·successor, Line, 출처와 상태는 변경하지 않는다. transaction rollback fixture에서 실제 수정 성공, stale `updated_at` 충돌, 비회원·anon 거절을 확인했고 원본 45개 edge와 표본 이유·시간이 그대로 유지되는 것을 재확인했다. 함수 실행 권한은 `authenticated`와 `service_role`에만 있으며 `public`·`anon`에는 없다. 색상 category는 현재 Line 이름과 팔레트 기반 자동 분류이고, J가 직접 지정한 값이 자동 분류보다 우선하는 편집 기능은 별도 후속 항목으로 남긴다.
 

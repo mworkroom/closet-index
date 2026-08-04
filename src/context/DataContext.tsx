@@ -30,8 +30,11 @@ import type {
   ReplacementLineItemMoveInput,
   ReplacementLineArchiveInput,
   ReplacementLineColorUpdateInput,
+  ReplacementLineDeleteInput,
+  ReplacementLineDetailsUpdateInput,
   ReplacementLineMergeInput,
   ReplacementLineRecord,
+  ReplacementLineReviewInput,
   ReplacementLineStart,
   ReplacementLegacyLink,
   ReplacementLegacyLinkReviewInput,
@@ -95,6 +98,15 @@ interface DataState {
   setReplacementLineColorCategory: (
     input: ReplacementLineColorUpdateInput,
   ) => Promise<ReplacementLineRecord>
+  acknowledgeReplacementLineReview: (
+    input: ReplacementLineReviewInput,
+  ) => Promise<ReplacementLineRecord>
+  updateReplacementLineDetails: (
+    input: ReplacementLineDetailsUpdateInput,
+  ) => Promise<ReplacementLineRecord>
+  deleteEmptyReplacementLine: (
+    input: ReplacementLineDeleteInput,
+  ) => Promise<boolean>
   createItem: (input: ItemCreateInput) => Promise<Item>
   updateItem: (itemId: string, input: ItemWriteInput) => Promise<Item>
   replaceItemImage: (
@@ -428,6 +440,42 @@ export function DataProvider({
     [repository],
   )
 
+  const acknowledgeReplacementLineReview = useCallback(
+    (input: ReplacementLineReviewInput) => {
+      if (!repository.acknowledgeReplacementLineReview) {
+        return Promise.reject(
+          new Error('이 환경에서는 Replacement Line 재검토 완료를 지원하지 않습니다.'),
+        )
+      }
+      return repository.acknowledgeReplacementLineReview(input)
+    },
+    [repository],
+  )
+
+  const updateReplacementLineDetails = useCallback(
+    (input: ReplacementLineDetailsUpdateInput) => {
+      if (!repository.updateReplacementLineDetails) {
+        return Promise.reject(
+          new Error('이 환경에서는 Replacement Line 정보 수정을 지원하지 않습니다.'),
+        )
+      }
+      return repository.updateReplacementLineDetails(input)
+    },
+    [repository],
+  )
+
+  const deleteEmptyReplacementLine = useCallback(
+    (input: ReplacementLineDeleteInput) => {
+      if (!repository.deleteEmptyReplacementLine) {
+        return Promise.reject(
+          new Error('이 환경에서는 빈 Replacement Line 삭제를 지원하지 않습니다.'),
+        )
+      }
+      return repository.deleteEmptyReplacementLine(input)
+    },
+    [repository],
+  )
+
   const createOutfit = useCallback(
     async (input: OutfitCreateInput) => {
       setError(null)
@@ -588,6 +636,9 @@ export function DataProvider({
       mergeReplacementLines,
       setReplacementLineArchived,
       setReplacementLineColorCategory,
+      acknowledgeReplacementLineReview,
+      updateReplacementLineDetails,
+      deleteEmptyReplacementLine,
       createItem,
       updateItem,
       replaceItemImage: (itemId, input) =>
@@ -634,6 +685,9 @@ export function DataProvider({
       mergeReplacementLines,
       setReplacementLineArchived,
       setReplacementLineColorCategory,
+      acknowledgeReplacementLineReview,
+      updateReplacementLineDetails,
+      deleteEmptyReplacementLine,
       findMatchingOutfits,
       mutate,
       refresh,

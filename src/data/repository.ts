@@ -21,8 +21,11 @@ import type {
   ReplacementLineItemMoveInput,
   ReplacementLineArchiveInput,
   ReplacementLineColorUpdateInput,
+  ReplacementLineDeleteInput,
+  ReplacementLineDetailsUpdateInput,
   ReplacementLineMergeInput,
   ReplacementLineRecord,
+  ReplacementLineReviewInput,
   ReplacementLineStart,
   ReplacementLegacyLink,
   ReplacementLegacyLinkReviewInput,
@@ -83,6 +86,15 @@ export interface ClosetRepository {
   setReplacementLineColorCategory?(
     input: ReplacementLineColorUpdateInput,
   ): Promise<ReplacementLineRecord>
+  acknowledgeReplacementLineReview?(
+    input: ReplacementLineReviewInput,
+  ): Promise<ReplacementLineRecord>
+  updateReplacementLineDetails?(
+    input: ReplacementLineDetailsUpdateInput,
+  ): Promise<ReplacementLineRecord>
+  deleteEmptyReplacementLine?(
+    input: ReplacementLineDeleteInput,
+  ): Promise<boolean>
   createItem(input: ItemCreateInput): Promise<Item>
   updateItem(itemId: string, input: ItemWriteInput): Promise<Item>
   replaceItemImage(

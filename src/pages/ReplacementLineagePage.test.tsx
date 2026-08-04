@@ -334,6 +334,18 @@ describe('ReplacementLineagePage', () => {
     expect(
       screen.getByText('Line membership이 변경되어 계보 재검토가 필요합니다.'),
     ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '재검토 완료' }))
+    expect(
+      screen.queryByText('Line membership이 변경되어 계보 재검토가 필요합니다.'),
+    ).not.toBeInTheDocument()
+    const reviewedSnapshot = JSON.parse(
+      window.localStorage.getItem('closet-index-demo-replacement-lines:v1') ?? '{}',
+    )
+    expect(
+      reviewedSnapshot.lines.find(
+        (line: { name: string }) => line.name === 'Navy Summer Tee',
+      ),
+    ).toMatchObject({ reviewStatus: 'ready' })
   })
 
   it('archives and restores a standalone Line without changing its lineage data', async () => {
@@ -402,6 +414,107 @@ describe('ReplacementLineagePage', () => {
         (line: { id: string }) => line.id === 'line-navy-tee',
       ),
     ).toMatchObject({ colorCategory: 'Blue' })
+  })
+
+  it('renames a Line and updates its Style Identity', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/replacement-lines/line-navy-tee']}>
+        <DataProvider repository={new DemoRepository()}>
+          <Routes>
+            <Route
+              path="/replacement-lines/:lineId"
+              element={<ReplacementLineagePage />}
+            />
+          </Routes>
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'Navy Tee' })
+    await user.click(screen.getByRole('button', { name: '정보 수정' }))
+    const nameField = screen.getByLabelText('Line 이름')
+    await user.clear(nameField)
+    await user.type(nameField, 'Navy Top Summer')
+    const styleIdentityField = screen.getByLabelText('Style Identity (선택)')
+    await user.clear(styleIdentityField)
+    await user.type(styleIdentityField, 'Summer Daily')
+    await user.click(screen.getByRole('button', { name: 'Line 정보 저장' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Navy Top Summer' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Summer Daily')).toBeInTheDocument()
+    const savedSnapshot = JSON.parse(
+      window.localStorage.getItem('closet-index-demo-replacement-lines:v1') ?? '{}',
+    )
+    expect(
+      savedSnapshot.lines.find(
+        (line: { id: string }) => line.id === 'line-navy-tee',
+      ),
+    ).toMatchObject({
+      name: 'Navy Top Summer',
+      styleIdentity: 'Summer Daily',
+    })
+
+    await user.click(screen.getByRole('button', { name: '정보 수정' }))
+    await user.clear(screen.getByLabelText('Style Identity (선택)'))
+    await user.click(screen.getByRole('button', { name: 'Line 정보 저장' }))
+    expect(await screen.findByText('미지정')).toBeInTheDocument()
+    const clearedSnapshot = JSON.parse(
+      window.localStorage.getItem('closet-index-demo-replacement-lines:v1') ?? '{}',
+    )
+    expect(
+      clearedSnapshot.lines.find(
+        (line: { id: string }) => line.id === 'line-navy-tee',
+      ),
+    ).toMatchObject({ styleIdentity: null })
+  })
+
+  it('deletes a completely empty standalone Line after confirmation', async () => {
+    const repository = new DemoRepository()
+    const snapshot = await repository.loadReplacementLines()
+    snapshot.lines.push({
+      id: 'line-empty',
+      name: 'Empty Brown Line',
+      styleIdentity: null,
+      colorCategory: 'Brown',
+      reviewStatus: 'ready',
+      lifecycleStatus: 'active',
+      representativeLineId: null,
+      archivedAt: null,
+      updatedAt: '2026-08-05T00:00:00.000Z',
+    })
+    window.localStorage.setItem(
+      'closet-index-demo-replacement-lines:v1',
+      JSON.stringify(snapshot),
+    )
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/replacement-lines/line-empty']}>
+        <DataProvider repository={repository}>
+          <Routes>
+            <Route
+              path="/replacement-lines/:lineId"
+              element={<ReplacementLineagePage />}
+            />
+            <Route path="/replacement-lines" element={<p>Line 목록 도착</p>} />
+          </Routes>
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'Empty Brown Line' })
+    await user.click(screen.getByRole('button', { name: '빈 Line 삭제' }))
+    await user.click(screen.getByRole('button', { name: '빈 Line 완전 삭제' }))
+
+    expect(await screen.findByText('Line 목록 도착')).toBeInTheDocument()
+    const savedSnapshot = JSON.parse(
+      window.localStorage.getItem('closet-index-demo-replacement-lines:v1') ?? '{}',
+    )
+    expect(
+      savedSnapshot.lines.some((line: { id: string }) => line.id === 'line-empty'),
+    ).toBe(false)
   })
 
   it('merges the current Line into the chosen representative after explicit confirmation', async () => {

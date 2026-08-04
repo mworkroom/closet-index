@@ -19,7 +19,10 @@ import type {
   ReplacementLineItemMoveInput,
   ReplacementLineArchiveInput,
   ReplacementLineColorUpdateInput,
+  ReplacementLineDeleteInput,
+  ReplacementLineDetailsUpdateInput,
   ReplacementLineMergeInput,
+  ReplacementLineReviewInput,
   ReplacementLineStart,
   ReplacementLegacyLink,
   ReplacementLegacyLinkReviewInput,
@@ -150,6 +153,18 @@ export class SupabaseRepository implements ClosetRepository {
 
   setReplacementLineColorCategory(input: ReplacementLineColorUpdateInput) {
     return this.replacementLines.setColorCategory(input)
+  }
+
+  acknowledgeReplacementLineReview(input: ReplacementLineReviewInput) {
+    return this.replacementLines.acknowledgeReview(input)
+  }
+
+  updateReplacementLineDetails(input: ReplacementLineDetailsUpdateInput) {
+    return this.replacementLines.updateDetails(input)
+  }
+
+  deleteEmptyReplacementLine(input: ReplacementLineDeleteInput) {
+    return this.replacementLines.deleteEmpty(input)
   }
 
   createItem(input: ItemCreateInput) {

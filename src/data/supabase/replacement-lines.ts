@@ -14,8 +14,11 @@ import type {
   ReplacementLineItemMoveInput,
   ReplacementLineArchiveInput,
   ReplacementLineColorUpdateInput,
+  ReplacementLineDeleteInput,
+  ReplacementLineDetailsUpdateInput,
   ReplacementLineMergeInput,
   ReplacementLineRecord,
+  ReplacementLineReviewInput,
   ReplacementLineStart,
 } from '../../lib/types'
 
@@ -179,6 +182,59 @@ export class SupabaseReplacementLineRepository {
       | null
     if (!row) throw new Error('저장된 Replacement Line 색상을 확인하지 못했습니다.')
     return toLine(row)
+  }
+
+  async acknowledgeReview(
+    input: ReplacementLineReviewInput,
+  ): Promise<ReplacementLineRecord> {
+    const { data, error } = await this.client.rpc(
+      'acknowledge_closet_replacement_line_review',
+      {
+        p_workspace_id: this.workspaceId,
+        p_line_id: input.lineId,
+        p_expected_updated_at: input.expectedUpdatedAt,
+      },
+    )
+    if (error) throw error
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | ReplacementLineRow
+      | null
+    if (!row) throw new Error('재검토 완료 상태를 확인하지 못했습니다.')
+    return toLine(row)
+  }
+
+  async updateDetails(
+    input: ReplacementLineDetailsUpdateInput,
+  ): Promise<ReplacementLineRecord> {
+    const { data, error } = await this.client.rpc(
+      'update_closet_replacement_line_details',
+      {
+        p_workspace_id: this.workspaceId,
+        p_line_id: input.lineId,
+        p_expected_updated_at: input.expectedUpdatedAt,
+        p_name: input.name,
+        p_style_identity: input.styleIdentity,
+      },
+    )
+    if (error) throw error
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | ReplacementLineRow
+      | null
+    if (!row) throw new Error('수정한 Replacement Line 정보를 확인하지 못했습니다.')
+    return toLine(row)
+  }
+
+  async deleteEmpty(input: ReplacementLineDeleteInput): Promise<boolean> {
+    const { data, error } = await this.client.rpc(
+      'delete_empty_closet_replacement_line',
+      {
+        p_workspace_id: this.workspaceId,
+        p_line_id: input.lineId,
+        p_expected_updated_at: input.expectedUpdatedAt,
+      },
+    )
+    if (error) throw error
+    return data === true
   }
 
   async loadLegacyLinks(): Promise<ReplacementLegacyLink[]> {

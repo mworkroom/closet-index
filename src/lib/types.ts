@@ -301,6 +301,23 @@ export interface ReplacementLineColorUpdateInput {
   expectedUpdatedAt: string
 }
 
+export interface ReplacementLineReviewInput {
+  lineId: string
+  expectedUpdatedAt: string
+}
+
+export interface ReplacementLineDetailsUpdateInput {
+  lineId: string
+  name: string
+  styleIdentity: string | null
+  expectedUpdatedAt: string
+}
+
+export interface ReplacementLineDeleteInput {
+  lineId: string
+  expectedUpdatedAt: string
+}
+
 export interface ReplacementLineMembership {
   replacementLineId: string
   itemId: string
