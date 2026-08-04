@@ -5,7 +5,7 @@
 - 범위: `public.closet_*` table, Closet 관련 public RPC, 직접 dependency, 현재 repository/UI 호출 경로
 - 안전 경계: 최초 감사는 `SELECT`와 catalog 조회만 수행했다. 이후 J의 제거 결정과 production 전환 승인에 따라 Preview cleanup·Line color·COMMENT migration을 적용했다.
 
-> 2026-08-05 후속 적용: Preview-free frontend와 `closet-outfit-delete` Function을 먼저 배포한 뒤 `closet_outfit_previews`, Preview RPC 세 개와 stale trigger 두 개를 production에서 제거했다. 현재 Closet table은 16개다. Preview Storage object 2개와 구 `closet-outfit-preview` Function 제거만 Dashboard 로그인이 필요해 남아 있다.
+> 2026-08-05 후속 적용: Preview-free frontend와 `closet-outfit-delete` Function을 먼저 배포한 뒤 `closet_outfit_previews`, Preview RPC 세 개와 stale trigger 두 개를 production에서 제거했다. 기존 Preview Storage file 2개와 Dashboard가 만든 빈 폴더 placeholder까지 삭제해 `/outfits/` object count 0을 확인했고, 구 `closet-outfit-preview` Function도 제거했다. 현재 Closet table은 16개, active Edge Function은 3개다.
 
 ## 1. 한눈에 보기
 
@@ -120,7 +120,7 @@
 - 초기 감사 당시 2개 ready row가 있던 파생 이미지 cache였다.
 - migration `20260804213423_remove_outfit_preview_subsystem`에서 table, upload RPC 세 개와 stale trigger 두 개를 제거했다.
 - 현재 Outfit 화면은 `closet_outfit_items + closet_item_images`를 즉시 합성하고 cutout이 없을 때 색상 swatch를 사용한다.
-- orphan Storage object 2개와 구 Edge Function은 Dashboard 로그인 뒤 제거할 운영 잔여물이며 DB source of truth에는 포함되지 않는다.
+- 기존 Storage file 2개와 구 Edge Function까지 제거해 Preview 운영 잔여물이 없다. active Edge Function은 `closet-item-image`, `closet-outfit-delete`, `closet-weather-forecast` 세 개다.
 
 ### 4.7 `closet_outfits`
 

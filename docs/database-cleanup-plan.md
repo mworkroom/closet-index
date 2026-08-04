@@ -2,7 +2,7 @@
 
 - 작성일: 2026-08-05
 - 근거 문서: [`database-map.md`](./database-map.md)
-- 현재 단계: Outfit Preview DB subsystem production cleanup 완료. Storage object 2개와 구 Function 제거만 Dashboard 로그인 대기.
+- 현재 단계: Outfit Preview subsystem의 frontend·DB·Storage·Edge Function production cleanup 완료.
 
 ## 1. 목적과 원칙
 
@@ -19,7 +19,7 @@
 
 | 질문 | 결론 |
 |---|---|
-| 즉시 안전하게 제거 가능한 DB object | Preview table·RPC·trigger는 제거 완료. orphan Storage object 2개와 구 Function은 로그인 뒤 제거 가능 |
+| 즉시 안전하게 제거 가능한 DB object | Preview subsystem은 frontend·DB·Storage·Edge Function까지 제거 완료. 다음 후보는 별도 export·승인이 필요한 `closet_import_runs` |
 | 가장 독립적인 후보 | `closet_import_runs` 2행 |
 | 현재 dependency 때문에 제거할 수 없는 후보 | Legacy Link subsystem. Preview DB dependency는 제거 완료 |
 | Outfit Preview 결정 | J가 영구 제거를 확정. frontend·Function 전환과 DB cleanup 완료 |
@@ -73,7 +73,7 @@
 
 1. 저장 Preview 대신 `outfit_items + item_images` 즉시 합성을 사용한다.
 2. Preview 상태 필터와 업로드 실패 UX는 제거한다.
-3. 기존 Preview Storage object 2개는 보존할 필요가 없으며 production cleanup 때 삭제한다.
+3. 기존 Preview Storage object 2개는 보존하지 않고 production에서 삭제했다.
 4. Outfit의 Wear Log 삭제 차단과 workspace 권한 검사는 계속 유지한다.
 
 ### 제거 순서
@@ -85,9 +85,9 @@
 5. [x] stale trigger·private helper·preview RPC·table·Storage policy dependency 제거 migration을 작성한다.
 6. [x] 관련 frontend tests, pgTAP 계약, CI 목록을 갱신한다.
 7. [x] `closet-outfit-delete` Function과 새 frontend를 production에 배포하고 실제 삭제 차단·성공을 검증한다.
-8. [ ] 기존 Preview Storage object 2개를 service-role 경계에서 삭제하고 object count 0을 확인한다.
+8. [x] 기존 Preview Storage object 2개와 Dashboard placeholder 폴더를 삭제하고 `/outfits/` object count 0을 확인한다.
 9. [x] Preview cleanup·Line color·COMMENT migration을 적용하고 table·RPC·trigger·policy dependency가 0인지 확인한다.
-10. [ ] 기존 production `closet-outfit-preview` Function을 제거한다.
+10. [x] 기존 production `closet-outfit-preview` Function을 제거하고 Function 목록이 3개인지 확인한다.
 
 ### production 적용 중단 조건
 
