@@ -1,6 +1,6 @@
 begin;
 
-select plan(25);
+select plan(26);
 
 select has_column(
   'public',
@@ -71,6 +71,13 @@ select has_index(
   'closet_purchase_events',
   'closet_purchase_events_item_date_idx',
   'Item history lookup has a composite index'
+);
+
+select has_index(
+  'public',
+  'closet_purchase_events',
+  'closet_purchase_events_item_owner_fk_idx',
+  'PurchaseEvent Item ownership foreign key has a covering index'
 );
 
 select is(

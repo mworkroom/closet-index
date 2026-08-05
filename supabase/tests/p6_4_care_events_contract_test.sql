@@ -1,6 +1,6 @@
 begin;
 
-select plan(12);
+select plan(13);
 
 select has_table('public', 'closet_care_events', 'CareEvent history has a live table');
 select ok(
@@ -15,6 +15,12 @@ select fk_ok(
   'public', 'closet_care_events', array['item_id', 'workspace_id'],
   'public', 'closet_items', array['id', 'workspace_id'],
   'CareEvent ownership matches its Item'
+);
+select has_index(
+  'public',
+  'closet_care_events',
+  'closet_care_events_item_owner_fk_idx',
+  'CareEvent Item ownership foreign key has a covering index'
 );
 select policies_are(
   'public',
