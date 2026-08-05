@@ -3,7 +3,10 @@ begin;
 select plan(12);
 
 select has_table('public', 'closet_care_events', 'CareEvent history has a live table');
-select row_security_active('public.closet_care_events', 'CareEvent history has RLS enabled');
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.closet_care_events'::regclass),
+  'CareEvent history has RLS enabled'
+);
 select has_pk('public', 'closet_care_events', 'CareEvent IDs are primary keys');
 select has_column('public', 'closet_care_events', 'cared_on', 'CareEvent has a date');
 select has_column('public', 'closet_care_events', 'care_method', 'CareEvent preserves method-at-event');
