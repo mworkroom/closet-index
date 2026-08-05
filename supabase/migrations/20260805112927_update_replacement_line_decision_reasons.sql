@@ -1,10 +1,8 @@
 update public.closet_replacement_line_edges
-set
-  decision_reason = case decision_reason
-    when '단순 교체' then '대체 시도'
-    when '멸종 후 교체' then '온도 세분화'
-  end,
-  updated_at = greatest(clock_timestamp(), updated_at + interval '1 microsecond')
+set decision_reason = case decision_reason
+  when '단순 교체' then '대체 시도'
+  when '멸종 후 교체' then '온도 세분화'
+end
 where decision_reason in ('단순 교체', '멸종 후 교체');
 
 create or replace function public.update_closet_replacement_line_edge_connection(

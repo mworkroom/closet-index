@@ -253,6 +253,7 @@ export interface AppData {
 
 export interface OutfitUpdateInput {
   displayName: string | null
+  rating: Exclude<OutfitRating, null>
   items: OutfitItemWriteInput[]
   allowDuplicate: boolean
 }
@@ -395,9 +396,21 @@ export const REPLACEMENT_LINE_DECISION_REASONS = [
 export type ReplacementLineDecisionReason =
   (typeof REPLACEMENT_LINE_DECISION_REASONS)[number]
 
-export function normalizeReplacementLineDecisionReason(reason: string) {
-  if (reason === '단순 교체') return '대체 시도'
-  if (reason === '멸종 후 교체') return '온도 세분화'
+export const REPLACEMENT_LINE_DECISION_REASON_OPTIONS = [
+  { value: '대체 시도', label: '대체 시도' },
+  { value: '온도 세분화', label: '온도 세분화' },
+  { value: '기능 세분화', label: '기능 세분화' },
+  { value: '계승 👑', label: '계승 👑' },
+] as const satisfies readonly {
+  value: ReplacementLineDecisionReason
+  label: string
+}[]
+
+export function replacementLineDecisionReasonLabel(reason: string) {
+  const option = REPLACEMENT_LINE_DECISION_REASON_OPTIONS.find(
+    (candidate) => candidate.value === reason,
+  )
+  if (option) return option.label
   return reason
 }
 

@@ -207,7 +207,7 @@ describe('SupabaseRepository Phase 3 writes', () => {
       data: {
         id: 'outfit-existing',
         display_name: '수정 착장',
-        rating: 'good',
+        rating: 'error',
         archived_at: null,
       },
       error: null,
@@ -216,6 +216,7 @@ describe('SupabaseRepository Phase 3 writes', () => {
 
     const outfit = await repository.updateOutfit('outfit-existing', {
       displayName: ' 수정 착장 ',
+      rating: 'error',
       allowDuplicate: false,
       items: [{
         itemId: 'item-coat', slot: 'outer', sortOrder: 0,
@@ -223,10 +224,11 @@ describe('SupabaseRepository Phase 3 writes', () => {
       }],
     })
 
-    expect(rpc).toHaveBeenCalledWith('update_closet_outfit', {
+    expect(rpc).toHaveBeenCalledWith('update_closet_outfit_with_rating', {
       p_workspace_id: 'workspace',
       p_outfit_id: 'outfit-existing',
       p_display_name: '수정 착장',
+      p_rating: 'error',
       p_items: [{
         item_id: 'item-coat', slot: 'outer', sort_order: 0,
         position_x: 0, position_y: 0, item_scale: 1, z_index: 50,
@@ -234,7 +236,7 @@ describe('SupabaseRepository Phase 3 writes', () => {
       p_allow_duplicate: false,
     })
     expect(outfit).toMatchObject({
-      id: 'outfit-existing', rating: 'good', itemIds: ['item-coat'],
+      id: 'outfit-existing', rating: 'error', itemIds: ['item-coat'],
     })
   })
 

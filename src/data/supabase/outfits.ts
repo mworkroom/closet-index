@@ -122,10 +122,11 @@ export class SupabaseOutfitRepository {
   }
 
   async update(outfitId: string, input: OutfitUpdateInput): Promise<Outfit> {
-    const { data, error } = await this.client.rpc('update_closet_outfit', {
+    const { data, error } = await this.client.rpc('update_closet_outfit_with_rating', {
       p_workspace_id: this.workspaceId,
       p_outfit_id: outfitId,
       p_display_name: input.displayName?.trim() || null,
+      p_rating: input.rating,
       p_items: input.items.map(toOutfitItemWriteRow),
       p_allow_duplicate: input.allowDuplicate,
     })

@@ -100,7 +100,7 @@ describe('DemoRepository Phase 3 writes', () => {
 
     expect(created).toMatchObject({
       id: 'outfit-duplicate-confirmed',
-      rating: null,
+      rating: 'ok',
       archivedAt: null,
       itemIds: items.map((item) => item.itemId),
     })
@@ -129,7 +129,7 @@ describe('DemoRepository Phase 3 writes', () => {
     expect(
       data.outfits.find((outfit) => outfit.id === 'outfit-clone'),
     ).toMatchObject({
-      rating: null,
+      rating: 'ok',
       itemIds: sourceBefore?.itemIds,
       archivedAt: expect.any(String),
     })

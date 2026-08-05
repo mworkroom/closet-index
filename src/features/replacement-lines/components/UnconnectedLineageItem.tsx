@@ -9,7 +9,7 @@ import type {
   ReplacementLineRecord,
 } from '../../../lib/types'
 import {
-  REPLACEMENT_LINE_DECISION_REASONS,
+  REPLACEMENT_LINE_DECISION_REASON_OPTIONS,
   type ReplacementLineDecisionReason,
 } from '../../../lib/types'
 import {
@@ -217,9 +217,9 @@ export function UnconnectedLineageItem({
               required
             >
               <option value="">선택해 주세요</option>
-              {REPLACEMENT_LINE_DECISION_REASONS.map((reason) => (
-                <option value={reason} key={reason}>
-                  {reason}
+              {REPLACEMENT_LINE_DECISION_REASON_OPTIONS.map((reason) => (
+                <option value={reason.value} key={reason.value}>
+                  {reason.label}
                 </option>
               ))}
             </select>
@@ -343,4 +343,3 @@ export function UnconnectedLineageItem({
     </div>
   )
 }
-

@@ -249,7 +249,7 @@ export class DemoRepository implements ClosetRepository {
     const outfit: Outfit = {
       id: input.id,
       displayName: input.displayName?.trim() || null,
-      rating: null,
+      rating: 'ok',
       archivedAt: null,
       itemIds,
       itemPlacements: input.items.map((item) => ({
@@ -334,6 +334,7 @@ export class DemoRepository implements ClosetRepository {
     }
 
     outfit.displayName = input.displayName?.trim() || null
+    outfit.rating = input.rating
     outfit.itemIds = itemIds
     outfit.itemPlacements = input.items.map((item) => ({
       itemId: item.itemId,

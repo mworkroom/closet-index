@@ -147,7 +147,7 @@ export const demoData: AppData = {
     {
       id: 'outfit-unrated',
       displayName: '아직 평가하지 않은 조합',
-      rating: null,
+      rating: 'ok',
       itemIds: ['item-knit', 'item-pants'],
     },
     {

@@ -316,7 +316,7 @@ export function OutfitDetailPage() {
             <dl className="outfit-summary" aria-label="착장 요약">
               <div className="outfit-summary__item">
                 <dt>선호도</dt>
-                <dd>{outfit.rating ? ratingLabels[outfit.rating] : '미입력'}</dd>
+                <dd>{outfit.rating ? ratingLabels[outfit.rating] : 'OK'}</dd>
               </div>
               <div className="outfit-summary__item">
                 <dt>마지막 착용</dt>

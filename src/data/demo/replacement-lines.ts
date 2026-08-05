@@ -22,7 +22,6 @@ import type {
   ReplacementLineStart,
 } from '../../lib/types'
 import {
-  normalizeReplacementLineDecisionReason,
   REPLACEMENT_LINE_DECISION_REASONS,
 } from '../../lib/types'
 import type { ReplacementLineRepository } from '../replacement-line-repository'
@@ -183,9 +182,6 @@ function readDemoReplacementLineEdges(): ReplacementLineEdge[] {
     return stored
         ? (JSON.parse(stored) as ReplacementLineEdge[]).map((edge) => ({
           ...edge,
-          decisionReason: normalizeReplacementLineDecisionReason(
-            edge.decisionReason,
-          ),
           sourceKind:
             edge.sourceKind ??
             (edge.sourceLegacyLinkId ? 'legacy_link' : 'manual'),

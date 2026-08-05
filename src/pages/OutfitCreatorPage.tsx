@@ -34,7 +34,9 @@ import type {
   MatchingOutfit,
   Outfit,
   OutfitItemPlacement,
+  OutfitRating,
 } from '../lib/types'
+import { ratingLabels } from '../lib/types'
 
 interface DraftPlacement {
   displayMode: OutfitItemDisplayMode
@@ -48,6 +50,7 @@ interface DraftPlacement {
 function buildDraftOutfit(
   id: string,
   displayName: string,
+  rating: OutfitRating,
   itemIds: string[],
   items: Item[],
   draftPlacements: Map<string, DraftPlacement>,
@@ -62,7 +65,7 @@ function buildDraftOutfit(
   return {
     id,
     displayName: displayName.trim() || null,
-    rating: null,
+    rating,
     archivedAt: null,
     itemIds,
     itemPlacements: selectedItems.map((item) => {
@@ -114,6 +117,7 @@ export function OutfitCreatorPage() {
     () => new Map<string, DraftPlacement>(),
   )
   const [displayName, setDisplayName] = useState('')
+  const [rating, setRating] = useState<Exclude<OutfitRating, null>>('ok')
   const [query, setQuery] = useState('')
   const [categoryGroup, setCategoryGroup] =
     useState<ItemCategoryFilterGroupId | ''>('')
@@ -162,6 +166,7 @@ export function OutfitCreatorPage() {
     setSelectedIds([...sourceOutfit.itemIds])
     setDraftPlacements(placements)
     setDisplayName(sourceOutfit.displayName ?? '')
+    setRating(isEditing ? sourceOutfit.rating ?? 'ok' : 'ok')
     setSourceApplied(true)
   }, [data, isEditing, sourceApplied, sourceOutfit, sourceOutfitId])
 
@@ -225,11 +230,12 @@ export function OutfitCreatorPage() {
       buildDraftOutfit(
         outfitId,
         displayName,
+        rating,
         selectedIds,
         data?.items ?? [],
         draftPlacements,
       ),
-    [data, displayName, draftPlacements, outfitId, selectedIds],
+    [data, displayName, draftPlacements, outfitId, rating, selectedIds],
   )
 
   const resetDuplicateCheck = () => {
@@ -304,6 +310,7 @@ export function OutfitCreatorPage() {
         isEditing && editOutfitId
           ? await updateOutfit(editOutfitId, {
               displayName: displayName.trim() || null,
+              rating,
               allowDuplicate,
               items,
             })
@@ -525,8 +532,33 @@ export function OutfitCreatorPage() {
                 <p className="eyebrow">REVIEW</p>
                 <h2>이름과 저장 검토</h2>
               </div>
-              <span className="count">평가 미입력</span>
+              <span className="count">
+                평가 {ratingLabels[rating]}
+              </span>
             </div>
+            {isEditing && (
+              <fieldset className="field">
+                <legend>평가</legend>
+                <div className="segmented segmented--four">
+                  {([
+                    ['favorite', 'Favorite'],
+                    ['ok', 'OK'],
+                    ['error', 'Error'],
+                  ] as const).map(([value, label]) => (
+                    <label key={value}>
+                      <input
+                        type="radio"
+                        name="outfit-rating"
+                        value={value}
+                        checked={rating === value}
+                        onChange={() => setRating(value)}
+                      />
+                      <span>{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            )}
             <label className="field">
               <span>Outfit 이름 (선택)</span>
               <input
@@ -603,7 +635,7 @@ export function OutfitCreatorPage() {
             </button>
             <p className="outfit-creator__save-note">
               {isEditing
-                ? '이름과 구성 Item만 수정합니다. 평가, 보관 상태, Wear Log는 유지됩니다.'
+                ? '이름, 구성 Item, 평가를 수정합니다. 보관 상태와 Wear Log는 유지됩니다.'
                 : '저장할 때 새 Outfit과 모든 Item 관계를 한 번에 생성합니다. Wear Log는 자동으로 만들지 않습니다.'}
             </p>
           </section>

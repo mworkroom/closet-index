@@ -23,7 +23,6 @@ import type {
   ReplacementLineReviewInput,
   ReplacementLineStart,
 } from '../../lib/types'
-import { normalizeReplacementLineDecisionReason } from '../../lib/types'
 import type { ReplacementLineRepository } from '../replacement-line-repository'
 
 interface ReplacementLineRow {
@@ -96,7 +95,7 @@ function toLineEdge(row: ReplacementLineEdgeRow): ReplacementLineEdge {
     sourceLegacyLinkId: row.source_legacy_link_id,
     sourceKind: row.source_kind,
     branchName: row.branch_name,
-    decisionReason: normalizeReplacementLineDecisionReason(row.decision_reason),
+    decisionReason: row.decision_reason,
     status: row.status,
     confirmedAt: row.confirmed_at,
     updatedAt: row.updated_at,

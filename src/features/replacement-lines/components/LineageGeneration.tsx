@@ -9,6 +9,8 @@ import type {
   ReplacementLineEdgeDirectionUpdateInput,
 } from '../../../lib/types'
 import {
+  replacementLineDecisionReasonLabel,
+  REPLACEMENT_LINE_DECISION_REASON_OPTIONS,
   REPLACEMENT_LINE_DECISION_REASONS,
   type ReplacementLineDecisionReason,
 } from '../../../lib/types'
@@ -304,7 +306,9 @@ function LineageItemRow({
           (REPLACEMENT_LINE_DECISION_REASONS as readonly string[]).includes(
             node.reason,
           ) ? (
-            <span className="lineage-item-row__reason">선택 이유 · {node.reason}</span>
+            <span className="lineage-item-row__reason">
+              선택 이유 · {replacementLineDecisionReasonLabel(node.reason)}
+            </span>
           ) : null}
           {node.branchName ? (
             <span className="lineage-item-row__branch">가지 · {node.branchName}</span>
@@ -419,9 +423,9 @@ function LineageItemRow({
               required
             >
               <option value="">선택해 주세요</option>
-              {REPLACEMENT_LINE_DECISION_REASONS.map((reason) => (
-                <option value={reason} key={reason}>
-                  {reason}
+              {REPLACEMENT_LINE_DECISION_REASON_OPTIONS.map((reason) => (
+                <option value={reason.value} key={reason.value}>
+                  {reason.label}
                 </option>
               ))}
             </select>
@@ -627,4 +631,3 @@ export function LineageGeneration({
     </div>
   )
 }
-

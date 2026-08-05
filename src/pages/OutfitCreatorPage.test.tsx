@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -46,6 +46,8 @@ describe('Outfit creator', () => {
       await screen.findByRole('button', { name: '블루 가디건 추가' }),
     )
     await user.click(screen.getByRole('button', { name: '아이보리 니트 추가' }))
+    expect(screen.getByText('평가 OK')).toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: '미입력' })).not.toBeInTheDocument()
     await user.click(
       screen.getByRole('button', { name: '블루 가디건 오른쪽으로 4px 이동' }),
     )
@@ -227,6 +229,13 @@ describe('Outfit creator', () => {
     renderCreator(repository, '/outfits/outfit-favorite/edit')
 
     expect(await screen.findByRole('heading', { name: '착장 수정' })).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByRole('radio', { name: 'Favorite' })).toBeChecked()
+    })
+    expect(screen.queryByRole('radio', { name: '미입력' })).not.toBeInTheDocument()
+    expect(screen.getByText('평가 Favorite')).toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: 'Error' }))
+    expect(screen.getByText('평가 Error')).toBeInTheDocument()
     await user.click(
       (await screen.findAllByRole('button', { name: '블랙 팬츠 선택 해제' }))[0],
     )
@@ -237,16 +246,17 @@ describe('Outfit creator', () => {
     expect(updateOutfit).toHaveBeenCalledWith(
       'outfit-favorite',
       expect.objectContaining({
+        rating: 'error',
         allowDuplicate: false,
         items: expect.not.arrayContaining([
           expect.objectContaining({ itemId: 'item-pants' }),
         ]),
       }),
     )
-    expect(
-      (await repository.load()).outfits.find(
-        (outfit) => outfit.id === 'outfit-favorite',
-      )?.itemIds,
-    ).not.toContain('item-pants')
+    const savedOutfit = (await repository.load()).outfits.find(
+      (outfit) => outfit.id === 'outfit-favorite',
+    )
+    expect(savedOutfit?.itemIds).not.toContain('item-pants')
+    expect(savedOutfit?.rating).toBe('error')
   })
 })

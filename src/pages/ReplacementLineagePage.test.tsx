@@ -91,12 +91,15 @@ describe('ReplacementLineagePage', () => {
     expect(
       within(reasonField).getAllByRole('option').map((option) => option.textContent),
     ).toEqual(['선택해 주세요', '대체 시도', '온도 세분화', '기능 세분화', '계승 👑'])
-    await user.selectOptions(reasonField, '계승 👑')
+    expect(
+      within(reasonField).getAllByRole('option').map((option) => option.getAttribute('value')),
+    ).toEqual(['', '대체 시도', '온도 세분화', '기능 세분화', '계승 👑'])
+    await user.selectOptions(reasonField, '온도 세분화')
     await user.type(screen.getByLabelText('가지 이름 (선택)'), '여유로운 핏')
     await user.click(screen.getByRole('button', { name: '저장' }))
 
     expect(
-      await screen.findByText('선택 이유 · 계승 👑'),
+      await screen.findByText('선택 이유 · 온도 세분화'),
     ).toBeInTheDocument()
     expect(screen.getByText('가지 · 여유로운 핏')).toBeInTheDocument()
     expect(
@@ -106,7 +109,7 @@ describe('ReplacementLineagePage', () => {
     ).toEqual([
       expect.objectContaining({
         id: 'edge-layer',
-        decisionReason: '계승 👑',
+        decisionReason: '온도 세분화',
         branchName: '여유로운 핏',
         sourceLegacyLinkId: null,
         sourceKind: 'manual',
