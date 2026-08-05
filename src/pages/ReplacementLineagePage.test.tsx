@@ -1,6 +1,6 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { DataProvider } from '../context/DataContext'
 import { DemoRepository } from '../data/demo-repository'
@@ -645,6 +645,126 @@ describe('ReplacementLineagePage', () => {
         (item) => item.id === 'item-skirt',
       ),
     ).toBe(true)
+  })
+
+  it('keeps a failed add RPC visible without applying an optimistic membership', async () => {
+    const user = userEvent.setup()
+    const repository = new DemoRepository()
+    const addItem = vi
+      .spyOn(repository, 'addReplacementLineItem')
+      .mockRejectedValueOnce(new Error('Replacement RPC unavailable'))
+
+    render(
+      <MemoryRouter initialEntries={['/replacement-lines/line-navy-tee']}>
+        <DataProvider repository={repository}>
+          <Routes>
+            <Route
+              path="/replacement-lines/:lineId"
+              element={<ReplacementLineagePage />}
+            />
+          </Routes>
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'Navy Tee' })
+    await user.click(screen.getByRole('button', { name: 'Item 추가' }))
+    await user.type(screen.getByLabelText('Item 검색'), '차콜')
+    await user.click(screen.getByRole('button', { name: /차콜 스커트/ }))
+    await user.click(screen.getByRole('button', { name: '선택한 Item 추가' }))
+
+    expect(await screen.findByText('Replacement RPC unavailable')).toBeInTheDocument()
+    expect(addItem).toHaveBeenCalledTimes(1)
+    expect(
+      screen.queryByRole('link', { name: '차콜 스커트 Item 상세 보기' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('passes the loaded timestamp to addItem and preserves the screen on a conflict', async () => {
+    const user = userEvent.setup()
+    const repository = new DemoRepository()
+    const initialSnapshot = await repository.loadReplacementLines()
+    const expectedUpdatedAt = initialSnapshot.lines.find(
+      (line) => line.id === 'line-navy-tee',
+    )!.updatedAt
+    const addItem = vi
+      .spyOn(repository, 'addReplacementLineItem')
+      .mockRejectedValueOnce(
+        new Error('Line이 변경되었습니다. 다시 불러와 주세요.'),
+      )
+
+    render(
+      <MemoryRouter initialEntries={['/replacement-lines/line-navy-tee']}>
+        <DataProvider repository={repository}>
+          <Routes>
+            <Route
+              path="/replacement-lines/:lineId"
+              element={<ReplacementLineagePage />}
+            />
+          </Routes>
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'Navy Tee' })
+    await user.click(screen.getByRole('button', { name: 'Item 추가' }))
+    await user.type(screen.getByLabelText('Item 검색'), '차콜')
+    await user.click(screen.getByRole('button', { name: /차콜 스커트/ }))
+    await user.click(screen.getByRole('button', { name: '선택한 Item 추가' }))
+
+    expect(
+      await screen.findByText('Line이 변경되었습니다. 다시 불러와 주세요.'),
+    ).toBeInTheDocument()
+    expect(addItem).toHaveBeenCalledWith({
+      lineId: 'line-navy-tee',
+      itemId: 'item-skirt',
+      expectedUpdatedAt,
+    })
+    expect(screen.getByRole('heading', { name: 'Navy Tee' })).toBeInTheDocument()
+  })
+
+  it('submits the same add action only once while the first request is pending', async () => {
+    const user = userEvent.setup()
+    const repository = new DemoRepository()
+    const originalAddItem = repository.addReplacementLineItem.bind(repository)
+    let releaseRequest!: () => void
+    const requestGate = new Promise<void>((resolve) => {
+      releaseRequest = resolve
+    })
+    const addItem = vi
+      .spyOn(repository, 'addReplacementLineItem')
+      .mockImplementation(async (input) => {
+        await requestGate
+        return originalAddItem(input)
+      })
+
+    render(
+      <MemoryRouter initialEntries={['/replacement-lines/line-navy-tee']}>
+        <DataProvider repository={repository}>
+          <Routes>
+            <Route
+              path="/replacement-lines/:lineId"
+              element={<ReplacementLineagePage />}
+            />
+          </Routes>
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'Navy Tee' })
+    await user.click(screen.getByRole('button', { name: 'Item 추가' }))
+    await user.type(screen.getByLabelText('Item 검색'), '차콜')
+    await user.click(screen.getByRole('button', { name: /차콜 스커트/ }))
+    await user.dblClick(screen.getByRole('button', { name: '선택한 Item 추가' }))
+
+    expect(addItem).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: '추가 중…' })).toBeDisabled()
+
+    releaseRequest()
+    expect(
+      await screen.findByRole('link', { name: '차콜 스커트 Item 상세 보기' }),
+    ).toBeInTheDocument()
+    expect(addItem).toHaveBeenCalledTimes(1)
   })
 
   it('중복 소속은 현재 Line에서만 빼고 다른 Line의 소속과 계보를 보존한다', async () => {
