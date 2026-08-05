@@ -1,7 +1,7 @@
 # Closet Index Phase 6 Care & Replenishment Plan
 
 - 작성일: 2026-08-05
-- 상태: Phase 6 로컬 구현 및 격리 DB 검증 workflow 준비 완료(P6-2·P6-4 CI 실행·production 적용 대기)
+- 상태: Phase 6 로컬 구현 및 P6-2·P6-4 격리 DB 계약 37개 검증 완료(production 적용 대기)
 - 선행 단계: Phase 4 Replacement Line 완료
 - 목적: Item 상세 페이지와 Maintenance 페이지에서 교체 계보, 재구매, 장기 미착용 점검, 특수 세탁 관리를 일관된 기준으로 제공한다.
 - 관련 문서: [Roadmap](./roadmap.md), [Phase 4 Maintenance & Insights Plan](./phase-4-maintenance-insights-plan.md), [Product Plan](./product-plan.md)
