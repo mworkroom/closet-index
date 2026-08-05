@@ -21,6 +21,7 @@ import type {
   ReplacementLineItemMoveInput,
   ReplacementLineItemRemoveInput,
   ReplacementLineArchiveInput,
+  ReplacementLineCreateInput,
   ReplacementLineColorUpdateInput,
   ReplacementLineDeleteInput,
   ReplacementLineDetailsUpdateInput,
@@ -340,6 +341,33 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 export class DemoRepository implements ClosetRepository {
   async load() {
     return readData()
+  }
+
+  async createReplacementLine(
+    input: ReplacementLineCreateInput,
+  ): Promise<ReplacementLineRecord> {
+    const name = input.name.trim()
+    const styleIdentity = input.styleIdentity?.trim() || null
+    if (!name) throw new Error('새 Line 이름을 입력해 주세요.')
+    if (name.length > 200 || (styleIdentity?.length ?? 0) > 200) {
+      throw new Error('Line 이름과 Style Identity는 200자 이하로 입력해 주세요.')
+    }
+
+    const snapshot = readDemoReplacementLineSnapshot()
+    const created: ReplacementLineRecord = {
+      id: crypto.randomUUID(),
+      name,
+      styleIdentity,
+      colorCategory: input.colorCategory,
+      reviewStatus: 'ready',
+      lifecycleStatus: 'active',
+      representativeLineId: null,
+      archivedAt: null,
+      updatedAt: new Date().toISOString(),
+    }
+    snapshot.lines.push(created)
+    writeDemoReplacementLineSnapshot(snapshot)
+    return structuredClone(created)
   }
 
   async loadReplacementLines() {

@@ -31,6 +31,7 @@ import type {
   ReplacementLineItemMoveInput,
   ReplacementLineItemRemoveInput,
   ReplacementLineArchiveInput,
+  ReplacementLineCreateInput,
   ReplacementLineColorUpdateInput,
   ReplacementLineDeleteInput,
   ReplacementLineDetailsUpdateInput,
@@ -88,6 +89,9 @@ interface DataState {
   createReplacementLineManualEdge: (
     input: ReplacementLineManualEdgeInput,
   ) => Promise<ReplacementLineEdge>
+  createReplacementLine: (
+    input: ReplacementLineCreateInput,
+  ) => Promise<ReplacementLineRecord>
   moveReplacementLineItem: (
     input: ReplacementLineItemMoveInput,
   ) => Promise<ReplacementLineRecord>
@@ -400,6 +404,18 @@ export function DataProvider({
     [repository],
   )
 
+  const createReplacementLine = useCallback(
+    (input: ReplacementLineCreateInput) => {
+      if (!repository.createReplacementLine) {
+        return Promise.reject(
+          new Error('이 환경에서는 새 Replacement Line 생성을 지원하지 않습니다.'),
+        )
+      }
+      return repository.createReplacementLine(input)
+    },
+    [repository],
+  )
+
   const moveReplacementLineItem = useCallback(
     (input: ReplacementLineItemMoveInput) => {
       if (!repository.moveReplacementLineItem) {
@@ -664,6 +680,7 @@ export function DataProvider({
       loadReplacementLineStarts,
       setReplacementLineStart,
       createReplacementLineManualEdge,
+      createReplacementLine,
       moveReplacementLineItem,
       addReplacementLineItem,
       removeReplacementLineItem,
@@ -715,6 +732,7 @@ export function DataProvider({
       loadReplacementLineStarts,
       setReplacementLineStart,
       createReplacementLineManualEdge,
+      createReplacementLine,
       moveReplacementLineItem,
       addReplacementLineItem,
       removeReplacementLineItem,

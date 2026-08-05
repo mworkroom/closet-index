@@ -450,3 +450,34 @@ describe('DemoRepository wear log contract', () => {
     )
   })
 })
+
+describe('DemoRepository Replacement Line creation', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('Item membership 없이 대표 색상이 지정된 빈 Line을 만든다', async () => {
+    const repository = new DemoRepository()
+
+    const created = await repository.createReplacementLine({
+      name: '  Brown Bottom Spring  ',
+      styleIdentity: '  Brown Bottom  ',
+      colorCategory: 'Brown',
+    })
+    const snapshot = await repository.loadReplacementLines()
+
+    expect(created).toMatchObject({
+      name: 'Brown Bottom Spring',
+      styleIdentity: 'Brown Bottom',
+      colorCategory: 'Brown',
+      reviewStatus: 'ready',
+      lifecycleStatus: 'active',
+    })
+    expect(snapshot.lines).toContainEqual(created)
+    expect(
+      snapshot.memberships.filter(
+        (membership) => membership.replacementLineId === created.id,
+      ),
+    ).toEqual([])
+  })
+})

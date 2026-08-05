@@ -671,3 +671,48 @@ describe('SupabaseReplacementLineRepository', () => {
     )
   })
 })
+
+describe('SupabaseReplacementLineRepository Line creation', () => {
+  it('creates an empty Line through the authenticated workspace RPC', async () => {
+    const savedRow = {
+      id: 'line-new',
+      name: 'Brown Bottom Spring',
+      style_identity: 'Brown Bottom',
+      color_category: 'Brown',
+      review_status: 'ready',
+      lifecycle_status: 'active',
+      representative_line_id: null,
+      archived_at: null,
+      updated_at: '2026-08-05T06:00:00Z',
+    }
+    const rpc = vi.fn(async () => ({ data: savedRow, error: null }))
+    const repository = new SupabaseReplacementLineRepository(
+      { rpc } as unknown as SupabaseClient,
+      'workspace-a',
+    )
+
+    await expect(
+      repository.create({
+        name: 'Brown Bottom Spring',
+        styleIdentity: 'Brown Bottom',
+        colorCategory: 'Brown',
+      }),
+    ).resolves.toEqual({
+      id: 'line-new',
+      name: 'Brown Bottom Spring',
+      styleIdentity: 'Brown Bottom',
+      colorCategory: 'Brown',
+      reviewStatus: 'ready',
+      lifecycleStatus: 'active',
+      representativeLineId: null,
+      archivedAt: null,
+      updatedAt: '2026-08-05T06:00:00Z',
+    })
+    expect(rpc).toHaveBeenCalledWith('create_closet_replacement_line', {
+      p_workspace_id: 'workspace-a',
+      p_name: 'Brown Bottom Spring',
+      p_style_identity: 'Brown Bottom',
+      p_color_category: 'Brown',
+    })
+  })
+})

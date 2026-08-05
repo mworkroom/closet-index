@@ -241,6 +241,7 @@
 | `confirm_closet_replacement_line_edge(workspace, line, legacy_link, expected_updated_at, branch, reason)` | bulk confirm RPC 내부; UI 직접 호출 없음 | legacy_links, edges | 검토 결과 재검증과 단일 edge 확정 | Wave 3 후보, 현재 bulk helper |
 | `confirm_closet_replacement_line_edges(workspace, candidates jsonb)` | `confirmEdges`; edge preview UI | edges, singular confirm을 통한 legacy_links | 후보 하나가 실패하면 batch 전체 rollback | Wave 3 후보, 현재 review 완료 흐름에 남음 |
 | `create_closet_replacement_manual_edge(workspace, line, predecessor, successor, branch, reason)` | `createManualEdge`; Lineage UI | edges | membership·start·cycle 검증과 edge 생성 | 필요 |
+| `create_closet_replacement_line(workspace, name, style_identity, color_category)` | `create`; Replacement Lines 상단 신규 Line UI | lines | 인증된 workspace에 사람이 지정한 metadata로 active·빈 Line 생성 | 필요 |
 | `revise_closet_replacement_line_edge_details(workspace, edge, expected_updated_at, branch, reason)` | `updateEdgeDetails`; Lineage UI | edges | optimistic lock과 설명 변경 | 필요 |
 | `update_closet_replacement_line_edge_connection(workspace, edge, expected_updated_at, predecessor, branch, reason)` | `updateEdgeConnection`; Lineage UI | edges, line_items | predecessor 변경·cycle·membership 검증 | 필요 |
 | `disconnect_closet_replacement_line_edge(workspace, edge, expected_updated_at)` | `disconnectEdge`; Lineage UI | edges, starts | edge 해제와 successor의 start 전환 | 필요 |

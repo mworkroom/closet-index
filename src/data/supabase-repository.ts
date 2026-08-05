@@ -20,6 +20,7 @@ import type {
   ReplacementLineItemMoveInput,
   ReplacementLineItemRemoveInput,
   ReplacementLineArchiveInput,
+  ReplacementLineCreateInput,
   ReplacementLineColorUpdateInput,
   ReplacementLineDeleteInput,
   ReplacementLineDetailsUpdateInput,
@@ -139,6 +140,10 @@ export class SupabaseRepository implements ClosetRepository {
     input: ReplacementLineManualEdgeInput,
   ): Promise<ReplacementLineEdge> {
     return this.replacementLines.createManualEdge(input)
+  }
+
+  createReplacementLine(input: ReplacementLineCreateInput) {
+    return this.replacementLines.create(input)
   }
 
   moveReplacementLineItem(input: ReplacementLineItemMoveInput) {

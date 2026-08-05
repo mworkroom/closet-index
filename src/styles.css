@@ -3104,6 +3104,41 @@ button:disabled {
   line-height: 1.55;
 }
 
+.replacement-line-create-toggle {
+  width: fit-content;
+  margin-top: 7px;
+}
+
+.replacement-line-create-form {
+  display: grid;
+  gap: 13px;
+  margin-top: 9px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+.replacement-line-create-form__heading,
+.replacement-line-create-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.replacement-line-create-form__heading span,
+.replacement-line-create-form label > span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.replacement-line-create-form .error-text {
+  border-radius: 12px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  padding: 10px 12px;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
 .replacement-line-scope-warning {
   margin-top: 10px;
 }

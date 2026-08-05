@@ -22,6 +22,7 @@ import type {
   ReplacementLineItemMoveInput,
   ReplacementLineItemRemoveInput,
   ReplacementLineArchiveInput,
+  ReplacementLineCreateInput,
   ReplacementLineColorUpdateInput,
   ReplacementLineDeleteInput,
   ReplacementLineDetailsUpdateInput,
@@ -76,6 +77,9 @@ export interface ClosetRepository {
   createReplacementLineManualEdge?(
     input: ReplacementLineManualEdgeInput,
   ): Promise<ReplacementLineEdge>
+  createReplacementLine?(
+    input: ReplacementLineCreateInput,
+  ): Promise<ReplacementLineRecord>
   moveReplacementLineItem?(
     input: ReplacementLineItemMoveInput,
   ): Promise<ReplacementLineRecord>

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ChevronRight } from 'lucide-react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { ArrowLeft, ChevronRight, Plus, X } from 'lucide-react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
@@ -12,8 +12,10 @@ import {
 } from '../features/replacement-lines/replacement-line-overview'
 import type {
   ReplacementLegacyLink,
+  ReplacementLineColorCategory,
   ReplacementLineSnapshot,
 } from '../lib/types'
+import { REPLACEMENT_LINE_COLOR_CATEGORIES } from '../lib/types'
 
 function usesLightText(hex: string) {
   const value = hex.replace('#', '')
@@ -108,8 +110,14 @@ function ArchivedLineCard({
 }
 
 export function ReplacementLinesPage() {
-  const { data, loadReplacementLines, loadReplacementLegacyLinks } =
+  const {
+    data,
+    createReplacementLine,
+    loadReplacementLines,
+    loadReplacementLegacyLinks,
+  } =
     useClosetData()
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [snapshot, setSnapshot] = useState<ReplacementLineSnapshot | null>(null)
   const [legacyLinks, setLegacyLinks] =
@@ -117,6 +125,12 @@ export function ReplacementLinesPage() {
   const [legacyLinksAvailable, setLegacyLinksAvailable] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [createFormOpen, setCreateFormOpen] = useState(false)
+  const [newLineName, setNewLineName] = useState('')
+  const [newLineStyleIdentity, setNewLineStyleIdentity] = useState('')
+  const [newLineColorCategory, setNewLineColorCategory] = useState('')
+  const [createError, setCreateError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -167,6 +181,38 @@ export function ReplacementLinesPage() {
   const reviewedLegacyLinkCount =
     legacyLinks?.filter((link) => link.reviewStatus === 'reviewed').length ?? 0
 
+  const handleCreateLine = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const name = newLineName.trim()
+    if (!name) {
+      setCreateError('새 Line 이름을 입력해 주세요.')
+      return
+    }
+    if (!newLineColorCategory) {
+      setCreateError('대표 색상 category를 골라 주세요.')
+      return
+    }
+
+    setCreating(true)
+    setCreateError(null)
+    try {
+      const created = await createReplacementLine({
+        name,
+        styleIdentity: newLineStyleIdentity.trim() || null,
+        colorCategory: newLineColorCategory as ReplacementLineColorCategory,
+      })
+      navigate(`/replacement-lines/${created.id}`)
+    } catch (cause) {
+      setCreateError(
+        cause instanceof Error
+          ? cause.message
+          : '새 Replacement Line을 만들지 못했습니다.',
+      )
+    } finally {
+      setCreating(false)
+    }
+  }
+
   return (
     <AppShell title="Replacement Lines" eyebrow="COLOR INDEX" back>
       <section className="replacement-line-intro" aria-labelledby="line-overview-heading">
@@ -175,6 +221,74 @@ export function ReplacementLinesPage() {
         <p className="muted">
           색상을 고른 뒤 Line을 누르면 중간 목록 없이 바로 계보를 확인할 수 있습니다.
         </p>
+        <button
+          className="button button--primary replacement-line-create-toggle"
+          type="button"
+          aria-expanded={createFormOpen}
+          aria-controls="replacement-line-create-form"
+          onClick={() => {
+            setCreateFormOpen((open) => !open)
+            setCreateError(null)
+          }}
+        >
+          {createFormOpen ? <X aria-hidden="true" size={17} /> : <Plus aria-hidden="true" size={17} />}
+          {createFormOpen ? '생성 닫기' : '새 Line 추가'}
+        </button>
+        {createFormOpen ? (
+          <form
+            className="replacement-line-create-form"
+            id="replacement-line-create-form"
+            onSubmit={(event) => void handleCreateLine(event)}
+          >
+            <div className="replacement-line-create-form__heading">
+              <strong>빈 Line 먼저 만들기</strong>
+              <span>저장 후 상세 화면에서 Item을 추가할 수 있습니다.</span>
+            </div>
+            <label>
+              <span>Line 이름</span>
+              <input
+                autoFocus
+                maxLength={200}
+                required
+                value={newLineName}
+                onChange={(event) => setNewLineName(event.target.value)}
+                placeholder="예: Brown Bottom Spring"
+              />
+            </label>
+            <label>
+              <span>Style Identity (선택)</span>
+              <input
+                maxLength={200}
+                value={newLineStyleIdentity}
+                onChange={(event) => setNewLineStyleIdentity(event.target.value)}
+                placeholder="예: Brown Bottom"
+              />
+            </label>
+            <label>
+              <span>대표 색상 category</span>
+              <select
+                required
+                value={newLineColorCategory}
+                onChange={(event) => setNewLineColorCategory(event.target.value)}
+              >
+                <option value="">색상을 골라 주세요</option>
+                {REPLACEMENT_LINE_COLOR_CATEGORIES.map((category) => (
+                  <option value={category} key={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {createError ? (
+              <p className="error-text" role="alert">
+                {createError}
+              </p>
+            ) : null}
+            <button className="button button--primary" disabled={creating} type="submit">
+              {creating ? '만드는 중…' : 'Line 만들고 Item 추가하기'}
+            </button>
+          </form>
+        ) : null}
       </section>
 
       {loading ? <LoadingState label="Replacement Line을 불러오는 중" /> : null}

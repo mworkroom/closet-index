@@ -269,6 +269,12 @@ export interface ReplacementLineRecord {
   updatedAt: string
 }
 
+export interface ReplacementLineCreateInput {
+  name: string
+  styleIdentity: string | null
+  colorCategory: ReplacementLineColorCategory
+}
+
 export const REPLACEMENT_LINE_COLOR_CATEGORIES = [
   'Black',
   'Blue',

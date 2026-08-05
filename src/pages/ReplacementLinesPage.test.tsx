@@ -38,6 +38,51 @@ describe('ReplacementLinesPage', () => {
     expect(screen.queryByText('블루 가디건')).not.toBeInTheDocument()
   })
 
+  it('creates a new empty Line from the page top and opens its Item management screen', async () => {
+    const user = userEvent.setup()
+    const repository = new DemoRepository()
+    const createReplacementLine = vi.spyOn(repository, 'createReplacementLine')
+    render(
+      <MemoryRouter initialEntries={['/replacement-lines']}>
+        <DataProvider repository={repository}>
+          <Routes>
+            <Route path="/replacement-lines" element={<ReplacementLinesPage />} />
+            <Route
+              path="/replacement-lines/:lineId"
+              element={<p>새 Line 상세 화면</p>}
+            />
+          </Routes>
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    await user.click(await screen.findByRole('button', { name: '새 Line 추가' }))
+    await user.type(screen.getByLabelText('Line 이름'), 'Brown Bottom Spring')
+    await user.type(screen.getByLabelText('Style Identity (선택)'), 'Brown Bottom')
+    await user.selectOptions(screen.getByLabelText('대표 색상 category'), 'Brown')
+    await user.click(
+      screen.getByRole('button', { name: 'Line 만들고 Item 추가하기' }),
+    )
+
+    expect(createReplacementLine).toHaveBeenCalledWith({
+      name: 'Brown Bottom Spring',
+      styleIdentity: 'Brown Bottom',
+      colorCategory: 'Brown',
+    })
+    expect(await screen.findByText('새 Line 상세 화면')).toBeInTheDocument()
+
+    const snapshot = await repository.loadReplacementLines()
+    const created = snapshot.lines.find(
+      (line) => line.name === 'Brown Bottom Spring',
+    )!
+    expect(created.colorCategory).toBe('Brown')
+    expect(
+      snapshot.memberships.filter(
+        (membership) => membership.replacementLineId === created.id,
+      ),
+    ).toEqual([])
+  })
+
   it('filters by color and opens the selected Line lineage directly', async () => {
     const user = userEvent.setup()
     render(

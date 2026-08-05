@@ -15,6 +15,7 @@ import type {
   ReplacementLineItemMoveInput,
   ReplacementLineItemRemoveInput,
   ReplacementLineArchiveInput,
+  ReplacementLineCreateInput,
   ReplacementLineColorUpdateInput,
   ReplacementLineDeleteInput,
   ReplacementLineDetailsUpdateInput,
@@ -120,6 +121,26 @@ export class SupabaseReplacementLineRepository {
     private readonly client: SupabaseClient,
     private readonly workspaceId: string,
   ) {}
+
+  async create(
+    input: ReplacementLineCreateInput,
+  ): Promise<ReplacementLineRecord> {
+    const { data, error } = await this.client.rpc(
+      'create_closet_replacement_line',
+      {
+        p_workspace_id: this.workspaceId,
+        p_name: input.name,
+        p_style_identity: input.styleIdentity,
+        p_color_category: input.colorCategory,
+      },
+    )
+    if (error) throw error
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | ReplacementLineRow
+      | null
+    if (!row) throw new Error('생성한 Replacement Line을 확인하지 못했습니다.')
+    return toLine(row)
+  }
 
   async load(): Promise<ReplacementLineSnapshot> {
     const loadLines = async () => {
