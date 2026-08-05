@@ -5,6 +5,7 @@ import {
   GitBranch,
   Heart,
   Settings,
+  Shirt,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
@@ -31,8 +32,14 @@ const links = [
   {
     to: '/maintenance',
     title: 'Maintenance',
-    description: '장기 미착용 Item 점검',
+    description: '장기 미착용 점검과 교체 관리',
     icon: ClipboardCheck,
+  },
+  {
+    to: '/laundry',
+    title: 'Laundry',
+    description: '손세탁과 드라이클리닝 관리',
+    icon: Shirt,
   },
   {
     to: '/settings',

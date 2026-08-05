@@ -17,8 +17,10 @@ interface MaintenanceRow {
   item: Item
   reason: string
   badge: ManagementBadgeLabel
-  sortValue: number | null
+  lastWornOn: string | null
 }
+
+type ManagementPageKind = 'maintenance' | 'laundry'
 
 function badgeClass(label: ManagementBadgeLabel) {
   if (label === '점검') return 'warning'
@@ -77,7 +79,7 @@ function MaintenanceSection({
   )
 }
 
-export function MaintenancePage() {
+function ManagementPage({ kind }: { kind: ManagementPageKind }) {
   const { data, loading, error, refresh, purchases, care } = useClosetData()
   const today = todayInKorea()
   const activeItems = useMemo(
@@ -104,6 +106,18 @@ export function MaintenancePage() {
     const replacement: MaintenanceRow[] = []
     const handWash: MaintenanceRow[] = []
     const dryCleaning: MaintenanceRow[] = []
+    const itemIdsByOutfit = new Map(
+      data.outfits.map((outfit) => [outfit.id, outfit.itemIds]),
+    )
+    const lastWornOnByItem = new Map<string, string>()
+    for (const log of data.wearLogs) {
+      for (const itemId of itemIdsByOutfit.get(log.outfitId) ?? []) {
+        const current = lastWornOnByItem.get(itemId)
+        if (!current || log.wornOn > current) {
+          lastWornOnByItem.set(itemId, log.wornOn)
+        }
+      }
+    }
 
     for (const item of activeItems) {
       const signal = signals.get(item.id)
@@ -113,11 +127,7 @@ export function MaintenancePage() {
           item,
           reason: signal.inspection.reason,
           badge: '점검',
-          sortValue: signal.inspection.lastWornOn
-            ? Date.parse(signal.inspection.lastWornOn)
-            : item.acquiredOn
-              ? Date.parse(item.acquiredOn)
-              : null,
+          lastWornOn: lastWornOnByItem.get(item.id) ?? null,
         })
       }
       if (signal.replacement?.due) {
@@ -125,10 +135,7 @@ export function MaintenancePage() {
           item,
           reason: getReplacementReason(signal.replacement),
           badge: '교체',
-          sortValue:
-            signal.replacement.currentValue === null
-              ? null
-              : signal.replacement.currentValue / signal.replacement.threshold,
+          lastWornOn: lastWornOnByItem.get(item.id) ?? null,
         })
       }
       if (signal.care?.due) {
@@ -136,32 +143,37 @@ export function MaintenancePage() {
           item,
           reason: signal.care.reason,
           badge: signal.care.label,
-          sortValue: signal.care.currentValue,
+          lastWornOn: lastWornOnByItem.get(item.id) ?? null,
         }
         if (signal.care.method === 'hand_wash') handWash.push(row)
         else dryCleaning.push(row)
       }
     }
 
-    inspection.sort((left, right) => {
-      if (left.sortValue === null && right.sortValue === null) return left.item.name.localeCompare(right.item.name, 'ko')
-      if (left.sortValue === null) return 1
-      if (right.sortValue === null) return -1
-      return left.sortValue - right.sortValue || left.item.name.localeCompare(right.item.name, 'ko')
-    })
-    const sortByProgress = (left: MaintenanceRow, right: MaintenanceRow) =>
-      (right.sortValue ?? -1) - (left.sortValue ?? -1) ||
-      left.item.name.localeCompare(right.item.name, 'ko')
-    replacement.sort(sortByProgress)
-    handWash.sort(sortByProgress)
-    dryCleaning.sort(sortByProgress)
+    const sortByOldestWear = (left: MaintenanceRow, right: MaintenanceRow) => {
+      if (left.lastWornOn === null && right.lastWornOn !== null) return -1
+      if (left.lastWornOn !== null && right.lastWornOn === null) return 1
+      return (
+        (left.lastWornOn ?? '').localeCompare(right.lastWornOn ?? '') ||
+        left.item.name.localeCompare(right.item.name, 'ko')
+      )
+    }
+    inspection.sort(sortByOldestWear)
+    replacement.sort(sortByOldestWear)
+    handWash.sort(sortByOldestWear)
+    dryCleaning.sort(sortByOldestWear)
     return { inspection, replacement, handWash, dryCleaning }
   }, [activeItems, data, events, today])
 
   const contentLoading = loading || (Boolean(data) && events.loading)
+  const isLaundry = kind === 'laundry'
 
   return (
-    <AppShell title="Maintenance" eyebrow="CARE & REPLENISHMENT" back>
+    <AppShell
+      title={isLaundry ? 'Laundry' : 'Maintenance'}
+      eyebrow={isLaundry ? 'GARMENT CARE' : 'CLOSET UPKEEP'}
+      back
+    >
       {contentLoading ? <LoadingState label="관리 대상을 계산하는 중" /> : null}
       {error ? <ErrorState message={error} onRetry={() => void refresh()} /> : null}
       {!error && data && events.error ? (
@@ -169,12 +181,27 @@ export function MaintenancePage() {
       ) : null}
       {data && !events.loading && !events.error ? (
         <div className="maintenance-sections">
-          <MaintenanceSection id="inspection-heading" eyebrow="INSPECTION" title="점검" description="착용 기록이 없거나 마지막 착용 후 2년이 지난 Item입니다." emptyTitle="지금 점검할 Item이 없어요" rows={sections.inspection} />
-          <MaintenanceSection id="replacement-heading" eyebrow="REPLACEMENT" title="교체" description="현재 구매 주기가 Category별 교체 기준에 도달한 Item입니다." emptyTitle="지금 교체할 Item이 없어요" rows={sections.replacement} />
-          <MaintenanceSection id="hand-wash-heading" eyebrow="HAND WASH" title="손세탁" description="최근 관리 이후 착용 횟수가 손세탁 기준에 도달한 Item입니다." emptyTitle="지금 손세탁할 Item이 없어요" rows={sections.handWash} />
-          <MaintenanceSection id="dry-cleaning-heading" eyebrow="DRY CLEANING" title="드라이클리닝" description="최근 관리 이후 착용 횟수가 드라이클리닝 기준에 도달한 Item입니다." emptyTitle="지금 드라이클리닝할 Item이 없어요" rows={sections.dryCleaning} />
+          {isLaundry ? (
+            <>
+              <MaintenanceSection id="hand-wash-heading" eyebrow="HAND WASH" title="손세탁" description="최근 관리 이후 착용 횟수가 손세탁 기준에 도달한 Item입니다." emptyTitle="지금 손세탁할 Item이 없어요" rows={sections.handWash} />
+              <MaintenanceSection id="dry-cleaning-heading" eyebrow="DRY CLEANING" title="드라이클리닝" description="최근 관리 이후 착용 횟수가 드라이클리닝 기준에 도달한 Item입니다." emptyTitle="지금 드라이클리닝할 Item이 없어요" rows={sections.dryCleaning} />
+            </>
+          ) : (
+            <>
+              <MaintenanceSection id="inspection-heading" eyebrow="INSPECTION" title="점검" description="착용 기록이 없거나 마지막 착용 후 2년이 지난 Item입니다." emptyTitle="지금 점검할 Item이 없어요" rows={sections.inspection} />
+              <MaintenanceSection id="replacement-heading" eyebrow="REPLACEMENT" title="교체" description="현재 구매 주기가 Category별 교체 기준에 도달한 Item입니다." emptyTitle="지금 교체할 Item이 없어요" rows={sections.replacement} />
+            </>
+          )}
         </div>
       ) : null}
     </AppShell>
   )
+}
+
+export function MaintenancePage() {
+  return <ManagementPage kind="maintenance" />
+}
+
+export function LaundryPage() {
+  return <ManagementPage kind="laundry" />
 }

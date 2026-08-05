@@ -20,5 +20,9 @@ describe('MorePage', () => {
     expect(
       screen.getByRole('link', { name: /Replacement Lines/ }),
     ).toHaveAttribute('href', '/replacement-lines')
+    expect(screen.getByRole('link', { name: /Laundry/ })).toHaveAttribute(
+      'href',
+      '/laundry',
+    )
   })
 })
