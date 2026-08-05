@@ -285,6 +285,6 @@ Item 상세 페이지에서 교체 계보를 확인하고, 구매·착용·관�
 
 1. [로컬 완료] Phase 6 P6-1·P6-1.1·P6-2·P6-3·P6-4 구현과 앱 회귀 검증
 2. [완료] 격리 GitHub Actions에서 P6-2·P6-4 migration과 37개 pgTAP 계약 검증
-3. production project와 migration 상태를 읽기 전용으로 재확인
+3. [완료] production project와 migration 상태를 읽기 전용으로 재확인
 4. 별도 승인 후 production migration 적용·배포·실환경 검증 여부 결정
 5. Phase 6 완료 상태를 기록한 뒤 다음 제품 단계의 범위와 상세 계획 확정
