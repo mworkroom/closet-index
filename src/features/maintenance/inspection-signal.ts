@@ -2,7 +2,7 @@ import type { Item, Outfit, WearLog } from '../../lib/types'
 
 export interface ItemInspectionSignal {
   kind: 'inspection'
-  label: '점검'
+  label: '점검' | '정리 후보'
   reason: string
   wearCount: number
   lastWornOn: string | null
@@ -79,7 +79,7 @@ export function getItemInspectionSignals({
   for (const item of items) {
     if (
       item.retired ||
-      item.category.trim().toLocaleLowerCase('en-US') === 'innerwear'
+      item.category.trim().toLocaleLowerCase('en-US').includes('innerwear')
     ) {
       continue
     }
@@ -103,7 +103,7 @@ export function getItemInspectionSignals({
     if (elapsedMonths === null || elapsedMonths < 24) continue
     signals.set(item.id, {
       kind: 'inspection',
-      label: '점검',
+      label: elapsedMonths >= 36 ? '정리 후보' : '점검',
       reason: `마지막 착용 ${formatInspectionElapsedTime(elapsedMonths)}`,
       ...summary,
     })

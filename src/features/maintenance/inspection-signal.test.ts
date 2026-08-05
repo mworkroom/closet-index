@@ -87,20 +87,38 @@ describe('P6-3 inspection signal', () => {
     expect(signals.get('reached')?.reason).toBe('마지막 착용 2년 전')
   })
 
-  it('오래된 마지막 착용을 완료 연·개월로 표시한다', () => {
+  it('2년 이상 3년 미만은 점검, 3년 이상은 정리 후보로 분리한다', () => {
     const signals = getItemInspectionSignals({
-      items: [item('old')],
-      outfits: [outfit('old-outfit', ['old'])],
-      wearLogs: [wearLog('old-log', 'old-outfit', '2024-05-01')],
+      items: [item('inspection'), item('before-declutter'), item('declutter')],
+      outfits: [
+        outfit('inspection-outfit', ['inspection']),
+        outfit('before-declutter-outfit', ['before-declutter']),
+        outfit('declutter-outfit', ['declutter']),
+      ],
+      wearLogs: [
+        wearLog('inspection-log', 'inspection-outfit', '2024-05-01'),
+        wearLog('before-declutter-log', 'before-declutter-outfit', '2023-08-07'),
+        wearLog('declutter-log', 'declutter-outfit', '2023-08-06'),
+      ],
       today: '2026-08-06',
     })
 
-    expect(signals.get('old')?.reason).toBe('마지막 착용 2년 3개월 전')
+    expect(signals.get('inspection')).toMatchObject({
+      label: '점검',
+      reason: '마지막 착용 2년 3개월 전',
+    })
+    expect(signals.get('before-declutter')?.label).toBe('점검')
+    expect(signals.get('declutter')).toMatchObject({
+      label: '정리 후보',
+      reason: '마지막 착용 3년 전',
+    })
     expect(getCompletedCalendarMonths('2024-08-07', '2026-08-06')).toBe(23)
     expect(getCompletedCalendarMonths('2024-08-06', '2026-08-06')).toBe(24)
+    expect(getCompletedCalendarMonths('2023-08-07', '2026-08-06')).toBe(35)
+    expect(getCompletedCalendarMonths('2023-08-06', '2026-08-06')).toBe(36)
   })
 
-  it('Innerwear와 Retired Item은 착용 0회여도 제외한다', () => {
+  it('Category에 Innerwear가 포함되거나 Retired이면 착용 0회여도 제외한다', () => {
     const signals = getItemInspectionSignals({
       items: [
         item('innerwear', { category: ' Innerwear ' }),
@@ -114,7 +132,7 @@ describe('P6-3 inspection signal', () => {
 
     expect(signals.has('innerwear')).toBe(false)
     expect(signals.has('retired')).toBe(false)
-    expect(signals.get('innerwear-tee')?.reason).toBe('착용 기록 0회')
+    expect(signals.has('innerwear-tee')).toBe(false)
   })
 
   it('여러 Outfit의 Wear Log를 Item별로 합쳐 가장 최근 날짜를 쓴다', () => {

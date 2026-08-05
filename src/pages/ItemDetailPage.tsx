@@ -7,7 +7,10 @@ import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
 import { getCareRule } from '../features/maintenance/care-cycle'
 import { ItemCareSection } from '../features/maintenance/components/ItemCareSection'
-import { getMaintenanceSignals } from '../features/maintenance/maintenance-signals'
+import {
+  getMaintenanceSignals,
+  getManagementBadgeClass,
+} from '../features/maintenance/maintenance-signals'
 import { useItemCareEvents } from '../features/maintenance/useItemCareEvents'
 import { ItemReplacementLineageSection } from '../features/replacement-lines/components/ItemReplacementLineageSection'
 import { ItemReplenishmentSection } from '../features/replenishment/components/ItemReplenishmentSection'
@@ -79,7 +82,8 @@ export function ItemDetailPage() {
       today,
     ],
   )
-  const inspectionSignal = maintenanceSignals?.inspection ?? null
+  const reviewSignal =
+    maintenanceSignals?.inspection ?? maintenanceSignals?.declutter ?? null
   const purchaseCycle = maintenanceSignals?.replacement ?? null
   const careCycle = maintenanceSignals?.care ?? null
   const maximumMonthlyWearCount = Math.max(
@@ -133,7 +137,7 @@ export function ItemDetailPage() {
                   <span>{item.retired ? 'Retired' : '사용 중'}</span>
                   {maintenanceSignals?.allBadges.map((label) => (
                     <span
-                      className={`badge badge--${label === '점검' ? 'warning' : label === '교체' ? 'error' : label === '손세탁' ? 'hand_wash' : 'dry_cleaning'}`}
+                      className={`badge badge--${getManagementBadgeClass(label)}`}
                       key={label}
                     >
                       {label}
@@ -170,16 +174,18 @@ export function ItemDetailPage() {
             </div>
           </section>
 
-          {inspectionSignal ? (
+          {reviewSignal ? (
             <section
-              className="item-inspection-reason"
+              className={`item-inspection-reason${reviewSignal.label === '정리 후보' ? ' item-inspection-reason--declutter' : ''}`}
               aria-labelledby="item-inspection-heading"
             >
               <div>
-                <span className="badge badge--warning">점검</span>
-                <h2 id="item-inspection-heading">점검 근거</h2>
+                <span className={`badge badge--${getManagementBadgeClass(reviewSignal.label)}`}>
+                  {reviewSignal.label}
+                </span>
+                <h2 id="item-inspection-heading">{reviewSignal.label} 근거</h2>
               </div>
-              <p>{inspectionSignal.reason}</p>
+              <p>{reviewSignal.reason}</p>
             </section>
           ) : null}
 

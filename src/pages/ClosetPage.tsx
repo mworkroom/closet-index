@@ -7,7 +7,10 @@ import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { ItemVisual } from '../components/ItemVisual'
 import { useClosetData } from '../context/DataContext'
 import { useSeasonScope } from '../context/SeasonScopeContext'
-import { getMaintenanceSignals } from '../features/maintenance/maintenance-signals'
+import {
+  getMaintenanceSignals,
+  getManagementBadgeClass,
+} from '../features/maintenance/maintenance-signals'
 import { useMaintenanceEvents } from '../features/maintenance/useMaintenanceEvents'
 import { formatMonthDayYear, todayInKorea } from '../lib/date'
 import {
@@ -353,7 +356,7 @@ export function ClosetPage() {
                           </span>
                         </span>
                         {badge ? (
-                          <span className={`badge badge--${badge === '점검' ? 'warning' : badge === '교체' ? 'error' : badge === '손세탁' ? 'hand_wash' : 'dry_cleaning'}`}>
+                          <span className={`badge badge--${getManagementBadgeClass(badge)}`}>
                             {badge}
                           </span>
                         ) : null}

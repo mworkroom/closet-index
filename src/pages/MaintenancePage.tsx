@@ -5,12 +5,18 @@ import { ItemVisual } from '../components/ItemVisual'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
 import {
+  getManagementBadgeClass,
   getMaintenanceSignals,
   getReplacementReason,
   type ManagementBadgeLabel,
 } from '../features/maintenance/maintenance-signals'
 import { useMaintenanceEvents } from '../features/maintenance/useMaintenanceEvents'
 import { todayInKorea } from '../lib/date'
+import {
+  getItemCategoryGroupId,
+  ITEM_CATEGORY_GROUPS,
+  type ItemCategoryGroupDefinition,
+} from '../lib/item-categories'
 import type { Item } from '../lib/types'
 
 interface MaintenanceRow {
@@ -22,10 +28,85 @@ interface MaintenanceRow {
 
 type ManagementPageKind = 'maintenance' | 'laundry'
 
-function badgeClass(label: ManagementBadgeLabel) {
-  if (label === '점검') return 'warning'
-  if (label === '교체') return 'error'
-  return label === '손세탁' ? 'hand_wash' : 'dry_cleaning'
+interface MaintenanceCategoryGroup extends ItemCategoryGroupDefinition {
+  rows: MaintenanceRow[]
+}
+
+function sortRowsByDetailedCategory(rows: readonly MaintenanceRow[]) {
+  return [...rows].sort(
+    (left, right) =>
+      left.item.category.localeCompare(right.item.category, 'en', {
+        sensitivity: 'base',
+      }) || left.item.name.localeCompare(right.item.name, 'ko'),
+  )
+}
+
+function groupRowsByTopLevelCategory(
+  rows: readonly MaintenanceRow[],
+): MaintenanceCategoryGroup[] {
+  const grouped = new Map<string, MaintenanceRow[]>()
+  for (const row of rows) {
+    const groupId = getItemCategoryGroupId(row.item.category)
+    const groupRows = grouped.get(groupId) ?? []
+    groupRows.push(row)
+    grouped.set(groupId, groupRows)
+  }
+
+  return ITEM_CATEGORY_GROUPS.flatMap((group) => {
+    const groupRows = grouped.get(group.id)
+    return groupRows
+      ? [{ ...group, rows: sortRowsByDetailedCategory(groupRows) }]
+      : []
+  })
+}
+
+function MaintenanceList({ rows }: { rows: readonly MaintenanceRow[] }) {
+  return (
+    <div className="maintenance-list">
+      {rows.map(({ item, reason, badge }) => (
+        <Link
+          to={`/closet/${item.id}`}
+          key={item.id}
+          aria-label={`${item.name} ${badge}: ${reason}, Item 상세 보기`}
+        >
+          <ItemVisual item={item} className="item-visual--row" />
+          <span className="maintenance-list__body" aria-hidden="true">
+            <strong>{item.name}</strong>
+            <span>{reason}</span>
+          </span>
+          <span
+            className={`badge badge--${getManagementBadgeClass(badge)}`}
+            aria-hidden="true"
+          >
+            {badge}
+          </span>
+        </Link>
+      ))}
+    </div>
+  )
+}
+
+function MaintenanceCategoryGroups({
+  rows,
+}: {
+  rows: readonly MaintenanceRow[]
+}) {
+  const groups = groupRowsByTopLevelCategory(rows)
+  return (
+    <div className="maintenance-category-groups">
+      {groups.map((group) => (
+        <details className="maintenance-category-group" key={group.id}>
+          <summary>
+            <strong>{group.label}</strong>
+            <span>{group.rows.length}개</span>
+          </summary>
+          <div className="maintenance-category-group__body">
+            <MaintenanceList rows={group.rows} />
+          </div>
+        </details>
+      ))}
+    </div>
+  )
 }
 
 function MaintenanceSection({
@@ -35,6 +116,7 @@ function MaintenanceSection({
   description,
   emptyTitle,
   rows,
+  groupByCategory = false,
 }: {
   id: string
   eyebrow: string
@@ -42,6 +124,7 @@ function MaintenanceSection({
   description: string
   emptyTitle: string
   rows: MaintenanceRow[]
+  groupByCategory?: boolean
 }) {
   return (
     <section className="section maintenance-section" aria-labelledby={id}>
@@ -55,25 +138,10 @@ function MaintenanceSection({
       <p className="maintenance-section__description">{description}</p>
       {rows.length === 0 ? (
         <EmptyState title={emptyTitle} />
+      ) : groupByCategory ? (
+        <MaintenanceCategoryGroups rows={rows} />
       ) : (
-        <div className="maintenance-list">
-          {rows.map(({ item, reason, badge }) => (
-            <Link
-              to={`/closet/${item.id}`}
-              key={item.id}
-              aria-label={`${item.name} ${badge}: ${reason}, Item 상세 보기`}
-            >
-              <ItemVisual item={item} className="item-visual--row" />
-              <span className="maintenance-list__body" aria-hidden="true">
-                <strong>{item.name}</strong>
-                <span>{reason}</span>
-              </span>
-              <span className={`badge badge--${badgeClass(badge)}`} aria-hidden="true">
-                {badge}
-              </span>
-            </Link>
-          ))}
-        </div>
+        <MaintenanceList rows={rows} />
       )}
     </section>
   )
@@ -92,7 +160,19 @@ function ManagementPage({ kind }: { kind: ManagementPageKind }) {
   )
   const events = useMaintenanceEvents(purchases, care, activeItemIds)
   const sections = useMemo(() => {
-    const empty = { inspection: [], replacement: [], handWash: [], dryCleaning: [] }
+    const empty: {
+      inspection: MaintenanceRow[]
+      declutter: MaintenanceRow[]
+      replacement: MaintenanceRow[]
+      handWash: MaintenanceRow[]
+      dryCleaning: MaintenanceRow[]
+    } = {
+      inspection: [],
+      declutter: [],
+      replacement: [],
+      handWash: [],
+      dryCleaning: [],
+    }
     if (!data || events.loading || events.error) return empty
     const signals = getMaintenanceSignals({
       items: activeItems,
@@ -103,6 +183,7 @@ function ManagementPage({ kind }: { kind: ManagementPageKind }) {
       today,
     })
     const inspection: MaintenanceRow[] = []
+    const declutter: MaintenanceRow[] = []
     const replacement: MaintenanceRow[] = []
     const handWash: MaintenanceRow[] = []
     const dryCleaning: MaintenanceRow[] = []
@@ -127,6 +208,14 @@ function ManagementPage({ kind }: { kind: ManagementPageKind }) {
           item,
           reason: signal.inspection.reason,
           badge: '점검',
+          lastWornOn: lastWornOnByItem.get(item.id) ?? null,
+        })
+      }
+      if (signal.declutter) {
+        declutter.push({
+          item,
+          reason: signal.declutter.reason,
+          badge: '정리 후보',
           lastWornOn: lastWornOnByItem.get(item.id) ?? null,
         })
       }
@@ -159,10 +248,11 @@ function ManagementPage({ kind }: { kind: ManagementPageKind }) {
       )
     }
     inspection.sort(sortByOldestWear)
+    declutter.sort(sortByOldestWear)
     replacement.sort(sortByOldestWear)
     handWash.sort(sortByOldestWear)
     dryCleaning.sort(sortByOldestWear)
-    return { inspection, replacement, handWash, dryCleaning }
+    return { inspection, declutter, replacement, handWash, dryCleaning }
   }, [activeItems, data, events, today])
 
   const contentLoading = loading || (Boolean(data) && events.loading)
@@ -188,8 +278,9 @@ function ManagementPage({ kind }: { kind: ManagementPageKind }) {
             </>
           ) : (
             <>
-              <MaintenanceSection id="inspection-heading" eyebrow="INSPECTION" title="점검" description="착용 기록이 없거나 마지막 착용 후 2년이 지난 Item입니다." emptyTitle="지금 점검할 Item이 없어요" rows={sections.inspection} />
-              <MaintenanceSection id="replacement-heading" eyebrow="REPLACEMENT" title="교체" description="현재 구매 주기가 Category별 교체 기준에 도달한 Item입니다." emptyTitle="지금 교체할 Item이 없어요" rows={sections.replacement} />
+              <MaintenanceSection id="inspection-heading" eyebrow="INSPECTION" title="점검" description="착용 기록이 없거나 마지막 착용 후 2년 이상 3년 미만인 Item입니다." emptyTitle="지금 점검할 Item이 없어요" rows={sections.inspection} groupByCategory />
+              <MaintenanceSection id="declutter-heading" eyebrow="DECLUTTER" title="정리 후보" description="마지막 착용 후 3년 이상 지난 Item입니다." emptyTitle="지금 정리 후보인 Item이 없어요" rows={sections.declutter} groupByCategory />
+              <MaintenanceSection id="replacement-heading" eyebrow="REPLACEMENT" title="교체" description="현재 구매 주기가 Category별 교체 기준에 도달한 Item입니다." emptyTitle="지금 교체할 Item이 없어요" rows={sections.replacement} groupByCategory />
             </>
           )}
         </div>

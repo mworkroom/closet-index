@@ -3,10 +3,16 @@ import { getPurchaseCycleStatus, type PurchaseCycleStatus } from '../replenishme
 import { getCareCycleStatus, type CareCycleStatus } from './care-cycle'
 import { getItemInspectionSignals, type ItemInspectionSignal } from './inspection-signal'
 
-export type ManagementBadgeLabel = '점검' | '교체' | '손세탁' | '드라이클리닝'
+export type ManagementBadgeLabel =
+  | '점검'
+  | '정리 후보'
+  | '교체'
+  | '손세탁'
+  | '드라이클리닝'
 
 export interface ItemMaintenanceSignals {
   inspection: ItemInspectionSignal | null
+  declutter: ItemInspectionSignal | null
   replacement: PurchaseCycleStatus | null
   care: CareCycleStatus | null
   primaryBadge: ManagementBadgeLabel | null
@@ -27,6 +33,13 @@ export function getReplacementReason(cycle: PurchaseCycleStatus) {
   return cycle.metric === 'wear_count'
     ? `최근 구매 이후 ${cycle.currentValue ?? 0}회 착용`
     : `최근 구매 이후 ${cycle.currentValue ?? 0}일 경과`
+}
+
+export function getManagementBadgeClass(label: ManagementBadgeLabel) {
+  if (label === '점검') return 'warning'
+  if (label === '정리 후보') return 'declutter'
+  if (label === '교체') return 'error'
+  return label === '손세탁' ? 'hand_wash' : 'dry_cleaning'
 }
 
 export function getMaintenanceSignals({
@@ -54,7 +67,9 @@ export function getMaintenanceSignals({
   const signals = new Map<string, ItemMaintenanceSignals>()
 
   for (const item of items) {
-    const inspection = inspectionSignals.get(item.id) ?? null
+    const reviewSignal = inspectionSignals.get(item.id) ?? null
+    const inspection = reviewSignal?.label === '점검' ? reviewSignal : null
+    const declutter = reviewSignal?.label === '정리 후보' ? reviewSignal : null
     const replacement = purchaseEventsAvailable
       ? getPurchaseCycleStatus({
           item,
@@ -75,10 +90,12 @@ export function getMaintenanceSignals({
       : null
     const allBadges: ManagementBadgeLabel[] = []
     if (inspection) allBadges.push('점검')
+    if (declutter) allBadges.push('정리 후보')
     if (replacement?.due) allBadges.push('교체')
     if (care?.due) allBadges.push(care.label)
     signals.set(item.id, {
       inspection,
+      declutter,
       replacement,
       care,
       primaryBadge: allBadges[0] ?? null,
