@@ -12,9 +12,6 @@ export function LoginPage({
   return (
     <main className="auth-screen">
       <div className="auth-card">
-        <div className="auth-mark" aria-hidden="true">
-          CI
-        </div>
         <p className="eyebrow">PERSONAL LOOKBOOK</p>
         <h1>Closet Index</h1>
         <p className="muted">
@@ -34,9 +31,6 @@ export function LoginPage({
           <LogIn size={18} aria-hidden="true" />
           {loading ? '계정 확인 중…' : 'Google로 로그인'}
         </button>
-        <p className="auth-card__note">
-          허용 목록에 등록된 개인 계정만 데이터에 접근할 수 있습니다.
-        </p>
       </div>
     </main>
   )
