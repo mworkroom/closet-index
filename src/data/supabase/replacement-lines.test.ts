@@ -328,7 +328,7 @@ describe('SupabaseReplacementLineRepository', () => {
         predecessorItemId: 'item-a',
         successorItemId: 'item-b',
         branchName: null,
-        decisionReason: '단순 교체',
+        decisionReason: '대체 시도',
       }),
     ).resolves.toMatchObject({ id: 'edge-a' })
     expect(rpc).toHaveBeenCalledWith(
@@ -339,7 +339,7 @@ describe('SupabaseReplacementLineRepository', () => {
         p_predecessor_item_id: 'item-a',
         p_successor_item_id: 'item-b',
         p_branch_name: null,
-        p_decision_reason: '단순 교체',
+        p_decision_reason: '대체 시도',
       },
     )
   })

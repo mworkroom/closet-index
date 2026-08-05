@@ -12,6 +12,7 @@ describe('ReplacementLinesPage', () => {
   it('opens with a compact color index instead of the full Line and Item list', async () => {
     const repository = new DemoRepository()
     const loadReplacementLines = vi.spyOn(repository.replacementLines, 'load')
+    const loadLegacyLinks = vi.spyOn(repository.replacementLines, 'loadLegacyLinks')
     render(
       <MemoryRouter initialEntries={['/replacement-lines']}>
         <DataProvider repository={repository}>
@@ -28,6 +29,14 @@ describe('ReplacementLinesPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Color' })).toBeInTheDocument()
     expect(loadReplacementLines).toHaveBeenCalledTimes(1)
+    expect(loadLegacyLinks).not.toHaveBeenCalled()
+    expect(screen.getByRole('heading', { name: 'Line 관리 현황' })).toBeInTheDocument()
+    expect(screen.getByText('고유 Item')).toBeInTheDocument()
+    expect(screen.getByText('Active / Retired')).toBeInTheDocument()
+    expect(screen.queryByText('빈 Line')).not.toBeInTheDocument()
+    expect(screen.queryByText('단일 Item')).not.toBeInTheDocument()
+    expect(screen.queryByText('색상별로 이어 온 Item')).not.toBeInTheDocument()
+    expect(screen.queryByText('Legacy Link')).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Black, 1개 Line 보기' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Blue, 1개 Line 보기' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Navy, 1개 Line 보기' })).toBeInTheDocument()
@@ -56,7 +65,8 @@ describe('ReplacementLinesPage', () => {
       </MemoryRouter>,
     )
 
-    const createButton = await screen.findByRole('button', { name: '새 Line 추가' })
+    const createButton = await screen.findByRole('button', { name: 'Add' })
+    expect(createButton.closest('.topbar')).toHaveTextContent('Replacement Lines')
     createButton.focus()
     expect(createButton).toHaveFocus()
     await user.keyboard('{Enter}')
@@ -106,17 +116,26 @@ describe('ReplacementLinesPage', () => {
     )
 
     expect(screen.getByRole('heading', { name: 'Navy' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Navy Tee 계보 보기' })).toHaveAttribute(
+    const identityHeading = screen.getByRole('heading', {
+      name: 'Daily Uniform',
+      level: 3,
+    })
+    expect(identityHeading).toBeInTheDocument()
+    expect(within(identityHeading.parentElement!).getByText('1 Lines')).toBeInTheDocument()
+    const navyLine = screen.getByRole('link', { name: 'Navy Tee 계보 보기' })
+    expect(navyLine).toHaveAttribute(
       'href',
       '/replacement-lines/line-navy-tee',
     )
+    expect(within(navyLine).queryByText('Daily Uniform')).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: '계보 보기' })).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('link', { name: 'Navy Tee 계보 보기' }))
+    await user.click(navyLine)
     expect(screen.getByText('계보 화면')).toBeInTheDocument()
   })
 
-  it('keeps the Legacy Link review queue inside the compact management section', async () => {
+  it('keeps only archived Line tools inside the compact management section', async () => {
+    const user = userEvent.setup()
     render(
       <MemoryRouter initialEntries={['/replacement-lines']}>
         <DataProvider repository={new DemoRepository()}>
@@ -125,21 +144,14 @@ describe('ReplacementLinesPage', () => {
       </MemoryRouter>,
     )
 
-    const legacySection = (
-      await screen.findByRole('heading', { name: 'Legacy Link' })
-    ).closest('section')!
-    expect(within(legacySection).getByText('검토 0/2')).toBeInTheDocument()
-    expect(legacySection).toHaveTextContent(
-      '확인한 방향과 선택 이유는 계보 데이터로 보존됩니다.',
-    )
-    expect(
-      within(legacySection).getByRole('link', {
-        name: 'Legacy Link 검토 이어가기',
-      }),
-    ).toHaveAttribute('href', '/replacement-lines/review')
+    const tools = await screen.findByText('관리 도구')
+    expect(screen.queryByText('Legacy Link')).not.toBeInTheDocument()
+    await user.click(tools.closest('summary')!)
+    expect(screen.getByText('보관된 Line이 없습니다.')).toBeInTheDocument()
   })
 
   it('removes archived Lines from Color and keeps them in the management list', async () => {
+    const user = userEvent.setup()
     const repository = new DemoRepository()
     const snapshot = await repository.replacementLines.load()
     const line = snapshot.lines.find(
@@ -163,6 +175,7 @@ describe('ReplacementLinesPage', () => {
     expect(
       screen.queryByRole('link', { name: 'Black, 1개 Line 보기' }),
     ).not.toBeInTheDocument()
+    await user.click(screen.getByText('관리 도구').closest('summary')!)
     expect(screen.getByRole('heading', { name: '보관된 Line' })).toBeInTheDocument()
     expect(
       screen.getByRole('link', { name: 'Future Black Dress 보관된 Line 보기' }),

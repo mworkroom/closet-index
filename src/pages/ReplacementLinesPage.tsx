@@ -6,12 +6,10 @@ import { ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
 import {
   buildReplacementLineOverview,
-  LEGACY_LINK_BASELINE_COUNT,
   type ReplacementLineColorGroup,
   type ReplacementLineOverviewRow,
 } from '../features/replacement-lines/replacement-line-overview'
 import type {
-  ReplacementLegacyLink,
   ReplacementLineColorCategory,
   ReplacementLineSnapshot,
 } from '../lib/types'
@@ -40,11 +38,6 @@ function ReplacementLineCard({ line }: { line: ReplacementLineOverviewRow }) {
         <span>
           Active {line.activeItems.length} · Retired {line.retiredItems.length}
         </span>
-        {line.styleIdentity ? (
-          <span className="replacement-line-card__identity">
-            {line.styleIdentity}
-          </span>
-        ) : null}
       </span>
       <span className="replacement-line-card__count">
         {line.membershipCount} Item
@@ -114,9 +107,6 @@ export function ReplacementLinesPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [snapshot, setSnapshot] = useState<ReplacementLineSnapshot | null>(null)
-  const [legacyLinks, setLegacyLinks] =
-    useState<ReplacementLegacyLink[] | null>(null)
-  const [legacyLinksAvailable, setLegacyLinksAvailable] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
@@ -130,19 +120,7 @@ export function ReplacementLinesPage() {
     setLoading(true)
     setError(null)
     try {
-      const [linesResult, linksResult] = await Promise.allSettled([
-        replacementLines.load(),
-        replacementLines.loadLegacyLinks(),
-      ])
-      if (linesResult.status === 'rejected') throw linesResult.reason
-      setSnapshot(linesResult.value)
-      if (linksResult.status === 'fulfilled') {
-        setLegacyLinks(linksResult.value)
-        setLegacyLinksAvailable(true)
-      } else {
-        setLegacyLinks(null)
-        setLegacyLinksAvailable(false)
-      }
+      setSnapshot(await replacementLines.load())
     } catch (cause) {
       setError(
         cause instanceof Error
@@ -152,7 +130,7 @@ export function ReplacementLinesPage() {
     } finally {
       setLoading(false)
     }
-  }, [replacementLines.loadLegacyLinks, replacementLines.load])
+  }, [replacementLines.load])
 
   useEffect(() => {
     void load()
@@ -169,12 +147,17 @@ export function ReplacementLinesPage() {
   const selectedColor = selectedColorId
     ? overview?.colorGroups.find((group) => group.id === selectedColorId) ?? null
     : null
-  const legacyLinkCount = legacyLinksAvailable
-    ? (legacyLinks?.length ?? 0)
-    : LEGACY_LINK_BASELINE_COUNT
-  const reviewedLegacyLinkCount =
-    legacyLinks?.filter((link) => link.reviewStatus === 'reviewed').length ?? 0
+  const selectedColorStyleGroups = useMemo(() => {
+    if (!overview || !selectedColor) return []
 
+    const selectedLineIds = new Set(selectedColor.lines.map((line) => line.id))
+    return overview.groups
+      .map((group) => ({
+        ...group,
+        lines: group.lines.filter((line) => selectedLineIds.has(line.id)),
+      }))
+      .filter((group) => group.lines.length > 0)
+  }, [overview, selectedColor])
   const handleCreateLine = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const name = newLineName.trim()
@@ -208,15 +191,13 @@ export function ReplacementLinesPage() {
   }
 
   return (
-    <AppShell title="Replacement Lines" eyebrow="COLOR INDEX" back>
-      <section className="replacement-line-intro" aria-labelledby="line-overview-heading">
-        <p className="eyebrow">REPLACEMENT LINEAGE</p>
-        <h2 id="line-overview-heading">색상별로 이어 온 Item</h2>
-        <p className="muted">
-          색상을 고른 뒤 Line을 누르면 중간 목록 없이 바로 계보를 확인할 수 있습니다.
-        </p>
+    <AppShell
+      title="Replacement Lines"
+      eyebrow="COLOR INDEX"
+      back
+      action={
         <button
-          className="button button--primary replacement-line-create-toggle"
+          className="button button--primary replacement-line-header-action"
           type="button"
           aria-expanded={createFormOpen}
           aria-controls="replacement-line-create-form"
@@ -226,18 +207,20 @@ export function ReplacementLinesPage() {
           }}
         >
           {createFormOpen ? <X aria-hidden="true" size={17} /> : <Plus aria-hidden="true" size={17} />}
-          {createFormOpen ? '생성 닫기' : '새 Line 추가'}
+          {createFormOpen ? 'Close' : 'Add'}
         </button>
-        {createFormOpen ? (
-          <form
-            className="replacement-line-create-form"
-            id="replacement-line-create-form"
-            onSubmit={(event) => void handleCreateLine(event)}
-          >
-            <div className="replacement-line-create-form__heading">
-              <strong>빈 Line 먼저 만들기</strong>
-              <span>저장 후 상세 화면에서 Item을 추가할 수 있습니다.</span>
-            </div>
+      }
+    >
+      {createFormOpen ? (
+        <form
+          className="replacement-line-create-form"
+          id="replacement-line-create-form"
+          onSubmit={(event) => void handleCreateLine(event)}
+        >
+          <div className="replacement-line-create-form__heading">
+            <strong>빈 Line 먼저 만들기</strong>
+            <span>저장 후 상세 화면에서 Item을 추가할 수 있습니다.</span>
+          </div>
             <label>
               <span>Line 이름</span>
               <input
@@ -281,9 +264,8 @@ export function ReplacementLinesPage() {
             <button className="button button--primary" disabled={creating} type="submit">
               {creating ? '만드는 중…' : 'Line 만들고 Item 추가하기'}
             </button>
-          </form>
-        ) : null}
-      </section>
+        </form>
+      ) : null}
 
       {loading ? <LoadingState label="Replacement Line을 불러오는 중" /> : null}
       {error ? <ErrorState message={error} onRetry={() => void load()} /> : null}
@@ -305,9 +287,20 @@ export function ReplacementLinesPage() {
               <span>{selectedColor.lines.length} Lines</span>
             </div>
           </div>
-          <div className="replacement-line-list">
-            {selectedColor.lines.map((line) => (
-              <ReplacementLineCard line={line} key={line.id} />
+          <div className="replacement-line-identity-groups">
+            {selectedColorStyleGroups.map((group) => (
+              <section className="replacement-line-identity-group" key={group.id}>
+                <div className="replacement-line-identity-heading">
+                  <span aria-hidden="true" />
+                  <h3>{group.label}</h3>
+                  <small>{group.lines.length} Lines</small>
+                </div>
+                <div className="replacement-line-list">
+                  {group.lines.map((line) => (
+                    <ReplacementLineCard line={line} key={line.id} />
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         </section>
@@ -315,6 +308,30 @@ export function ReplacementLinesPage() {
 
       {overview && !selectedColor ? (
         <>
+          <section
+            className="replacement-line-summary"
+            aria-labelledby="line-summary-heading"
+          >
+            <div className="section-heading">
+              <h2 id="line-summary-heading">Line 관리 현황</h2>
+              <span className="count">
+                {overview.summary.lineCount} 사용 중 · {overview.summary.archivedLineCount} 보관
+              </span>
+            </div>
+            <div className="metric-grid metric-grid--two" aria-label="Replacement Line 요약">
+              <div>
+                <span>고유 Item</span>
+                <strong>{overview.summary.uniqueItemCount}개</strong>
+              </div>
+              <div>
+                <span>Active / Retired</span>
+                <strong>
+                  {overview.summary.activeItemCount} / {overview.summary.retiredItemCount}
+                </strong>
+              </div>
+            </div>
+          </section>
+
           <section className="section" aria-labelledby="color-index-heading">
             <div className="section-heading">
               <h2 id="color-index-heading">Color</h2>
@@ -336,65 +353,12 @@ export function ReplacementLinesPage() {
           <details className="replacement-line-management">
             <summary>
               <span>
-                <strong>Line 관리 현황</strong>
-                <small>
-                  {overview.summary.lineCount} 사용 중 · {overview.summary.archivedLineCount} 보관
-                </small>
+                <strong>관리 도구</strong>
+                <small>{overview.summary.archivedLineCount}개 보관</small>
               </span>
               <span>보기</span>
             </summary>
             <div className="replacement-line-management__body">
-              <div className="metric-grid metric-grid--two" aria-label="Replacement Line 요약">
-                <div>
-                  <span>고유 Item</span>
-                  <strong>{overview.summary.uniqueItemCount}개</strong>
-                </div>
-                <div>
-                  <span>Active / Retired</span>
-                  <strong>
-                    {overview.summary.activeItemCount} / {overview.summary.retiredItemCount}
-                  </strong>
-                </div>
-                <div>
-                  <span>빈 Line</span>
-                  <strong>{overview.summary.emptyLineCount}개</strong>
-                </div>
-                <div>
-                  <span>단일 Item</span>
-                  <strong>{overview.summary.singleItemLineCount}개</strong>
-                </div>
-              </div>
-
-              <section className="legacy-link-status" aria-labelledby="legacy-link-heading">
-                <div className="section-heading">
-                  <h2 id="legacy-link-heading">Legacy Link</h2>
-                  <span className="count">
-                    검토 {reviewedLegacyLinkCount}/{legacyLinkCount}
-                  </span>
-                </div>
-                <p className="muted">
-                  {legacyLinksAvailable
-                    ? '확인한 방향과 선택 이유는 계보 데이터로 보존됩니다.'
-                    : `P4-0에서 ${LEGACY_LINK_BASELINE_COUNT}개 무방향 pair를 확인했습니다.`}
-                </p>
-                {legacyLinksAvailable && legacyLinkCount > 0 ? (
-                  <div className="legacy-link-status__actions">
-                    {reviewedLegacyLinkCount === legacyLinkCount ? (
-                      <Link className="button button--primary" to="/replacement-lines/edges/preview">
-                        Edge 후보 미리보기
-                      </Link>
-                    ) : null}
-                    <Link className="button button--secondary" to="/replacement-lines/review">
-                      {reviewedLegacyLinkCount === legacyLinkCount
-                        ? '검토 결과 보기'
-                        : 'Legacy Link 검토 이어가기'}
-                    </Link>
-                  </div>
-                ) : (
-                  <span className="legacy-link-status__pending">검토 데이터 준비 전</span>
-                )}
-              </section>
-
               {overview.archivedLines.length > 0 ? (
                 <section
                   className="replacement-line-archived"
@@ -423,7 +387,11 @@ export function ReplacementLinesPage() {
                     ))}
                   </div>
                 </section>
-              ) : null}
+              ) : (
+                <p className="muted replacement-line-management__empty">
+                  보관된 Line이 없습니다.
+                </p>
+              )}
             </div>
           </details>
         </>

@@ -21,7 +21,10 @@ import type {
   ReplacementLineSnapshot,
   ReplacementLineStart,
 } from '../../lib/types'
-import { REPLACEMENT_LINE_DECISION_REASONS } from '../../lib/types'
+import {
+  normalizeReplacementLineDecisionReason,
+  REPLACEMENT_LINE_DECISION_REASONS,
+} from '../../lib/types'
 import type { ReplacementLineRepository } from '../replacement-line-repository'
 
 const LEGACY_LINK_REVIEW_STORAGE_KEY =
@@ -178,8 +181,11 @@ function readDemoReplacementLineEdges(): ReplacementLineEdge[] {
   try {
     const stored = window.localStorage.getItem(LINEAGE_EDGE_STORAGE_KEY)
     return stored
-      ? (JSON.parse(stored) as ReplacementLineEdge[]).map((edge) => ({
+        ? (JSON.parse(stored) as ReplacementLineEdge[]).map((edge) => ({
           ...edge,
+          decisionReason: normalizeReplacementLineDecisionReason(
+            edge.decisionReason,
+          ),
           sourceKind:
             edge.sourceKind ??
             (edge.sourceLegacyLinkId ? 'legacy_link' : 'manual'),
@@ -1188,4 +1194,3 @@ export class DemoReplacementLineRepository
     return true
   }
 }
-

@@ -88,6 +88,9 @@ describe('ReplacementLineagePage', () => {
     expect(screen.getByLabelText('이전 Item')).toHaveValue('item-cardigan')
     const reasonField = screen.getByLabelText('선택 이유')
     expect(reasonField).toHaveValue('')
+    expect(
+      within(reasonField).getAllByRole('option').map((option) => option.textContent),
+    ).toEqual(['선택해 주세요', '대체 시도', '온도 세분화', '기능 세분화', '계승 👑'])
     await user.selectOptions(reasonField, '계승 👑')
     await user.type(screen.getByLabelText('가지 이름 (선택)'), '여유로운 핏')
     await user.click(screen.getByRole('button', { name: '저장' }))
@@ -290,7 +293,7 @@ describe('ReplacementLineagePage', () => {
     expect(targetCard).not.toBeNull()
     await user.click(within(targetCard!).getByRole('button', { name: '계보에 연결' }))
     await user.selectOptions(screen.getByLabelText('이전 Item'), 'item-loafers')
-    await user.selectOptions(screen.getByLabelText('선택 이유'), '단순 교체')
+    await user.selectOptions(screen.getByLabelText('선택 이유'), '대체 시도')
     await user.click(screen.getByRole('button', { name: '연결 저장' }))
 
     const generationZero = screen
@@ -313,7 +316,7 @@ describe('ReplacementLineagePage', () => {
           successorItemId: 'item-shoes',
           sourceLegacyLinkId: null,
           sourceKind: 'manual',
-          decisionReason: '단순 교체',
+          decisionReason: '대체 시도',
         }),
       ]),
     )

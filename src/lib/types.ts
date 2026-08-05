@@ -386,13 +386,20 @@ export interface ReplacementLineEdgeDetailsUpdateInput {
 }
 
 export const REPLACEMENT_LINE_DECISION_REASONS = [
-  '단순 교체',
-  '멸종 후 교체',
+  '대체 시도',
+  '온도 세분화',
+  '기능 세분화',
   '계승 👑',
 ] as const
 
 export type ReplacementLineDecisionReason =
   (typeof REPLACEMENT_LINE_DECISION_REASONS)[number]
+
+export function normalizeReplacementLineDecisionReason(reason: string) {
+  if (reason === '단순 교체') return '대체 시도'
+  if (reason === '멸종 후 교체') return '온도 세분화'
+  return reason
+}
 
 export interface ReplacementLineEdgeConnectionUpdateInput {
   expectedUpdatedAt: string
