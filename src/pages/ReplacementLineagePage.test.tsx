@@ -620,7 +620,14 @@ describe('ReplacementLineagePage', () => {
         'Line membership이 변경되어 계보 재검토가 필요합니다.',
       ),
     ).toBeInTheDocument()
-    expect(await screen.findByText('3 Item')).toBeInTheDocument()
+    expect(document.querySelector('.topbar__subtitle')).toHaveTextContent(
+      '사용 중 3 · Retired 0',
+    )
+    const unconnectedSection = screen
+      .getByRole('heading', { name: '계보 연결 전' })
+      .closest('section')
+    expect(unconnectedSection).not.toBeNull()
+    expect(within(unconnectedSection!).getByText('1 Item')).toBeInTheDocument()
 
     const savedSnapshot = JSON.parse(
       window.localStorage.getItem('closet-index-demo-replacement-lines:v1') ?? '{}',

@@ -5,6 +5,7 @@ import { ItemVisual } from '../components/ItemVisual'
 import { OutfitCard } from '../components/OutfitCard'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
+import { ItemReplacementLineageSection } from '../features/replacement-lines/components/ItemReplacementLineageSection'
 import { formatMonthDayYear } from '../lib/date'
 import { getItemStats, getOutfitStats } from '../lib/outfits'
 
@@ -184,6 +185,8 @@ export function ItemDetailPage() {
               })}
             </div>
           </section>
+
+          <ItemReplacementLineageSection item={item} items={data.items} />
 
           <section className="section">
             <div className="section-heading">
