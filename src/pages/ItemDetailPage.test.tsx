@@ -170,6 +170,36 @@ describe('ItemDetailPage replenishment', () => {
     await expect(repository.purchases.load(item.id)).resolves.toHaveLength(1)
   })
 
+  it('일반 Item은 기록이 생긴 뒤 상세 화면에 읽기 전용 이력만 간단히 보여 준다', async () => {
+    const repository = new DemoRepository()
+    await repository.purchases.create({
+      id: 'general-purchase-event',
+      itemId: 'item-cardigan',
+      purchasedOn: '2026-07-20',
+      quantity: 2,
+      currentQuantity: null,
+    })
+
+    renderItemDetail(repository, 'item-cardigan')
+
+    const section = await screen.findByRole('region', { name: '재구매 이력' })
+    expect(within(section).getByText('2개 구매')).toBeInTheDocument()
+    expect(within(section).queryByRole('button', { name: '재구매 기록' })).not.toBeInTheDocument()
+    expect(within(section).queryByRole('button', { name: '수정' })).not.toBeInTheDocument()
+    expect(within(section).queryByRole('button', { name: '삭제' })).not.toBeInTheDocument()
+  })
+
+  it('재구매 기록이 없는 일반 Item 상세에는 재구매 영역을 만들지 않는다', async () => {
+    renderItemDetail(new DemoRepository(), 'item-cardigan')
+
+    await screen.findByRole('heading', { name: '블루 가디건' })
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('region', { name: '재구매 이력' }),
+      ).not.toBeInTheDocument()
+    })
+  })
+
   it('Retired Item은 새 기록·수량 편집을 숨기고 기존 이력 수정·삭제를 유지한다', async () => {
     const user = userEvent.setup()
     const repository = new DemoRepository()

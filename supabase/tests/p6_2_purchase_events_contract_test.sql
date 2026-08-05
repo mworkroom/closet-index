@@ -1,6 +1,6 @@
 begin;
 
-select plan(26);
+select plan(28);
 
 select has_column(
   'public',
@@ -302,6 +302,30 @@ select is(
   ),
   3,
   'a rejected RPC leaves the current quantity unchanged'
+);
+
+select lives_ok(
+  $$
+    select public.create_closet_purchase_event(
+      '93000000-0000-0000-0000-000000000001',
+      '95000000-0000-0000-0000-000000000003',
+      '94000000-0000-0000-0000-000000000001',
+      '2026-03-01',
+      1,
+      null
+    )
+  $$,
+  'a general Item can record purchase history without a quantity snapshot update'
+);
+
+select is(
+  (
+    select current_quantity
+    from public.closet_items
+    where id = '94000000-0000-0000-0000-000000000001'
+  ),
+  3,
+  'null current quantity preserves the existing snapshot'
 );
 
 select * from finish();

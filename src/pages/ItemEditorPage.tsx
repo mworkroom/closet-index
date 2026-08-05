@@ -5,6 +5,10 @@ import { AppShell } from '../components/AppShell'
 import { ItemImageEditor } from '../components/ItemImageEditor'
 import { ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
+import { ItemReplenishmentSection } from '../features/replenishment/components/ItemReplenishmentSection'
+import { getPurchaseReplacementRule } from '../features/replenishment/purchase-replenishment'
+import { useItemPurchaseEvents } from '../features/replenishment/useItemPurchaseEvents'
+import { todayInKorea } from '../lib/date'
 import type { ItemWriteInput } from '../lib/types'
 
 const seasonOptions = [
@@ -43,10 +47,19 @@ export function ItemEditorPage() {
     updateItem,
     setItemRetired,
     deleteItem,
+    purchases,
   } = useClosetData()
   const editingItem = itemId
     ? data?.items.find((item) => item.id === itemId)
     : undefined
+  const isGeneralItem = Boolean(
+    editingItem && !getPurchaseReplacementRule(editingItem.category),
+  )
+  const purchaseEventsState = useItemPurchaseEvents(
+    purchases,
+    itemId ?? '',
+    Boolean(itemId && isGeneralItem),
+  )
   const [createId] = useState(() => crypto.randomUUID())
   const [form, setForm] = useState<ItemWriteInput>(initialForm)
   const [initializedItemId, setInitializedItemId] = useState<string | null>(
@@ -450,6 +463,20 @@ export function ItemEditorPage() {
           </button>
         </div>
       </form>
+
+      {editingItem && isGeneralItem ? (
+        <ItemReplenishmentSection
+          item={editingItem}
+          events={purchaseEventsState.events}
+          loading={purchaseEventsState.loading}
+          loadError={purchaseEventsState.error}
+          reload={purchaseEventsState.reload}
+          cycle={null}
+          isReplacementTarget={false}
+          today={todayInKorea()}
+          variant="general-editor"
+        />
+      ) : null}
 
       {editingItem && (
         <section className="record-management" aria-label="Item 삭제 및 Retired 관리">

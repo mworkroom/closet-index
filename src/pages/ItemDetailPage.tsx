@@ -86,6 +86,9 @@ export function ItemDetailPage() {
     maintenanceSignals?.inspection ?? maintenanceSignals?.declutter ?? null
   const purchaseCycle = maintenanceSignals?.replacement ?? null
   const careCycle = maintenanceSignals?.care ?? null
+  const isReplacementTarget = Boolean(
+    item && getPurchaseReplacementRule(item.category),
+  )
   const maximumMonthlyWearCount = Math.max(
     0,
     ...(stats?.monthlyWearCounts ?? []),
@@ -261,10 +264,11 @@ export function ItemDetailPage() {
             loadError={purchaseEventsState.error}
             reload={purchaseEventsState.reload}
             cycle={purchaseCycle}
-            isReplacementTarget={Boolean(
-              getPurchaseReplacementRule(item.category),
-            )}
+            isReplacementTarget={isReplacementTarget}
             today={today}
+            variant={
+              isReplacementTarget ? 'managed-detail' : 'general-history'
+            }
           />
 
           <ItemCareSection

@@ -9,6 +9,7 @@ on:
       - supabase/migrations/20260805170605_p6_2_purchase_events.sql
       - supabase/migrations/20260805191039_p6_4_care_events.sql
       - supabase/migrations/20260805202648_p6_event_foreign_key_indexes.sql
+      - supabase/migrations/20260805230843_preserve_quantity_for_general_purchase_events.sql
       - supabase/test-support/**
       - supabase/tests/p6_2_purchase_events_contract_test.sql
       - supabase/tests/p6_4_care_events_contract_test.sql

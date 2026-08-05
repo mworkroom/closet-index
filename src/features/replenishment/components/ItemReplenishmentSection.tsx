@@ -4,6 +4,11 @@ import { formatKoreanDate } from '../../../lib/date'
 import type { Item, PurchaseEvent } from '../../../lib/types'
 import type { PurchaseCycleStatus } from '../purchase-replenishment'
 
+type ReplenishmentSectionVariant =
+  | 'managed-detail'
+  | 'general-editor'
+  | 'general-history'
+
 function parseWholeNumber(value: string, minimum: number, label: string) {
   if (!/^\d+$/u.test(value)) {
     throw new Error(`${label}은 ${minimum} 이상의 정수로 입력해 주세요.`)
@@ -35,6 +40,7 @@ export function ItemReplenishmentSection({
   cycle,
   isReplacementTarget,
   today,
+  variant = 'managed-detail',
 }: {
   item: Item
   events: PurchaseEvent[]
@@ -44,6 +50,7 @@ export function ItemReplenishmentSection({
   cycle: PurchaseCycleStatus | null
   isReplacementTarget: boolean
   today: string
+  variant?: ReplenishmentSectionVariant
 }) {
   const { purchases, refresh } = useClosetData()
   const [createOpen, setCreateOpen] = useState(false)
@@ -73,12 +80,17 @@ export function ItemReplenishmentSection({
     )
   }, [item.currentQuantity])
 
-  const shouldShow =
-    isReplacementTarget ||
-    (item.currentQuantity ?? null) !== null ||
-    events.length > 0 ||
-    Boolean(loadError)
+  const isManagedDetail = variant === 'managed-detail'
+  const isReadOnlyHistory = variant === 'general-history'
+  const shouldShow = isManagedDetail
+    ? isReplacementTarget ||
+      (item.currentQuantity ?? null) !== null ||
+      events.length > 0 ||
+      Boolean(loadError)
+    : variant === 'general-editor' || events.length > 0 || Boolean(loadError)
   if (!shouldShow) return null
+
+  const headingId = `replenishment-heading-${variant}`
 
   const refreshSection = async () => {
     await Promise.all([refresh(), reload()])
@@ -98,11 +110,13 @@ export function ItemReplenishmentSection({
     setMutationError(null)
     try {
       const quantity = parseWholeNumber(purchaseQuantity, 1, '구매 수량')
-      const currentQuantity = parseWholeNumber(
-        purchaseCurrentQuantity,
-        0,
-        '저장 후 현재 수량',
-      )
+      const currentQuantity = isManagedDetail
+        ? parseWholeNumber(
+            purchaseCurrentQuantity,
+            0,
+            '저장 후 현재 수량',
+          )
+        : null
       await purchases.create({
         id: purchaseId,
         itemId: item.id,
@@ -197,16 +211,32 @@ export function ItemReplenishmentSection({
 
   return (
     <section
-      className="section replenishment-section"
-      aria-labelledby="replenishment-heading"
+      className={`section replenishment-section replenishment-section--${variant}`}
+      aria-labelledby={headingId}
     >
       <div className="section-heading">
         <div>
           <p className="eyebrow">REPLENISHMENT</p>
-          <h2 id="replenishment-heading">재구매와 현재 수량</h2>
+          <h2 id={headingId}>
+            {isManagedDetail
+              ? '재구매와 현재 수량'
+              : isReadOnlyHistory
+                ? '재구매 이력'
+                : '재구매 기록'}
+          </h2>
         </div>
-        {cycle?.due ? <span className="badge badge--error">교체</span> : null}
+        {isManagedDetail && cycle?.due ? (
+          <span className="badge badge--error">교체</span>
+        ) : isReadOnlyHistory ? (
+          <span className="count">{events.length}건</span>
+        ) : null}
       </div>
+
+      {variant === 'general-editor' ? (
+        <p className="replenishment-intro">
+          같은 Item을 다시 구입했을 때 날짜와 수량을 기록합니다.
+        </p>
+      ) : null}
 
       {loadError ? (
         <div className="replenishment-feedback replenishment-feedback--error" role="alert">
@@ -217,28 +247,30 @@ export function ItemReplenishmentSection({
         </div>
       ) : null}
 
-      <div className="replenishment-summary">
-        <div>
-          <span>현재 보유 수량</span>
-          <strong>
-            {item.currentQuantity === null || item.currentQuantity === undefined
-              ? '미입력'
-              : `${item.currentQuantity}개`}
-          </strong>
+      {isManagedDetail ? (
+        <div className="replenishment-summary">
+          <div>
+            <span>현재 보유 수량</span>
+            <strong>
+              {item.currentQuantity === null || item.currentQuantity === undefined
+                ? '미입력'
+                : `${item.currentQuantity}개`}
+            </strong>
+          </div>
+          <div>
+            <span>현재 주기 기준일</span>
+            <strong>
+              {cycle?.basisDate ? (
+                <time dateTime={cycle.basisDate}>{formatKoreanDate(cycle.basisDate)}</time>
+              ) : (
+                '기록 없음'
+              )}
+            </strong>
+          </div>
         </div>
-        <div>
-          <span>현재 주기 기준일</span>
-          <strong>
-            {cycle?.basisDate ? (
-              <time dateTime={cycle.basisDate}>{formatKoreanDate(cycle.basisDate)}</time>
-            ) : (
-              '기록 없음'
-            )}
-          </strong>
-        </div>
-      </div>
+      ) : null}
 
-      {!item.retired && cycle ? (
+      {isManagedDetail && !item.retired && cycle ? (
         <div className="replenishment-progress">
           <div>
             <strong>{cycleSummary(cycle)}</strong>
@@ -260,7 +292,7 @@ export function ItemReplenishmentSection({
         </div>
       ) : null}
 
-      {!item.retired ? (
+      {!item.retired && !isReadOnlyHistory ? (
         <div className="replenishment-actions">
           <button
             className="button button--primary"
@@ -279,7 +311,9 @@ export function ItemReplenishmentSection({
 
       {!item.retired && createOpen ? (
         <form
-          className="replenishment-form"
+          className={`replenishment-form${
+            isManagedDetail ? '' : ' replenishment-form--history-only'
+          }`}
           id="replenishment-create-form"
           onSubmit={(event) => void handleCreate(event)}
         >
@@ -306,18 +340,20 @@ export function ItemReplenishmentSection({
               onChange={(event) => setPurchaseQuantity(event.target.value)}
             />
           </label>
-          <label>
-            <span>저장 후 현재 수량</span>
-            <input
-              required
-              min="0"
-              step="1"
-              type="number"
-              inputMode="numeric"
-              value={purchaseCurrentQuantity}
-              onChange={(event) => setPurchaseCurrentQuantity(event.target.value)}
-            />
-          </label>
+          {isManagedDetail ? (
+            <label>
+              <span>저장 후 현재 수량</span>
+              <input
+                required
+                min="0"
+                step="1"
+                type="number"
+                inputMode="numeric"
+                value={purchaseCurrentQuantity}
+                onChange={(event) => setPurchaseCurrentQuantity(event.target.value)}
+              />
+            </label>
+          ) : null}
           <div className="replenishment-form__actions">
             <button className="button button--secondary" type="button" onClick={resetCreateForm}>
               취소
@@ -329,7 +365,7 @@ export function ItemReplenishmentSection({
         </form>
       ) : null}
 
-      {!item.retired ? (
+      {isManagedDetail && !item.retired ? (
         <form className="replenishment-quantity-form" onSubmit={(event) => void handleQuantitySave(event)}>
           <label>
             <span>현재 수량만 수정</span>
@@ -355,11 +391,13 @@ export function ItemReplenishmentSection({
         </p>
       ) : null}
 
-      <div className="replenishment-history">
-        <div className="section-heading">
-          <h3>전체 재구매 이력</h3>
-          <span className="count">{events.length}건</span>
-        </div>
+      <div className={`replenishment-history${isReadOnlyHistory ? ' replenishment-history--compact' : ''}`}>
+        {!isReadOnlyHistory ? (
+          <div className="section-heading">
+            <h3>{isManagedDetail ? '전체 재구매 이력' : '기록된 이력'}</h3>
+            <span className="count">{events.length}건</span>
+          </div>
+        ) : null}
         {loading ? <p className="muted">재구매 이력을 불러오는 중…</p> : null}
         {!loading && events.length === 0 ? (
           <p className="muted">아직 재구매 기록이 없습니다.</p>
@@ -368,7 +406,7 @@ export function ItemReplenishmentSection({
           <ul>
             {events.map((purchaseEvent) => (
               <li key={purchaseEvent.id}>
-                {editingId === purchaseEvent.id ? (
+                {!isReadOnlyHistory && editingId === purchaseEvent.id ? (
                   <form onSubmit={(event) => void handleUpdate(event, purchaseEvent)}>
                     <label>
                       <span>재구매 날짜</span>
@@ -407,20 +445,22 @@ export function ItemReplenishmentSection({
                       <strong>{formatKoreanDate(purchaseEvent.purchasedOn)}</strong>
                       <span>{purchaseEvent.quantity}개 구매</span>
                     </div>
-                    <div className="replenishment-history__actions">
-                      <button className="button button--secondary" type="button" onClick={() => beginEdit(purchaseEvent)}>
-                        수정
-                      </button>
-                      <button className="button button--secondary" type="button" onClick={() => {
-                        setDeletingId(purchaseEvent.id)
-                        setEditingId(null)
-                      }}>
-                        삭제
-                      </button>
-                    </div>
+                    {!isReadOnlyHistory ? (
+                      <div className="replenishment-history__actions">
+                        <button className="button button--secondary" type="button" onClick={() => beginEdit(purchaseEvent)}>
+                          수정
+                        </button>
+                        <button className="button button--secondary" type="button" onClick={() => {
+                          setDeletingId(purchaseEvent.id)
+                          setEditingId(null)
+                        }}>
+                          삭제
+                        </button>
+                      </div>
+                    ) : null}
                   </>
                 )}
-                {deletingId === purchaseEvent.id ? (
+                {!isReadOnlyHistory && deletingId === purchaseEvent.id ? (
                   <div className="replenishment-history__confirmation">
                     <p>이 재구매 기록을 삭제할까요? 현재 보유 수량은 바뀌지 않습니다.</p>
                     <div>

@@ -118,7 +118,7 @@ export interface PurchaseEventCreateInput {
   itemId: string
   purchasedOn: string
   quantity: number
-  currentQuantity: number
+  currentQuantity: number | null
 }
 
 export interface PurchaseEventUpdateInput {

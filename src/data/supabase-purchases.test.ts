@@ -45,6 +45,27 @@ describe('SupabaseRepository P6-2 purchases', () => {
     })
   })
 
+  it('일반 Item 재구매는 현재 수량 미변경을 null로 RPC에 전달한다', async () => {
+    const rpc = vi.fn(async () => ({ data: row, error: null }))
+    const repository = new SupabaseRepository(
+      { rpc } as unknown as SupabaseClient,
+      'workspace-1',
+    )
+
+    await repository.purchases.create({
+      id: 'event-1',
+      itemId: 'item-1',
+      purchasedOn: '2026-08-06',
+      quantity: 2,
+      currentQuantity: null,
+    })
+
+    expect(rpc).toHaveBeenCalledWith(
+      'create_closet_purchase_event',
+      expect.objectContaining({ p_current_quantity: null }),
+    )
+  })
+
   it('Item별 이력을 최신 날짜·생성 시각·ID 순으로 조회한다', async () => {
     const builder: Record<string, ReturnType<typeof vi.fn>> = {}
     for (const method of ['select', 'eq', 'order']) {

@@ -140,6 +140,58 @@ describe('Item editor', () => {
     ).toBeInTheDocument()
   })
 
+  it('일반 Item은 정보 수정 화면에서 현재 수량을 바꾸지 않고 재구매를 기록한다', async () => {
+    const user = userEvent.setup()
+    const repository = new DemoRepository()
+
+    renderEditor(repository, '/closet/item-cardigan/edit')
+
+    const section = await screen.findByRole('region', { name: '재구매 기록' })
+    expect(
+      within(section).getByText(
+        '같은 Item을 다시 구입했을 때 날짜와 수량을 기록합니다.',
+      ),
+    ).toBeInTheDocument()
+
+    await user.click(within(section).getByRole('button', { name: '재구매 기록' }))
+    await user.clear(within(section).getByLabelText('구매 수량'))
+    await user.type(within(section).getByLabelText('구매 수량'), '2')
+    await user.click(within(section).getByRole('button', { name: '재구매 저장' }))
+
+    expect(await within(section).findByText('2개 구매')).toBeInTheDocument()
+    await expect(repository.purchases.load('item-cardigan')).resolves.toHaveLength(1)
+    expect(
+      (await repository.load()).items.find((item) => item.id === 'item-cardigan')
+        ?.currentQuantity ?? null,
+    ).toBeNull()
+  })
+
+  it('재구매 관리 대상 Item의 정보 수정 화면에는 기록 UI를 중복하지 않는다', async () => {
+    const repository = new DemoRepository()
+    const item = (await repository.load()).items.find(
+      (entry) => entry.id === 'item-cardigan',
+    )!
+    await repository.updateItem(item.id, {
+      name: item.name,
+      category: 'Socks',
+      semanticColor: item.semanticColor,
+      paletteId: null,
+      displayHex: item.displayHex,
+      seasons: item.seasons,
+      rainOk: item.rainOk,
+      longWalkOk: item.longWalkOk,
+      memo: item.memo,
+      acquiredOn: item.acquiredOn,
+    })
+
+    renderEditor(repository, '/closet/item-cardigan/edit')
+
+    await screen.findByRole('textbox', { name: '이름 *' })
+    expect(
+      screen.queryByRole('region', { name: '재구매 기록' }),
+    ).not.toBeInTheDocument()
+  })
+
   it('Outfit에 포함되지 않은 Item은 확인 뒤 영구 삭제한다', async () => {
     const user = userEvent.setup()
     const repository = new DemoRepository()

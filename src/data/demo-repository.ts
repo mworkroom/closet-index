@@ -271,7 +271,9 @@ class DemoPurchaseRepository implements PurchaseRepository {
     if (!item) throw new Error('Item을 찾을 수 없습니다.')
     validatePurchaseDate(item, input.purchasedOn)
     validateQuantity(input.quantity, '구매 수량', false)
-    validateQuantity(input.currentQuantity, '현재 수량', true)
+    if (input.currentQuantity !== null) {
+      validateQuantity(input.currentQuantity, '현재 수량', true)
+    }
 
     const events = readPurchaseEvents()
     const existing = events.find((event) => event.id === input.id)
@@ -295,7 +297,9 @@ class DemoPurchaseRepository implements PurchaseRepository {
       createdAt: changedAt,
       updatedAt: changedAt,
     }
-    item.currentQuantity = input.currentQuantity
+    if (input.currentQuantity !== null) {
+      item.currentQuantity = input.currentQuantity
+    }
     events.push(event)
     writeData(data)
     writePurchaseEvents(events)

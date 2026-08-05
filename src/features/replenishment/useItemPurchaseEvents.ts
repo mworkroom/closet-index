@@ -5,6 +5,7 @@ import type { PurchaseEvent } from '../../lib/types'
 export function useItemPurchaseEvents(
   purchases: PurchaseRepository,
   itemId: string,
+  enabled = true,
 ) {
   const [events, setEvents] = useState<PurchaseEvent[]>([])
   const [loading, setLoading] = useState(true)
@@ -12,6 +13,12 @@ export function useItemPurchaseEvents(
   const loadSequence = useRef(0)
 
   const reload = useCallback(async () => {
+    if (!enabled) {
+      setEvents([])
+      setLoading(false)
+      setError(null)
+      return
+    }
     const sequence = ++loadSequence.current
     setLoading(true)
     setError(null)
@@ -29,7 +36,7 @@ export function useItemPurchaseEvents(
     } finally {
       if (sequence === loadSequence.current) setLoading(false)
     }
-  }, [itemId, purchases])
+  }, [enabled, itemId, purchases])
 
   useEffect(() => {
     setEvents([])
