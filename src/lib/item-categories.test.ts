@@ -6,6 +6,7 @@ import {
   isMadeItemCategory,
   isItemVisibleInWardrobeSelection,
   itemMatchesCategoryGroup,
+  sortItemsForOutfitDisplay,
 } from './item-categories'
 
 const productionCategories = [
@@ -129,6 +130,36 @@ describe('item category groups', () => {
     expect(isMadeItemCategory({ category: 'Outer-Cardigan-made' })).toBe(true)
     expect(isMadeItemCategory({ category: ' Acc-Neck-MADE ' })).toBe(true)
     expect(isMadeItemCategory({ category: 'Outer-Cardigan' })).toBe(false)
+  })
+
+  it('Lookbook 구성 아이템을 상위 카테고리 순서로 고정한다', () => {
+    const items = [
+      { id: 'bag', category: 'Bags' },
+      { id: 'top-innerwear', category: 'Top-T-shirts-innerwear' },
+      { id: 'shoes', category: 'Shoes' },
+      { id: 'bottom', category: 'Bottom-Skirts' },
+      { id: 'top', category: 'Top-Knitwear' },
+      { id: 'outer', category: 'Outer-Jacket' },
+    ]
+
+    expect(sortItemsForOutfitDisplay(items).map((item) => item.id)).toEqual([
+      'outer',
+      'top',
+      'top-innerwear',
+      'bottom',
+      'shoes',
+      'bag',
+    ])
+    expect(items[0].id).toBe('bag')
+  })
+
+  it('같은 표시 그룹 안에서는 Outfit에 저장된 순서를 유지한다', () => {
+    expect(
+      sortItemsForOutfitDisplay([
+        { id: 'top-2', category: 'Top-T-shirts' },
+        { id: 'top-1', category: 'Top-Blouse' },
+      ]).map((item) => item.id),
+    ).toEqual(['top-2', 'top-1'])
   })
 
   it('counts detailed tags and active items inside their upper group', () => {

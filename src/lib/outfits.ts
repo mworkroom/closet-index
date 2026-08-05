@@ -1,11 +1,14 @@
 import type { Item, Outfit, WearLog } from './types'
+import { sortItemsForOutfitDisplay } from './item-categories'
 
 export function outfitLabel(outfit: Outfit, items: Item[]): string {
   if (outfit.displayName?.trim()) return outfit.displayName
 
-  const names = outfit.itemIds
-    .map((id) => items.find((item) => item.id === id)?.name)
-    .filter((name): name is string => Boolean(name))
+  const names = sortItemsForOutfitDisplay(
+    outfit.itemIds
+      .map((id) => items.find((item) => item.id === id))
+      .filter((item): item is Item => Boolean(item)),
+  ).map((item) => item.name)
 
   if (names.length === 0) return '구성 아이템 없음'
   if (names.length <= 3) return names.join(' + ')

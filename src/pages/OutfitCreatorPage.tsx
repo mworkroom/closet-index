@@ -12,6 +12,7 @@ import {
   getItemCategoryGroupId,
   isItemVisibleInWardrobeSelection,
   ITEM_CATEGORY_FILTER_GROUPS,
+  sortItemsForOutfitDisplay,
   type ItemCategoryFilterGroupId,
 } from '../lib/item-categories'
 import {
@@ -219,9 +220,11 @@ export function OutfitCreatorPage() {
 
   const selectedItems = useMemo(
     () =>
-      selectedIds
-        .map((itemId) => data?.items.find((item) => item.id === itemId))
-        .filter((item): item is Item => Boolean(item)),
+      sortItemsForOutfitDisplay(
+        selectedIds
+          .map((itemId) => data?.items.find((item) => item.id === itemId))
+          .filter((item): item is Item => Boolean(item)),
+      ),
     [data, selectedIds],
   )
 

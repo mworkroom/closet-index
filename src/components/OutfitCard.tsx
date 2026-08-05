@@ -2,6 +2,7 @@ import { AlertTriangle, ChevronRight, Heart } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { AppData, Outfit, RecommendationResult } from '../lib/types'
 import { formatMonthDayYear } from '../lib/date'
+import { sortItemsForOutfitDisplay } from '../lib/item-categories'
 import { getOutfitStats, outfitLabel } from '../lib/outfits'
 import { ratingLabels, recommendationLabels } from '../lib/types'
 import { OutfitVisual } from './OutfitVisual'
@@ -21,9 +22,11 @@ export function OutfitCard({
   state?: unknown
   layout?: 'list' | 'grid' | 'home'
 }) {
-  const items = outfit.itemIds
-    .map((id) => data.items.find((item) => item.id === id))
-    .filter((item): item is AppData['items'][number] => Boolean(item))
+  const items = sortItemsForOutfitDisplay(
+    outfit.itemIds
+      .map((id) => data.items.find((item) => item.id === id))
+      .filter((item): item is AppData['items'][number] => Boolean(item)),
+  )
   const stats = getOutfitStats(outfit.id, data.wearLogs)
   const isTrial = recommendation?.evidence === 'untried'
   const similarEvidence = recommendation?.similarEvidence

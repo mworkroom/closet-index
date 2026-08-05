@@ -26,6 +26,7 @@ import { OutfitVisual } from '../components/OutfitVisual'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
 import { formatMonthDayYear } from '../lib/date'
+import { sortItemsForOutfitDisplay } from '../lib/item-categories'
 import type { RecommendationNavigationState } from '../lib/navigation'
 import { getOutfitStats, outfitLabel } from '../lib/outfits'
 import { feelingLabels, ratingLabels, recommendationLabels } from '../lib/types'
@@ -72,12 +73,13 @@ export function OutfitDetailPage() {
   )
   const [deletingLogId, setDeletingLogId] = useState<string | null>(null)
   const outfit = data?.outfits.find((entry) => entry.id === outfitId)
-  const items =
+  const items = sortItemsForOutfitDisplay(
     outfit && data
       ? outfit.itemIds
           .map((id) => data.items.find((item) => item.id === id))
           .filter((item): item is (typeof data.items)[number] => Boolean(item))
-      : []
+      : [],
+  )
   const logs =
     data?.wearLogs
       .filter((log) => log.outfitId === outfitId)

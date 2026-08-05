@@ -49,6 +49,26 @@ const groupOrder = new Map(
   ITEM_CATEGORY_GROUPS.map((group, index) => [group.id, index]),
 )
 
+const outfitDisplayOrder: Record<ItemCategoryGroupId, number> = {
+  outer: 0,
+  top: 1,
+  bottom: 3,
+  shoes: 4,
+  bag: 5,
+  dress: 6,
+  acc: 7,
+  innerwear: 8,
+  other: 9,
+}
+
+function getOutfitDisplayOrder(category: string) {
+  const normalized = category.trim().toLocaleLowerCase('en')
+  if (normalized.startsWith('top') && normalized.includes('innerwear')) {
+    return 2
+  }
+  return outfitDisplayOrder[getItemCategoryGroupId(category)]
+}
+
 export function isItemCategoryFilterGroupId(
   value: string,
 ): value is ItemCategoryFilterGroupId {
@@ -88,6 +108,20 @@ export function itemMatchesCategoryGroup(
   groupId: ItemCategoryFilterGroupId | '',
 ) {
   return !groupId || getItemCategoryGroupId(item.category) === groupId
+}
+
+export function sortItemsForOutfitDisplay<T extends Pick<Item, 'category'>>(
+  items: readonly T[],
+): T[] {
+  return items
+    .map((item, index) => ({ item, index }))
+    .sort(
+      (left, right) =>
+        getOutfitDisplayOrder(left.item.category) -
+          getOutfitDisplayOrder(right.item.category) ||
+        left.index - right.index,
+    )
+    .map(({ item }) => item)
 }
 
 export function isMadeItemCategory(item: Pick<Item, 'category'>) {
