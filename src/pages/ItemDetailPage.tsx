@@ -6,16 +6,24 @@ import { OutfitCard } from '../components/OutfitCard'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
 import { ItemReplacementLineageSection } from '../features/replacement-lines/components/ItemReplacementLineageSection'
-import { formatMonthDayYear } from '../lib/date'
+import { ItemReplenishmentSection } from '../features/replenishment/components/ItemReplenishmentSection'
+import {
+  getPurchaseCycleStatus,
+  getPurchaseReplacementRule,
+} from '../features/replenishment/purchase-replenishment'
+import { useItemPurchaseEvents } from '../features/replenishment/useItemPurchaseEvents'
+import { formatMonthDayYear, todayInKorea } from '../lib/date'
 import { getItemStats, getOutfitStats } from '../lib/outfits'
 
 const calendarMonths = Array.from({ length: 12 }, (_, index) => index + 1)
 
 export function ItemDetailPage() {
   const { itemId = '' } = useParams()
-  const { data, loading, error, refresh } = useClosetData()
+  const { data, loading, error, refresh, purchases } = useClosetData()
   const item = data?.items.find((entry) => entry.id === itemId)
   const [visibleOutfitCount, setVisibleOutfitCount] = useState(9)
+  const purchaseEventsState = useItemPurchaseEvents(purchases, itemId)
+  const today = todayInKorea()
 
   useEffect(() => {
     setVisibleOutfitCount(9)
@@ -43,6 +51,19 @@ export function ItemDetailPage() {
   const visibleIncludedOutfits = includedOutfits.slice(0, visibleOutfitCount)
   const stats =
     data && item ? getItemStats(item.id, data.outfits, data.wearLogs) : null
+  const purchaseCycle = useMemo(
+    () =>
+      data && item
+        ? getPurchaseCycleStatus({
+            item,
+            events: purchaseEventsState.events,
+            outfits: data.outfits,
+            wearLogs: data.wearLogs,
+            today,
+          })
+        : null,
+    [data, item, purchaseEventsState.events, today],
+  )
   const maximumMonthlyWearCount = Math.max(
     0,
     ...(stats?.monthlyWearCounts ?? []),
@@ -90,7 +111,12 @@ export function ItemDetailPage() {
               </div>
               <div>
                 <dt>상태</dt>
-                <dd>{item.retired ? 'Retired' : '사용 중'}</dd>
+                <dd className="item-status-summary">
+                  <span>{item.retired ? 'Retired' : '사용 중'}</span>
+                  {purchaseCycle?.due ? (
+                    <span className="badge badge--error">교체</span>
+                  ) : null}
+                </dd>
               </div>
             </dl>
           </section>
@@ -185,6 +211,19 @@ export function ItemDetailPage() {
               })}
             </div>
           </section>
+
+          <ItemReplenishmentSection
+            item={item}
+            events={purchaseEventsState.events}
+            loading={purchaseEventsState.loading}
+            loadError={purchaseEventsState.error}
+            reload={purchaseEventsState.reload}
+            cycle={purchaseCycle}
+            isReplacementTarget={Boolean(
+              getPurchaseReplacementRule(item.category),
+            )}
+            today={today}
+          />
 
           <ItemReplacementLineageSection item={item} items={data.items} />
 

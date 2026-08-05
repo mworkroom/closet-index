@@ -9,6 +9,11 @@ import type {
   OutfitCreateInput,
   OutfitUpdateInput,
   OutfitItemPlacementInput,
+  PurchaseEvent,
+  PurchaseEventCreateInput,
+  PurchaseEventDeleteInput,
+  PurchaseEventUpdateInput,
+  CurrentQuantityUpdateInput,
   WeatherForecastRequest,
   WeatherForecastResponse,
   WeatherLocation,
@@ -18,9 +23,12 @@ import type {
 } from '../lib/types'
 import { demoData } from './demo-data'
 import { DemoReplacementLineRepository } from './demo/replacement-lines'
+import type { PurchaseRepository } from './purchase-repository'
 import type { ClosetRepository } from './repository'
+import { todayInKorea } from '../lib/date'
 
 const STORAGE_KEY = 'closet-index-demo-data-v3'
+const PURCHASE_EVENT_STORAGE_KEY = 'closet-index-demo-purchase-events:v1'
 
 function normalizeItem(input: ItemWriteInput, id: string): Item {
   const name = input.name.trim()
@@ -43,6 +51,7 @@ function normalizeItem(input: ItemWriteInput, id: string): Item {
     longWalkOk: input.longWalkOk,
     memo: input.memo?.trim() || null,
     acquiredOn: input.acquiredOn,
+    currentQuantity: null,
     image: null,
   }
 }
@@ -62,6 +71,7 @@ function readData() {
   try {
     const data = JSON.parse(stored) as typeof demoData
     data.weatherLocations ??= structuredClone(demoData.weatherLocations)
+    for (const item of data.items) item.currentQuantity ??= null
     for (const outfit of data.outfits) outfit.archivedAt ??= null
     data.wearLogs = data.wearLogs.map((log) => {
       const normalized = { ...log }
@@ -81,6 +91,129 @@ function writeData(data: typeof demoData) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
 }
 
+function readPurchaseEvents(): PurchaseEvent[] {
+  try {
+    const stored = window.localStorage.getItem(PURCHASE_EVENT_STORAGE_KEY)
+    return stored ? (JSON.parse(stored) as PurchaseEvent[]) : []
+  } catch {
+    return []
+  }
+}
+
+function writePurchaseEvents(events: PurchaseEvent[]) {
+  window.localStorage.setItem(PURCHASE_EVENT_STORAGE_KEY, JSON.stringify(events))
+}
+
+function validateQuantity(value: number, label: string, allowZero: boolean) {
+  if (!Number.isInteger(value) || value < (allowZero ? 0 : 1)) {
+    throw new Error(`${label}은 ${allowZero ? '0' : '1'} 이상의 정수여야 합니다.`)
+  }
+}
+
+function validatePurchaseDate(item: Item, purchasedOn: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(purchasedOn)) {
+    throw new Error('올바른 재구매 날짜를 입력해 주세요.')
+  }
+  if (purchasedOn > todayInKorea()) {
+    throw new Error('미래 날짜에는 재구매를 기록할 수 없습니다.')
+  }
+  if (item.acquiredOn && purchasedOn < item.acquiredOn) {
+    throw new Error('최초 구매일보다 앞선 재구매는 기록할 수 없습니다.')
+  }
+}
+
+class DemoPurchaseRepository implements PurchaseRepository {
+  async load(itemId: string) {
+    return structuredClone(
+      readPurchaseEvents()
+        .filter((event) => event.itemId === itemId)
+        .sort(
+          (left, right) =>
+            right.purchasedOn.localeCompare(left.purchasedOn) ||
+            right.createdAt.localeCompare(left.createdAt) ||
+            right.id.localeCompare(left.id),
+        ),
+    )
+  }
+
+  async create(input: PurchaseEventCreateInput) {
+    const data = readData()
+    const item = data.items.find((entry) => entry.id === input.itemId)
+    if (!item) throw new Error('Item을 찾을 수 없습니다.')
+    validatePurchaseDate(item, input.purchasedOn)
+    validateQuantity(input.quantity, '구매 수량', false)
+    validateQuantity(input.currentQuantity, '현재 수량', true)
+
+    const events = readPurchaseEvents()
+    const existing = events.find((event) => event.id === input.id)
+    if (existing) {
+      if (
+        existing.itemId === input.itemId &&
+        existing.purchasedOn === input.purchasedOn &&
+        existing.quantity === input.quantity
+      ) {
+        return structuredClone(existing)
+      }
+      throw new Error('이미 다른 내용으로 사용된 재구매 기록 ID입니다.')
+    }
+
+    const changedAt = new Date().toISOString()
+    const event: PurchaseEvent = {
+      id: input.id,
+      itemId: input.itemId,
+      purchasedOn: input.purchasedOn,
+      quantity: input.quantity,
+      createdAt: changedAt,
+      updatedAt: changedAt,
+    }
+    item.currentQuantity = input.currentQuantity
+    events.push(event)
+    writeData(data)
+    writePurchaseEvents(events)
+    return structuredClone(event)
+  }
+
+  async update(input: PurchaseEventUpdateInput) {
+    const events = readPurchaseEvents()
+    const event = events.find((entry) => entry.id === input.eventId)
+    if (!event || event.updatedAt !== input.expectedUpdatedAt) {
+      throw new Error('재구매 기록이 변경되었습니다. 다시 불러와 주세요.')
+    }
+    const item = readData().items.find((entry) => entry.id === event.itemId)
+    if (!item) throw new Error('Item을 찾을 수 없습니다.')
+    validatePurchaseDate(item, input.purchasedOn)
+    validateQuantity(input.quantity, '구매 수량', false)
+    event.purchasedOn = input.purchasedOn
+    event.quantity = input.quantity
+    event.updatedAt = new Date(
+      Math.max(Date.now(), new Date(event.updatedAt).getTime() + 1),
+    ).toISOString()
+    writePurchaseEvents(events)
+    return structuredClone(event)
+  }
+
+  async delete(input: PurchaseEventDeleteInput) {
+    const events = readPurchaseEvents()
+    const event = events.find((entry) => entry.id === input.eventId)
+    if (!event || event.updatedAt !== input.expectedUpdatedAt) {
+      throw new Error('재구매 기록이 변경되었습니다. 다시 불러와 주세요.')
+    }
+    writePurchaseEvents(events.filter((entry) => entry.id !== input.eventId))
+  }
+
+  async setCurrentQuantity(input: CurrentQuantityUpdateInput) {
+    if (input.currentQuantity !== null) {
+      validateQuantity(input.currentQuantity, '현재 수량', true)
+    }
+    const data = readData()
+    const item = data.items.find((entry) => entry.id === input.itemId)
+    if (!item) throw new Error('Item을 찾을 수 없습니다.')
+    item.currentQuantity = input.currentQuantity
+    writeData(data)
+    return input.currentQuantity
+  }
+}
+
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -96,6 +229,7 @@ export class DemoRepository implements ClosetRepository {
   readonly replacementLines = new DemoReplacementLineRepository((itemId) =>
     readData().items.some((item) => item.id === itemId),
   )
+  readonly purchases = new DemoPurchaseRepository()
 
   async load() {
     return readData()
@@ -122,6 +256,7 @@ export class DemoRepository implements ClosetRepository {
     const item = {
       ...normalizeItem(input, itemId),
       retired: current.retired,
+      currentQuantity: current.currentQuantity ?? null,
       image: current.image ?? null,
     }
     data.items[index] = item
@@ -161,6 +296,9 @@ export class DemoRepository implements ClosetRepository {
     }
     data.items = data.items.filter((entry) => entry.id !== itemId)
     writeData(data)
+    writePurchaseEvents(
+      readPurchaseEvents().filter((event) => event.itemId !== itemId),
+    )
   }
 
   async updateItemSuitability(

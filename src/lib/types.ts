@@ -100,7 +100,42 @@ export interface Item {
   longWalkOk: boolean
   memo: string | null
   acquiredOn: string | null
+  currentQuantity?: number | null
   image?: ImageAsset | null
+}
+
+export interface PurchaseEvent {
+  id: string
+  itemId: string
+  purchasedOn: string
+  quantity: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PurchaseEventCreateInput {
+  id: string
+  itemId: string
+  purchasedOn: string
+  quantity: number
+  currentQuantity: number
+}
+
+export interface PurchaseEventUpdateInput {
+  eventId: string
+  purchasedOn: string
+  quantity: number
+  expectedUpdatedAt: string
+}
+
+export interface PurchaseEventDeleteInput {
+  eventId: string
+  expectedUpdatedAt: string
+}
+
+export interface CurrentQuantityUpdateInput {
+  itemId: string
+  currentQuantity: number | null
 }
 
 export interface Outfit {

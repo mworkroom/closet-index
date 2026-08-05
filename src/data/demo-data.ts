@@ -48,7 +48,7 @@ export const demoData: AppData = {
     {
       id: 'item-tee',
       name: '네이비 티셔츠',
-      category: 'Top-T-shirts',
+      category: 'Top-T-shirts-innerwear',
       semanticColor: 'Blue',
       displayHex: '#293A5B',
       seasons: ['Summer'],

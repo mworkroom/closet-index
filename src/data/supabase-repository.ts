@@ -23,6 +23,7 @@ import {
 } from './supabase/weather'
 import { SupabaseWearLogRepository } from './supabase/wear-logs'
 import { SupabaseReplacementLineRepository } from './supabase/replacement-lines'
+import { SupabasePurchaseRepository } from './supabase/purchases'
 
 export { collectAllPages, WeatherForecastRequestError }
 
@@ -33,6 +34,7 @@ export class SupabaseRepository implements ClosetRepository {
   private readonly weather: SupabaseWeatherRepository
   private readonly wearLogs: SupabaseWearLogRepository
   readonly replacementLines: SupabaseReplacementLineRepository
+  readonly purchases: SupabasePurchaseRepository
 
   constructor(client: SupabaseClient, workspaceId: string) {
     this.snapshot = new SupabaseSnapshotRepository(client, workspaceId)
@@ -44,6 +46,7 @@ export class SupabaseRepository implements ClosetRepository {
       client,
       workspaceId,
     )
+    this.purchases = new SupabasePurchaseRepository(client, workspaceId)
   }
 
   load(): Promise<AppData> {

@@ -65,7 +65,7 @@ export class SupabaseSnapshotRepository {
       this.client
         .from('closet_items')
         .select(
-          'id,name,category,semantic_color,seasons,retired,rain_ok,long_walk_ok,memo,acquired_on,color_palette:closet_color_palette(display_name,display_hex)',
+          'id,name,category,semantic_color,seasons,retired,rain_ok,long_walk_ok,memo,acquired_on,current_quantity,color_palette:closet_color_palette(display_name,display_hex)',
         )
         .eq('workspace_id', this.workspaceId)
         .order('acquired_on', { ascending: false, nullsFirst: false })

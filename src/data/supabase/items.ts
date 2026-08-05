@@ -8,7 +8,7 @@ import { CLOSET_IMAGE_BUCKET } from '../image-assets'
 import { itemMatchesInput, type ItemRow, toItem } from './shared'
 
 const ITEM_SELECTION =
-  'id,name,category,semantic_color,palette_id,seasons,retired,rain_ok,long_walk_ok,memo,acquired_on,display_hex,color_palette:closet_color_palette(display_name,display_hex)'
+  'id,name,category,semantic_color,palette_id,seasons,retired,rain_ok,long_walk_ok,memo,acquired_on,current_quantity,display_hex,color_palette:closet_color_palette(display_name,display_hex)'
 
 export class SupabaseItemRepository {
   constructor(

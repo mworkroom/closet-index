@@ -481,3 +481,106 @@ describe('DemoRepository Replacement Line creation', () => {
     ).toEqual([])
   })
 })
+
+describe('DemoRepository purchase event contract', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('재구매 기록과 저장 후 현재 수량을 함께 반영하고 멱등 재시도한다', async () => {
+    const repository = new DemoRepository()
+    const input = {
+      id: 'purchase-event-one',
+      itemId: 'item-tee',
+      purchasedOn: '2026-07-20',
+      quantity: 3,
+      currentQuantity: 4,
+    }
+
+    const created = await repository.purchases.create(input)
+    const repeated = await repository.purchases.create(input)
+    const snapshot = await repository.load()
+
+    expect(repeated.id).toBe(created.id)
+    await expect(repository.purchases.load('item-tee')).resolves.toEqual([
+      created,
+    ])
+    expect(
+      snapshot.items.find((item) => item.id === 'item-tee')?.currentQuantity,
+    ).toBe(4)
+  })
+
+  it('이력 수정·삭제는 현재 수량을 자동으로 바꾸지 않는다', async () => {
+    const repository = new DemoRepository()
+    const created = await repository.purchases.create({
+      id: 'purchase-event-editable',
+      itemId: 'item-tee',
+      purchasedOn: '2026-07-20',
+      quantity: 2,
+      currentQuantity: 5,
+    })
+
+    const updated = await repository.purchases.update({
+      eventId: created.id,
+      purchasedOn: '2026-07-21',
+      quantity: 1,
+      expectedUpdatedAt: created.updatedAt,
+    })
+    await repository.purchases.delete({
+      eventId: updated.id,
+      expectedUpdatedAt: updated.updatedAt,
+    })
+
+    await expect(repository.purchases.load('item-tee')).resolves.toEqual([])
+    expect(
+      (await repository.load()).items.find((item) => item.id === 'item-tee')
+        ?.currentQuantity,
+    ).toBe(5)
+  })
+
+  it('현재 수량만 0·미입력으로 구분해 저장하고 이력은 만들지 않는다', async () => {
+    const repository = new DemoRepository()
+
+    await repository.purchases.setCurrentQuantity({
+      itemId: 'item-tee',
+      currentQuantity: 0,
+    })
+    expect(
+      (await repository.load()).items.find((item) => item.id === 'item-tee')
+        ?.currentQuantity,
+    ).toBe(0)
+
+    await repository.purchases.setCurrentQuantity({
+      itemId: 'item-tee',
+      currentQuantity: null,
+    })
+    expect(
+      (await repository.load()).items.find((item) => item.id === 'item-tee')
+        ?.currentQuantity,
+    ).toBeNull()
+    await expect(repository.purchases.load('item-tee')).resolves.toEqual([])
+  })
+
+  it('미래이거나 최초 구매일보다 앞선 재구매일을 거부한다', async () => {
+    const repository = new DemoRepository()
+
+    await expect(
+      repository.purchases.create({
+        id: 'purchase-event-future',
+        itemId: 'item-tee',
+        purchasedOn: '2999-01-01',
+        quantity: 1,
+        currentQuantity: 1,
+      }),
+    ).rejects.toThrow('미래')
+    await expect(
+      repository.purchases.create({
+        id: 'purchase-event-before-acquired',
+        itemId: 'item-tee',
+        purchasedOn: '2026-06-14',
+        quantity: 1,
+        currentQuantity: 1,
+      }),
+    ).rejects.toThrow('최초 구매일')
+  })
+})

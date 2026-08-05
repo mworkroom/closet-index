@@ -25,6 +25,7 @@ export interface ItemRow {
   long_walk_ok: boolean
   memo: string | null
   acquired_on: string | null
+  current_quantity?: number | null
   display_hex?: string | null
   color_palette: PaletteRelation | PaletteRelation[] | null
 }
@@ -124,6 +125,7 @@ export function toItem(row: ItemRow, image: Item['image'] = null): Item {
     longWalkOk: row.long_walk_ok,
     memo: row.memo,
     acquiredOn: row.acquired_on,
+    currentQuantity: row.current_quantity ?? null,
     image,
   }
 }

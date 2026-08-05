@@ -18,10 +18,12 @@ import type {
   WearLogInput,
 } from '../lib/types'
 import type { ReplacementLineRepository } from './replacement-line-repository'
+import type { PurchaseRepository } from './purchase-repository'
 
 export interface ClosetRepository {
   load(): Promise<AppData>
   readonly replacementLines: ReplacementLineRepository
+  readonly purchases: PurchaseRepository
   createItem(input: ItemCreateInput): Promise<Item>
   updateItem(itemId: string, input: ItemWriteInput): Promise<Item>
   replaceItemImage(

@@ -26,6 +26,7 @@ import type {
 } from '../lib/types'
 import type { ClosetRepository } from '../data/repository'
 import type { ReplacementLineRepository } from '../data/replacement-line-repository'
+import type { PurchaseRepository } from '../data/purchase-repository'
 import { getImageRefreshDelay } from '../data/image-assets'
 
 interface DataState {
@@ -34,6 +35,7 @@ interface DataState {
   error: string | null
   refresh: () => Promise<void>
   readonly replacementLines: ReplacementLineRepository
+  readonly purchases: PurchaseRepository
   createItem: (input: ItemCreateInput) => Promise<Item>
   updateItem: (itemId: string, input: ItemWriteInput) => Promise<Item>
   replaceItemImage: (
@@ -329,6 +331,7 @@ export function DataProvider({
       error,
       refresh,
       replacementLines: repository.replacementLines,
+      purchases: repository.purchases,
       createItem,
       updateItem,
       replaceItemImage: (itemId, input) =>
