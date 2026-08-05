@@ -8,27 +8,6 @@ import type {
   OutfitCreateInput,
   OutfitUpdateInput,
   OutfitItemPlacementInput,
-  ReplacementLineSnapshot,
-  ReplacementLineEdge,
-  ReplacementLineEdgeConfirmationInput,
-  ReplacementLineEdgeConnectionUpdateInput,
-  ReplacementLineEdgeDetailsUpdateInput,
-  ReplacementLineEdgeDisconnectInput,
-  ReplacementLineEdgeDirectionUpdateInput,
-  ReplacementLineManualEdgeInput,
-  ReplacementLineItemAddInput,
-  ReplacementLineItemMoveInput,
-  ReplacementLineItemRemoveInput,
-  ReplacementLineArchiveInput,
-  ReplacementLineCreateInput,
-  ReplacementLineColorUpdateInput,
-  ReplacementLineDeleteInput,
-  ReplacementLineDetailsUpdateInput,
-  ReplacementLineMergeInput,
-  ReplacementLineReviewInput,
-  ReplacementLineStart,
-  ReplacementLegacyLink,
-  ReplacementLegacyLinkReviewInput,
   WeatherForecastRequest,
   WeatherLocationInput,
   WearLogInput,
@@ -53,7 +32,7 @@ export class SupabaseRepository implements ClosetRepository {
   private readonly outfits: SupabaseOutfitRepository
   private readonly weather: SupabaseWeatherRepository
   private readonly wearLogs: SupabaseWearLogRepository
-  private readonly replacementLines: SupabaseReplacementLineRepository
+  readonly replacementLines: SupabaseReplacementLineRepository
 
   constructor(client: SupabaseClient, workspaceId: string) {
     this.snapshot = new SupabaseSnapshotRepository(client, workspaceId)
@@ -69,117 +48,6 @@ export class SupabaseRepository implements ClosetRepository {
 
   load(): Promise<AppData> {
     return this.snapshot.load()
-  }
-
-  loadReplacementLines(): Promise<ReplacementLineSnapshot> {
-    return this.replacementLines.load()
-  }
-
-  loadReplacementLegacyLinks(): Promise<ReplacementLegacyLink[]> {
-    return this.replacementLines.loadLegacyLinks()
-  }
-
-  reviewReplacementLegacyLink(
-    linkId: string,
-    input: ReplacementLegacyLinkReviewInput,
-  ): Promise<ReplacementLegacyLink> {
-    return this.replacementLines.reviewLegacyLink(linkId, input)
-  }
-
-  loadReplacementLineEdges(): Promise<ReplacementLineEdge[]> {
-    return this.replacementLines.loadEdges()
-  }
-
-  confirmReplacementLineEdges(
-    inputs: ReplacementLineEdgeConfirmationInput[],
-  ): Promise<ReplacementLineEdge[]> {
-    return this.replacementLines.confirmEdges(inputs)
-  }
-
-  updateReplacementLineEdgeDetails(
-    edgeId: string,
-    input: ReplacementLineEdgeDetailsUpdateInput,
-  ): Promise<ReplacementLineEdge> {
-    return this.replacementLines.updateEdgeDetails(edgeId, input)
-  }
-
-  updateReplacementLineEdgeConnection(
-    edgeId: string,
-    input: ReplacementLineEdgeConnectionUpdateInput,
-  ): Promise<ReplacementLineEdge> {
-    return this.replacementLines.updateEdgeConnection(edgeId, input)
-  }
-
-  disconnectReplacementLineEdge(
-    edgeId: string,
-    input: ReplacementLineEdgeDisconnectInput,
-  ): Promise<boolean> {
-    return this.replacementLines.disconnectEdge(edgeId, input)
-  }
-
-  reverseReplacementLineEdge(
-    edgeId: string,
-    input: ReplacementLineEdgeDirectionUpdateInput,
-  ): Promise<ReplacementLineEdge> {
-    return this.replacementLines.reverseEdge(edgeId, input)
-  }
-
-  loadReplacementLineStarts(): Promise<ReplacementLineStart[]> {
-    return this.replacementLines.loadStarts()
-  }
-
-  setReplacementLineStart(
-    replacementLineId: string,
-    itemId: string,
-    isStart: boolean,
-  ): Promise<boolean> {
-    return this.replacementLines.setStart(replacementLineId, itemId, isStart)
-  }
-
-  createReplacementLineManualEdge(
-    input: ReplacementLineManualEdgeInput,
-  ): Promise<ReplacementLineEdge> {
-    return this.replacementLines.createManualEdge(input)
-  }
-
-  createReplacementLine(input: ReplacementLineCreateInput) {
-    return this.replacementLines.create(input)
-  }
-
-  moveReplacementLineItem(input: ReplacementLineItemMoveInput) {
-    return this.replacementLines.moveItem(input)
-  }
-
-  addReplacementLineItem(input: ReplacementLineItemAddInput) {
-    return this.replacementLines.addItem(input)
-  }
-
-  removeReplacementLineItem(input: ReplacementLineItemRemoveInput) {
-    return this.replacementLines.removeItem(input)
-  }
-
-  mergeReplacementLines(input: ReplacementLineMergeInput) {
-    return this.replacementLines.mergeLines(input)
-  }
-
-  setReplacementLineArchived(input: ReplacementLineArchiveInput) {
-    return this.replacementLines.setArchived(input)
-  }
-
-  setReplacementLineColorCategory(input: ReplacementLineColorUpdateInput) {
-    return this.replacementLines.setColorCategory(input)
-  }
-
-  acknowledgeReplacementLineReview(input: ReplacementLineReviewInput) {
-    return this.replacementLines.acknowledgeReview(input)
-  }
-
-  updateReplacementLineDetails(input: ReplacementLineDetailsUpdateInput) {
-    return this.replacementLines.updateDetails(input)
-  }
-
-  deleteEmptyReplacementLine(input: ReplacementLineDeleteInput) {
-    return this.replacementLines.deleteEmpty(input)
   }
 
   createItem(input: ItemCreateInput) {

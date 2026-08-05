@@ -10,28 +10,6 @@ import type {
   OutfitCreateInput,
   OutfitUpdateInput,
   OutfitItemPlacementInput,
-  ReplacementLineSnapshot,
-  ReplacementLineEdge,
-  ReplacementLineEdgeConfirmationInput,
-  ReplacementLineEdgeConnectionUpdateInput,
-  ReplacementLineEdgeDetailsUpdateInput,
-  ReplacementLineEdgeDisconnectInput,
-  ReplacementLineEdgeDirectionUpdateInput,
-  ReplacementLineManualEdgeInput,
-  ReplacementLineItemAddInput,
-  ReplacementLineItemMoveInput,
-  ReplacementLineItemRemoveInput,
-  ReplacementLineArchiveInput,
-  ReplacementLineCreateInput,
-  ReplacementLineColorUpdateInput,
-  ReplacementLineDeleteInput,
-  ReplacementLineDetailsUpdateInput,
-  ReplacementLineMergeInput,
-  ReplacementLineRecord,
-  ReplacementLineReviewInput,
-  ReplacementLineStart,
-  ReplacementLegacyLink,
-  ReplacementLegacyLinkReviewInput,
   WeatherForecastRequest,
   WeatherForecastResponse,
   WeatherLocation,
@@ -39,74 +17,11 @@ import type {
   WearLog,
   WearLogInput,
 } from '../lib/types'
+import type { ReplacementLineRepository } from './replacement-line-repository'
 
 export interface ClosetRepository {
   load(): Promise<AppData>
-  loadReplacementLines?(): Promise<ReplacementLineSnapshot>
-  loadReplacementLegacyLinks?(): Promise<ReplacementLegacyLink[]>
-  reviewReplacementLegacyLink?(
-    linkId: string,
-    input: ReplacementLegacyLinkReviewInput,
-  ): Promise<ReplacementLegacyLink>
-  loadReplacementLineEdges?(): Promise<ReplacementLineEdge[]>
-  confirmReplacementLineEdges?(
-    inputs: ReplacementLineEdgeConfirmationInput[],
-  ): Promise<ReplacementLineEdge[]>
-  updateReplacementLineEdgeDetails?(
-    edgeId: string,
-    input: ReplacementLineEdgeDetailsUpdateInput,
-  ): Promise<ReplacementLineEdge>
-  updateReplacementLineEdgeConnection?(
-    edgeId: string,
-    input: ReplacementLineEdgeConnectionUpdateInput,
-  ): Promise<ReplacementLineEdge>
-  disconnectReplacementLineEdge?(
-    edgeId: string,
-    input: ReplacementLineEdgeDisconnectInput,
-  ): Promise<boolean>
-  reverseReplacementLineEdge?(
-    edgeId: string,
-    input: ReplacementLineEdgeDirectionUpdateInput,
-  ): Promise<ReplacementLineEdge>
-  loadReplacementLineStarts?(): Promise<ReplacementLineStart[]>
-  setReplacementLineStart?(
-    replacementLineId: string,
-    itemId: string,
-    isStart: boolean,
-  ): Promise<boolean>
-  createReplacementLineManualEdge?(
-    input: ReplacementLineManualEdgeInput,
-  ): Promise<ReplacementLineEdge>
-  createReplacementLine?(
-    input: ReplacementLineCreateInput,
-  ): Promise<ReplacementLineRecord>
-  moveReplacementLineItem?(
-    input: ReplacementLineItemMoveInput,
-  ): Promise<ReplacementLineRecord>
-  addReplacementLineItem?(
-    input: ReplacementLineItemAddInput,
-  ): Promise<ReplacementLineRecord>
-  removeReplacementLineItem?(
-    input: ReplacementLineItemRemoveInput,
-  ): Promise<ReplacementLineRecord[]>
-  mergeReplacementLines?(
-    input: ReplacementLineMergeInput,
-  ): Promise<ReplacementLineRecord>
-  setReplacementLineArchived?(
-    input: ReplacementLineArchiveInput,
-  ): Promise<ReplacementLineRecord>
-  setReplacementLineColorCategory?(
-    input: ReplacementLineColorUpdateInput,
-  ): Promise<ReplacementLineRecord>
-  acknowledgeReplacementLineReview?(
-    input: ReplacementLineReviewInput,
-  ): Promise<ReplacementLineRecord>
-  updateReplacementLineDetails?(
-    input: ReplacementLineDetailsUpdateInput,
-  ): Promise<ReplacementLineRecord>
-  deleteEmptyReplacementLine?(
-    input: ReplacementLineDeleteInput,
-  ): Promise<boolean>
+  readonly replacementLines: ReplacementLineRepository
   createItem(input: ItemCreateInput): Promise<Item>
   updateItem(itemId: string, input: ItemWriteInput): Promise<Item>
   replaceItemImage(

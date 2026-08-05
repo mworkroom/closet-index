@@ -171,10 +171,10 @@ describe('DemoRepository wear log contract', () => {
 
   it('연결 전 Item을 새 Line으로 옮기고 양쪽 Line을 재검토 상태로 저장한다', async () => {
     const repository = new DemoRepository()
-    const before = await repository.loadReplacementLines()
+    const before = await repository.replacementLines.load()
     const source = before.lines.find((line) => line.id === 'line-navy-tee')!
 
-    const target = await repository.moveReplacementLineItem({
+    const target = await repository.replacementLines.moveItem({
       sourceLineId: source.id,
       itemId: 'item-tee',
       targetLineId: null,
@@ -183,8 +183,8 @@ describe('DemoRepository wear log contract', () => {
       expectedSourceUpdatedAt: source.updatedAt,
       expectedTargetUpdatedAt: null,
     })
-    const after = await repository.loadReplacementLines()
-    const starts = await repository.loadReplacementLineStarts()
+    const after = await repository.replacementLines.load()
+    const starts = await repository.replacementLines.loadStarts()
 
     expect(target).toMatchObject({
       name: 'Navy Summer Tee',
@@ -209,17 +209,17 @@ describe('DemoRepository wear log contract', () => {
 
   it('Line을 대표 Line으로 병합하고 원본 Line을 보관한다', async () => {
     const repository = new DemoRepository()
-    const before = await repository.loadReplacementLines()
+    const before = await repository.replacementLines.load()
     const source = before.lines.find((line) => line.id === 'line-navy-tee')!
     const target = before.lines.find((line) => line.id === 'line-soft-layer')!
 
-    const merged = await repository.mergeReplacementLines({
+    const merged = await repository.replacementLines.mergeLines({
       sourceLineId: source.id,
       targetLineId: target.id,
       expectedSourceUpdatedAt: source.updatedAt,
       expectedTargetUpdatedAt: target.updatedAt,
     })
-    const after = await repository.loadReplacementLines()
+    const after = await repository.replacementLines.load()
     const archivedSource = after.lines.find((line) => line.id === source.id)
 
     expect(merged).toMatchObject({
@@ -245,17 +245,17 @@ describe('DemoRepository wear log contract', () => {
 
   it('겹치는 membership은 대표 Line에 하나씩만 남긴다', async () => {
     const repository = new DemoRepository()
-    const before = await repository.loadReplacementLines()
+    const before = await repository.replacementLines.load()
     const source = before.lines.find((line) => line.id === 'line-blue-layer')!
     const target = before.lines.find((line) => line.id === 'line-soft-layer')!
 
-    await repository.mergeReplacementLines({
+    await repository.replacementLines.mergeLines({
       sourceLineId: source.id,
       targetLineId: target.id,
       expectedSourceUpdatedAt: source.updatedAt,
       expectedTargetUpdatedAt: target.updatedAt,
     })
-    const after = await repository.loadReplacementLines()
+    const after = await repository.replacementLines.load()
     const targetMemberships = after.memberships.filter(
       (membership) => membership.replacementLineId === target.id,
     )
@@ -273,7 +273,7 @@ describe('DemoRepository wear log contract', () => {
 
   it('두 Line을 합쳤을 때 cycle이 생기면 아무것도 저장하지 않는다', async () => {
     const repository = new DemoRepository()
-    const before = await repository.loadReplacementLines()
+    const before = await repository.replacementLines.load()
     const source = before.lines.find((line) => line.id === 'line-blue-layer')!
     const target = before.lines.find((line) => line.id === 'line-soft-layer')!
     window.localStorage.setItem(
@@ -309,22 +309,22 @@ describe('DemoRepository wear log contract', () => {
     )
 
     await expect(
-      repository.mergeReplacementLines({
+      repository.replacementLines.mergeLines({
         sourceLineId: source.id,
         targetLineId: target.id,
         expectedSourceUpdatedAt: source.updatedAt,
         expectedTargetUpdatedAt: target.updatedAt,
       }),
     ).rejects.toThrow('cycle')
-    await expect(repository.loadReplacementLines()).resolves.toEqual(before)
+    await expect(repository.replacementLines.load()).resolves.toEqual(before)
   })
 
   it('독립 Line을 보관하고 다시 활성화한다', async () => {
     const repository = new DemoRepository()
-    const before = await repository.loadReplacementLines()
+    const before = await repository.replacementLines.load()
     const line = before.lines.find((entry) => entry.id === 'line-future-dress')!
 
-    const archived = await repository.setReplacementLineArchived({
+    const archived = await repository.replacementLines.setArchived({
       lineId: line.id,
       archived: true,
       expectedUpdatedAt: line.updatedAt,
@@ -335,7 +335,7 @@ describe('DemoRepository wear log contract', () => {
       archivedAt: expect.any(String),
     })
 
-    const restored = await repository.setReplacementLineArchived({
+    const restored = await repository.replacementLines.setArchived({
       lineId: line.id,
       archived: false,
       expectedUpdatedAt: archived.updatedAt,
@@ -349,21 +349,21 @@ describe('DemoRepository wear log contract', () => {
 
   it('Line 없는 Item을 시작점으로 추가한 뒤 현재 Line에서 뺀다', async () => {
     const repository = new DemoRepository()
-    const before = await repository.loadReplacementLines()
+    const before = await repository.replacementLines.load()
     const line = before.lines.find((entry) => entry.id === 'line-navy-tee')!
 
-    const addedLine = await repository.addReplacementLineItem({
+    const addedLine = await repository.replacementLines.addItem({
       lineId: line.id,
       itemId: 'item-skirt',
       expectedUpdatedAt: line.updatedAt,
     })
     expect(addedLine).toMatchObject({ reviewStatus: 'needs_review' })
-    await expect(repository.loadReplacementLines()).resolves.toMatchObject({
+    await expect(repository.replacementLines.load()).resolves.toMatchObject({
       memberships: expect.arrayContaining([
         { replacementLineId: line.id, itemId: 'item-skirt' },
       ]),
     })
-    await expect(repository.loadReplacementLineStarts()).resolves.toEqual(
+    await expect(repository.replacementLines.loadStarts()).resolves.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           replacementLineId: line.id,
@@ -373,7 +373,7 @@ describe('DemoRepository wear log contract', () => {
     )
 
     await expect(
-      repository.removeReplacementLineItem({
+      repository.replacementLines.removeItem({
         sourceLineId: line.id,
         itemId: 'item-skirt',
         expectedSourceUpdatedAt: addedLine.updatedAt,
@@ -381,12 +381,12 @@ describe('DemoRepository wear log contract', () => {
     ).resolves.toEqual([
       expect.objectContaining({ id: line.id, reviewStatus: 'needs_review' }),
     ])
-    const after = await repository.loadReplacementLines()
+    const after = await repository.replacementLines.load()
     expect(
       after.memberships.some((membership) => membership.itemId === 'item-skirt'),
     ).toBe(false)
     expect(
-      (await repository.loadReplacementLineStarts()).some(
+      (await repository.replacementLines.loadStarts()).some(
         (start) => start.itemId === 'item-skirt',
       ),
     ).toBe(false)
@@ -394,7 +394,7 @@ describe('DemoRepository wear log contract', () => {
 
   it('중복 소속의 현재 Line만 빼고 다른 Line의 계보는 보존한다', async () => {
     const repository = new DemoRepository()
-    const before = await repository.loadReplacementLines()
+    const before = await repository.replacementLines.load()
     const duplicateLine = before.lines.find((line) => line.id === 'line-blue-layer')!
     const originalLine = before.lines.find((line) => line.id === 'line-soft-layer')!
     window.localStorage.setItem(
@@ -417,7 +417,7 @@ describe('DemoRepository wear log contract', () => {
     )
 
     await expect(
-      repository.removeReplacementLineItem({
+      repository.replacementLines.removeItem({
         sourceLineId: duplicateLine.id,
         itemId: 'item-cardigan',
         expectedSourceUpdatedAt: duplicateLine.updatedAt,
@@ -426,7 +426,7 @@ describe('DemoRepository wear log contract', () => {
       expect.objectContaining({ id: duplicateLine.id, reviewStatus: 'needs_review' }),
     ])
 
-    const after = await repository.loadReplacementLines()
+    const after = await repository.replacementLines.load()
     expect(after.memberships).not.toContainEqual({
       replacementLineId: duplicateLine.id,
       itemId: 'item-cardigan',
@@ -459,12 +459,12 @@ describe('DemoRepository Replacement Line creation', () => {
   it('Item membership 없이 대표 색상이 지정된 빈 Line을 만든다', async () => {
     const repository = new DemoRepository()
 
-    const created = await repository.createReplacementLine({
+    const created = await repository.replacementLines.create({
       name: '  Brown Bottom Spring  ',
       styleIdentity: '  Brown Bottom  ',
       colorCategory: 'Brown',
     })
-    const snapshot = await repository.loadReplacementLines()
+    const snapshot = await repository.replacementLines.load()
 
     expect(created).toMatchObject({
       name: 'Brown Bottom Spring',

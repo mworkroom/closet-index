@@ -11,7 +11,7 @@ afterEach(cleanup)
 describe('ReplacementLinesPage', () => {
   it('opens with a compact color index instead of the full Line and Item list', async () => {
     const repository = new DemoRepository()
-    const loadReplacementLines = vi.spyOn(repository, 'loadReplacementLines')
+    const loadReplacementLines = vi.spyOn(repository.replacementLines, 'load')
     render(
       <MemoryRouter initialEntries={['/replacement-lines']}>
         <DataProvider repository={repository}>
@@ -41,7 +41,7 @@ describe('ReplacementLinesPage', () => {
   it('creates a new empty Line from the page top and opens its Item management screen', async () => {
     const user = userEvent.setup()
     const repository = new DemoRepository()
-    const createReplacementLine = vi.spyOn(repository, 'createReplacementLine')
+    const createReplacementLine = vi.spyOn(repository.replacementLines, 'create')
     render(
       <MemoryRouter initialEntries={['/replacement-lines']}>
         <DataProvider repository={repository}>
@@ -76,7 +76,7 @@ describe('ReplacementLinesPage', () => {
     })
     expect(await screen.findByText('새 Line 상세 화면')).toBeInTheDocument()
 
-    const snapshot = await repository.loadReplacementLines()
+    const snapshot = await repository.replacementLines.load()
     const created = snapshot.lines.find(
       (line) => line.name === 'Brown Bottom Spring',
     )!
@@ -141,11 +141,11 @@ describe('ReplacementLinesPage', () => {
 
   it('removes archived Lines from Color and keeps them in the management list', async () => {
     const repository = new DemoRepository()
-    const snapshot = await repository.loadReplacementLines()
+    const snapshot = await repository.replacementLines.load()
     const line = snapshot.lines.find(
       (entry) => entry.id === 'line-future-dress',
     )!
-    await repository.setReplacementLineArchived({
+    await repository.replacementLines.setArchived({
       lineId: line.id,
       archived: true,
       expectedUpdatedAt: line.updatedAt,

@@ -7,7 +7,6 @@ import type {
   ReplacementLineEdge,
   ReplacementLineEdgeConfirmationInput,
   ReplacementLineEdgeConnectionUpdateInput,
-  ReplacementLineEdgeDetailsUpdateInput,
   ReplacementLineEdgeDisconnectInput,
   ReplacementLineEdgeDirectionUpdateInput,
   ReplacementLineManualEdgeInput,
@@ -24,6 +23,7 @@ import type {
   ReplacementLineReviewInput,
   ReplacementLineStart,
 } from '../../lib/types'
+import type { ReplacementLineRepository } from '../replacement-line-repository'
 
 interface ReplacementLineRow {
   id: string
@@ -116,7 +116,9 @@ function toLine(row: ReplacementLineRow): ReplacementLineRecord {
   }
 }
 
-export class SupabaseReplacementLineRepository {
+export class SupabaseReplacementLineRepository
+  implements ReplacementLineRepository
+{
   constructor(
     private readonly client: SupabaseClient,
     private readonly workspaceId: string,
@@ -329,28 +331,6 @@ export class SupabaseReplacementLineRepository {
     )
     if (error) throw error
     return ((data ?? []) as ReplacementLineEdgeRow[]).map(toLineEdge)
-  }
-
-  async updateEdgeDetails(
-    edgeId: string,
-    input: ReplacementLineEdgeDetailsUpdateInput,
-  ): Promise<ReplacementLineEdge> {
-    const { data, error } = await this.client.rpc(
-      'revise_closet_replacement_line_edge_details',
-      {
-        p_workspace_id: this.workspaceId,
-        p_edge_id: edgeId,
-        p_expected_updated_at: input.expectedUpdatedAt,
-        p_branch_name: input.branchName,
-        p_decision_reason: input.decisionReason,
-      },
-    )
-    if (error) throw error
-    const row = (Array.isArray(data) ? data[0] : data) as
-      | ReplacementLineEdgeRow
-      | null
-    if (!row) throw new Error('수정된 계보 연결을 확인하지 못했습니다.')
-    return toLineEdge(row)
   }
 
   async updateEdgeConnection(

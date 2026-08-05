@@ -108,6 +108,7 @@ describe('DataProvider outfit placement updates', () => {
     const user = userEvent.setup()
     const repository: ClosetRepository = {
       load: vi.fn(async () => structuredClone(appData)),
+      replacementLines: {} as ClosetRepository['replacementLines'],
       createItem: vi.fn(),
       updateItem: vi.fn(),
       deleteItem: vi.fn(async () => undefined),
@@ -165,6 +166,7 @@ describe('DataProvider outfit placement updates', () => {
     }
     const repository: ClosetRepository = {
       load: vi.fn(async () => structuredClone(appData)),
+      replacementLines: {} as ClosetRepository['replacementLines'],
       createItem: vi.fn(),
       updateItem: vi.fn(),
       deleteItem: vi.fn(async () => undefined),
@@ -203,6 +205,7 @@ describe('DataProvider outfit placement updates', () => {
     const user = userEvent.setup()
     const repository: ClosetRepository = {
       load: vi.fn(async () => structuredClone(appData)),
+      replacementLines: {} as ClosetRepository['replacementLines'],
       createItem: vi.fn(),
       updateItem: vi.fn(),
       deleteItem: vi.fn(async () => undefined),

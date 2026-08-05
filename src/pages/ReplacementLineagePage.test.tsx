@@ -489,7 +489,7 @@ describe('ReplacementLineagePage', () => {
 
   it('deletes a completely empty standalone Line after confirmation', async () => {
     const repository = new DemoRepository()
-    const snapshot = await repository.loadReplacementLines()
+    const snapshot = await repository.replacementLines.load()
     snapshot.lines.push({
       id: 'line-empty',
       name: 'Empty Brown Line',
@@ -651,7 +651,7 @@ describe('ReplacementLineagePage', () => {
     const user = userEvent.setup()
     const repository = new DemoRepository()
     const addItem = vi
-      .spyOn(repository, 'addReplacementLineItem')
+      .spyOn(repository.replacementLines, 'addItem')
       .mockRejectedValueOnce(new Error('Replacement RPC unavailable'))
 
     render(
@@ -683,12 +683,12 @@ describe('ReplacementLineagePage', () => {
   it('passes the loaded timestamp to addItem and preserves the screen on a conflict', async () => {
     const user = userEvent.setup()
     const repository = new DemoRepository()
-    const initialSnapshot = await repository.loadReplacementLines()
+    const initialSnapshot = await repository.replacementLines.load()
     const expectedUpdatedAt = initialSnapshot.lines.find(
       (line) => line.id === 'line-navy-tee',
     )!.updatedAt
     const addItem = vi
-      .spyOn(repository, 'addReplacementLineItem')
+      .spyOn(repository.replacementLines, 'addItem')
       .mockRejectedValueOnce(
         new Error('Line이 변경되었습니다. 다시 불러와 주세요.'),
       )
@@ -726,13 +726,15 @@ describe('ReplacementLineagePage', () => {
   it('submits the same add action only once while the first request is pending', async () => {
     const user = userEvent.setup()
     const repository = new DemoRepository()
-    const originalAddItem = repository.addReplacementLineItem.bind(repository)
+    const originalAddItem = repository.replacementLines.addItem.bind(
+      repository.replacementLines,
+    )
     let releaseRequest!: () => void
     const requestGate = new Promise<void>((resolve) => {
       releaseRequest = resolve
     })
     const addItem = vi
-      .spyOn(repository, 'addReplacementLineItem')
+      .spyOn(repository.replacementLines, 'addItem')
       .mockImplementation(async (input) => {
         await requestGate
         return originalAddItem(input)

@@ -110,13 +110,7 @@ function ArchivedLineCard({
 }
 
 export function ReplacementLinesPage() {
-  const {
-    data,
-    createReplacementLine,
-    loadReplacementLines,
-    loadReplacementLegacyLinks,
-  } =
-    useClosetData()
+  const { data, replacementLines } = useClosetData()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [snapshot, setSnapshot] = useState<ReplacementLineSnapshot | null>(null)
@@ -137,8 +131,8 @@ export function ReplacementLinesPage() {
     setError(null)
     try {
       const [linesResult, linksResult] = await Promise.allSettled([
-        loadReplacementLines(),
-        loadReplacementLegacyLinks(),
+        replacementLines.load(),
+        replacementLines.loadLegacyLinks(),
       ])
       if (linesResult.status === 'rejected') throw linesResult.reason
       setSnapshot(linesResult.value)
@@ -158,7 +152,7 @@ export function ReplacementLinesPage() {
     } finally {
       setLoading(false)
     }
-  }, [loadReplacementLegacyLinks, loadReplacementLines])
+  }, [replacementLines.loadLegacyLinks, replacementLines.load])
 
   useEffect(() => {
     void load()
@@ -196,7 +190,7 @@ export function ReplacementLinesPage() {
     setCreating(true)
     setCreateError(null)
     try {
-      const created = await createReplacementLine({
+      const created = await replacementLines.create({
         name,
         styleIdentity: newLineStyleIdentity.trim() || null,
         colorCategory: newLineColorCategory as ReplacementLineColorCategory,

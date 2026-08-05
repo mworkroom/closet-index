@@ -268,24 +268,6 @@ describe('SupabaseReplacementLineRepository', () => {
     })
 
     await expect(
-      repository.updateEdgeDetails('edge-a', {
-        expectedUpdatedAt: '2026-08-03T01:00:00Z',
-        branchName: '박시 핏 계열',
-        decisionReason: '핏과 레이어드 균형이 더 좋음',
-      }),
-    ).resolves.toMatchObject({ id: 'edge-a' })
-    expect(rpc).toHaveBeenCalledWith(
-      'revise_closet_replacement_line_edge_details',
-      {
-        p_workspace_id: 'workspace-a',
-        p_edge_id: 'edge-a',
-        p_expected_updated_at: '2026-08-03T01:00:00Z',
-        p_branch_name: '박시 핏 계열',
-        p_decision_reason: '핏과 레이어드 균형이 더 좋음',
-      },
-    )
-
-    await expect(
       repository.updateEdgeConnection('edge-a', {
         expectedUpdatedAt: '2026-08-03T01:00:00Z',
         predecessorItemId: 'item-c',

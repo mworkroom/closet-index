@@ -13,7 +13,7 @@ describe('ReplacementLegacyLinkReviewPage', () => {
   it('saves only after preview confirmation and resumes from persisted progress', async () => {
     const user = userEvent.setup()
     const repository = new DemoRepository()
-    const review = vi.spyOn(repository, 'reviewReplacementLegacyLink')
+    const review = vi.spyOn(repository.replacementLines, 'reviewLegacyLink')
     const rendered = render(
       <MemoryRouter>
         <DataProvider repository={repository}>
@@ -84,7 +84,7 @@ describe('ReplacementLegacyLinkReviewPage', () => {
     )
     const user = userEvent.setup()
     const repository = new DemoRepository()
-    const review = vi.spyOn(repository, 'reviewReplacementLegacyLink')
+    const review = vi.spyOn(repository.replacementLines, 'reviewLegacyLink')
     render(
       <MemoryRouter>
         <DataProvider repository={repository}>

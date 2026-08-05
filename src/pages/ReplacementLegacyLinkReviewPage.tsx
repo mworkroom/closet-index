@@ -79,12 +79,7 @@ function ReviewItemCard({
 }
 
 export function ReplacementLegacyLinkReviewPage() {
-  const {
-    data,
-    loadReplacementLines,
-    loadReplacementLegacyLinks,
-    reviewReplacementLegacyLink,
-  } = useClosetData()
+  const { data, replacementLines } = useClosetData()
   const [lineSnapshot, setLineSnapshot] =
     useState<ReplacementLineSnapshot | null>(null)
   const [links, setLinks] = useState<ReplacementLegacyLink[] | null>(null)
@@ -106,8 +101,8 @@ export function ReplacementLegacyLinkReviewPage() {
     setLoadError(null)
     try {
       const [nextLines, nextLinks] = await Promise.all([
-        loadReplacementLines(),
-        loadReplacementLegacyLinks(),
+        replacementLines.load(),
+        replacementLines.loadLegacyLinks(),
       ])
       setLineSnapshot(nextLines)
       setLinks(nextLinks)
@@ -120,7 +115,7 @@ export function ReplacementLegacyLinkReviewPage() {
     } finally {
       setLoading(false)
     }
-  }, [loadReplacementLegacyLinks, loadReplacementLines])
+  }, [replacementLines.loadLegacyLinks, replacementLines.load])
 
   useEffect(() => {
     void load()
@@ -163,7 +158,7 @@ export function ReplacementLegacyLinkReviewPage() {
     setSaving(true)
     setSaveError(null)
     try {
-      const reviewed = await reviewReplacementLegacyLink(currentPair.link.id, {
+      const reviewed = await replacementLines.reviewLegacyLink(currentPair.link.id, {
         decision,
         reason,
         expectedUpdatedAt: currentPair.link.updatedAt,

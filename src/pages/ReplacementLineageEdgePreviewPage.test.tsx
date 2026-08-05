@@ -60,6 +60,6 @@ describe('ReplacementLineageEdgePreviewPage', () => {
 
     await user.click(screen.getByRole('button', { name: '1개 edge 확정 저장' }))
     expect(await screen.findByText('1개 edge가 이미 저장돼 있어요')).toBeInTheDocument()
-    await expect(repository.loadReplacementLineEdges()).resolves.toHaveLength(1)
+    await expect(repository.replacementLines.loadEdges()).resolves.toHaveLength(1)
   })
 })

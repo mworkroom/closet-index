@@ -51,13 +51,7 @@ function GraphPointCard({
 }
 
 export function ReplacementLineageEdgePreviewPage() {
-  const {
-    data,
-    loadReplacementLines,
-    loadReplacementLegacyLinks,
-    loadReplacementLineEdges,
-    confirmReplacementLineEdges,
-  } = useClosetData()
+  const { data, replacementLines } = useClosetData()
   const [snapshot, setSnapshot] = useState<ReplacementLineSnapshot | null>(null)
   const [links, setLinks] = useState<ReplacementLegacyLink[] | null>(null)
   const [edges, setEdges] = useState<ReplacementLineEdge[] | null>(null)
@@ -73,9 +67,9 @@ export function ReplacementLineageEdgePreviewPage() {
     setError(null)
     try {
       const [nextSnapshot, nextLinks, nextEdges] = await Promise.all([
-        loadReplacementLines(),
-        loadReplacementLegacyLinks(),
-        loadReplacementLineEdges(),
+        replacementLines.load(),
+        replacementLines.loadLegacyLinks(),
+        replacementLines.loadEdges(),
       ])
       setSnapshot(nextSnapshot)
       setLinks(nextLinks)
@@ -89,7 +83,7 @@ export function ReplacementLineageEdgePreviewPage() {
     } finally {
       setLoading(false)
     }
-  }, [loadReplacementLegacyLinks, loadReplacementLineEdges, loadReplacementLines])
+  }, [replacementLines.loadLegacyLinks, replacementLines.loadEdges, replacementLines.load])
 
   useEffect(() => {
     void load()
@@ -148,7 +142,7 @@ export function ReplacementLineageEdgePreviewPage() {
     setSaving(true)
     setSaveError(null)
     try {
-      const saved = await confirmReplacementLineEdges(confirmationInputs)
+      const saved = await replacementLines.confirmEdges(confirmationInputs)
       setEdges(saved)
       setConfirmationOpen(false)
     } catch (cause) {

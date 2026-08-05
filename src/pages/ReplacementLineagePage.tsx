@@ -1705,26 +1705,7 @@ function LineManagementPanel({
 export function ReplacementLineagePage() {
   const { lineId = '' } = useParams()
   const navigate = useNavigate()
-  const {
-    data,
-    loadReplacementLines,
-    loadReplacementLineEdges,
-    updateReplacementLineEdgeConnection,
-    disconnectReplacementLineEdge,
-    reverseReplacementLineEdge,
-    loadReplacementLineStarts,
-    setReplacementLineStart,
-    createReplacementLineManualEdge,
-    moveReplacementLineItem,
-    addReplacementLineItem,
-    removeReplacementLineItem,
-    mergeReplacementLines,
-    setReplacementLineArchived,
-    setReplacementLineColorCategory,
-    acknowledgeReplacementLineReview,
-    updateReplacementLineDetails,
-    deleteEmptyReplacementLine,
-  } = useClosetData()
+  const { data, replacementLines } = useClosetData()
   const [snapshot, setSnapshot] = useState<ReplacementLineSnapshot | null>(null)
   const [edges, setEdges] = useState<ReplacementLineEdge[] | null>(null)
   const [starts, setStarts] = useState<ReplacementLineStart[] | null>(null)
@@ -1736,9 +1717,9 @@ export function ReplacementLineagePage() {
     setError(null)
     try {
       const [nextSnapshot, nextEdges, nextStarts] = await Promise.all([
-        loadReplacementLines(),
-        loadReplacementLineEdges(),
-        loadReplacementLineStarts(),
+        replacementLines.load(),
+        replacementLines.loadEdges(),
+        replacementLines.loadStarts(),
       ])
       setSnapshot(nextSnapshot)
       setEdges(nextEdges)
@@ -1754,9 +1735,9 @@ export function ReplacementLineagePage() {
     }
   }, [
     lineId,
-    loadReplacementLineEdges,
-    loadReplacementLineStarts,
-    loadReplacementLines,
+    replacementLines.loadEdges,
+    replacementLines.loadStarts,
+    replacementLines.load,
   ])
 
   useEffect(() => {
@@ -1765,18 +1746,18 @@ export function ReplacementLineagePage() {
 
   const updateEdge = useCallback(
     async (edgeId: string, input: ReplacementLineEdgeConnectionUpdateInput) => {
-      const updatedEdge = await updateReplacementLineEdgeConnection(edgeId, input)
+      const updatedEdge = await replacementLines.updateEdgeConnection(edgeId, input)
       setEdges((current) =>
         current?.map((edge) => (edge.id === updatedEdge.id ? updatedEdge : edge)) ??
         current,
       )
     },
-    [updateReplacementLineEdgeConnection],
+    [replacementLines.updateEdgeConnection],
   )
 
   const disconnectEdge = useCallback(
     async (edge: ReplacementLineEdge) => {
-      const isStart = await disconnectReplacementLineEdge(edge.id, {
+      const isStart = await replacementLines.disconnectEdge(edge.id, {
         expectedUpdatedAt: edge.updatedAt,
       })
       setEdges((current) => current?.filter((entry) => entry.id !== edge.id) ?? current)
@@ -1799,23 +1780,23 @@ export function ReplacementLineagePage() {
         })
       }
     },
-    [disconnectReplacementLineEdge],
+    [replacementLines.disconnectEdge],
   )
 
   const reverseEdge = useCallback(
     async (edgeId: string, input: ReplacementLineEdgeDirectionUpdateInput) => {
-      const updatedEdge = await reverseReplacementLineEdge(edgeId, input)
+      const updatedEdge = await replacementLines.reverseEdge(edgeId, input)
       setEdges((current) =>
         current?.map((edge) => (edge.id === updatedEdge.id ? updatedEdge : edge)) ??
         current,
       )
     },
-    [reverseReplacementLineEdge],
+    [replacementLines.reverseEdge],
   )
 
   const setStart = useCallback(
     async (itemId: string, isStart: boolean) => {
-      const savedState = await setReplacementLineStart(lineId, itemId, isStart)
+      const savedState = await replacementLines.setStart(lineId, itemId, isStart)
       setStarts((current) => {
         const withoutItem =
           current?.filter(
@@ -1834,28 +1815,28 @@ export function ReplacementLineagePage() {
           : withoutItem
       })
     },
-    [lineId, setReplacementLineStart],
+    [lineId, replacementLines.setStart],
   )
 
   const createManualEdge = useCallback(
     async (input: ReplacementLineManualEdgeInput) => {
-      const createdEdge = await createReplacementLineManualEdge(input)
+      const createdEdge = await replacementLines.createManualEdge(input)
       setEdges((current) => (current ? [...current, createdEdge] : [createdEdge]))
     },
-    [createReplacementLineManualEdge],
+    [replacementLines.createManualEdge],
   )
 
   const moveItem = useCallback(
     async (input: ReplacementLineItemMoveInput) => {
-      const targetLine = await moveReplacementLineItem(input)
+      const targetLine = await replacementLines.moveItem(input)
       navigate(`/replacement-lines/${targetLine.id}`)
     },
-    [moveReplacementLineItem, navigate],
+    [replacementLines.moveItem, navigate],
   )
 
   const addItem = useCallback(
     async (input: ReplacementLineItemAddInput) => {
-      const savedLine = await addReplacementLineItem(input)
+      const savedLine = await replacementLines.addItem(input)
       setSnapshot((current) =>
         current
           ? {
@@ -1883,7 +1864,7 @@ export function ReplacementLineagePage() {
         },
       ])
     },
-    [addReplacementLineItem],
+    [replacementLines.addItem],
   )
 
   const removeItem = useCallback(
@@ -1895,7 +1876,7 @@ export function ReplacementLineagePage() {
         itemId,
         expectedSourceUpdatedAt: sourceLine.updatedAt,
       }
-      const savedLines = await removeReplacementLineItem(input)
+      const savedLines = await replacementLines.removeItem(input)
       const savedById = new Map(savedLines.map((line) => [line.id, line]))
       setSnapshot((current) =>
         current
@@ -1916,20 +1897,20 @@ export function ReplacementLineagePage() {
         ) ?? current,
       )
     },
-    [lineId, removeReplacementLineItem, snapshot],
+    [lineId, replacementLines.removeItem, snapshot],
   )
 
   const mergeLines = useCallback(
     async (input: ReplacementLineMergeInput) => {
-      const targetLine = await mergeReplacementLines(input)
+      const targetLine = await replacementLines.mergeLines(input)
       navigate(`/replacement-lines/${targetLine.id}`)
     },
-    [mergeReplacementLines, navigate],
+    [replacementLines.mergeLines, navigate],
   )
 
   const setLineArchived = useCallback(
     async (input: ReplacementLineArchiveInput) => {
-      const savedLine = await setReplacementLineArchived(input)
+      const savedLine = await replacementLines.setArchived(input)
       setSnapshot((current) =>
         current
           ? {
@@ -1941,12 +1922,12 @@ export function ReplacementLineagePage() {
           : current,
       )
     },
-    [setReplacementLineArchived],
+    [replacementLines.setArchived],
   )
 
   const setLineColorCategory = useCallback(
     async (input: ReplacementLineColorUpdateInput) => {
-      const savedLine = await setReplacementLineColorCategory(input)
+      const savedLine = await replacementLines.setColorCategory(input)
       setSnapshot((current) =>
         current
           ? {
@@ -1958,12 +1939,12 @@ export function ReplacementLineagePage() {
           : current,
       )
     },
-    [setReplacementLineColorCategory],
+    [replacementLines.setColorCategory],
   )
 
   const acknowledgeLineReview = useCallback(
     async (input: ReplacementLineReviewInput) => {
-      const savedLine = await acknowledgeReplacementLineReview(input)
+      const savedLine = await replacementLines.acknowledgeReview(input)
       setSnapshot((current) =>
         current
           ? {
@@ -1975,12 +1956,12 @@ export function ReplacementLineagePage() {
           : current,
       )
     },
-    [acknowledgeReplacementLineReview],
+    [replacementLines.acknowledgeReview],
   )
 
   const updateLineDetails = useCallback(
     async (input: ReplacementLineDetailsUpdateInput) => {
-      const savedLine = await updateReplacementLineDetails(input)
+      const savedLine = await replacementLines.updateDetails(input)
       setSnapshot((current) =>
         current
           ? {
@@ -1992,16 +1973,16 @@ export function ReplacementLineagePage() {
           : current,
       )
     },
-    [updateReplacementLineDetails],
+    [replacementLines.updateDetails],
   )
 
   const deleteLine = useCallback(
     async (input: ReplacementLineDeleteInput) => {
-      const deleted = await deleteEmptyReplacementLine(input)
+      const deleted = await replacementLines.deleteEmpty(input)
       if (!deleted) throw new Error('빈 Replacement Line 삭제 결과를 확인하지 못했습니다.')
       navigate('/replacement-lines')
     },
-    [deleteEmptyReplacementLine, navigate],
+    [replacementLines.deleteEmpty, navigate],
   )
 
   const lineage = useMemo(
