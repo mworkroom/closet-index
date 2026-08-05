@@ -65,6 +65,9 @@ describe('ReplacementLineagePage', () => {
     expect(
       screen.getByRole('heading', { name: 'G1 · 시작 아이템에서 이어짐' }),
     ).toBeInTheDocument()
+    expect(
+      screen.getByRole('region', { name: 'Soft Layer 확인된 계보' }),
+    ).toBeInTheDocument()
     expect(screen.getByText('2026')).toBeInTheDocument()
     expect(screen.getByText('2025')).toBeInTheDocument()
     const connectedItem = screen
@@ -107,9 +110,12 @@ describe('ReplacementLineagePage', () => {
       }),
     ])
 
-    await user.click(
-      screen.getByRole('link', { name: '아이보리 니트 Item 상세 보기' }),
-    )
+    const itemDetailLink = screen.getByRole('link', {
+      name: '아이보리 니트 Item 상세 보기',
+    })
+    itemDetailLink.focus()
+    expect(itemDetailLink).toHaveFocus()
+    await user.keyboard('{Enter}')
     expect(screen.getByText('Item 상세 도착')).toBeInTheDocument()
   })
 

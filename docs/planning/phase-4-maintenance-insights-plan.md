@@ -525,7 +525,7 @@ P4-2B의 canonical pair schema, workspace RLS, 49-pair importer와 검토 화면
 - [x] 자동 분류보다 우선하는 Line 색상 category 직접 지정 production 적용·공개 UI 검증
 - [x] Line 재검토 완료·이름/Style Identity 수정·완전 빈 Line 삭제 production 적용·rollback 검증
 - [x] Replacement Lines 상단에서 대표 색상을 지정한 빈 Line 생성·상세 Item 추가 연결 production 적용·rollback 검증
-- [ ] 빈 Line 생성 frontend 공개 배포·production UI 검증
+- [x] 빈 Line 생성 frontend 공개 배포·production UI 검증
 - [x] 같은 크기 thumbnail의 세로형 Lineage UI
 - [x] 실제 가지가 있는 fixture로 분기 렌더링
 - [x] 12개 색상 tile의 Color Index와 밝기별 글자 대비
@@ -541,7 +541,7 @@ Line 관리의 첫 조각으로 계보 연결 전 Item을 기존 Line 또는 새
 
 Line 관리의 후속으로 현재 어떤 Line에도 속하지 않은 Closet Item을 이름·category·색상으로 검색해 선택한 Line에 추가하고, edge가 없는 Item은 Closet Item을 삭제하지 않은 채 현재 보고 있는 Replacement Line에서 제외하는 흐름을 구현했다. 추가 Item은 명시적 시작점이 되고, 제외는 source Line의 membership·start만 제거하며 source Line을 `needs_review`로 바꾼다. 다른 Line 소속과 계보는 보존하고 source Line에 predecessor·successor edge가 있을 때만 먼저 연결 해제를 요구한다. 초기 production RPC의 전체 Line 제거 의미는 복수 Line legacy membership 정정 흐름을 막는 문제를 확인해 forward migration `20260805000354_remove_item_from_single_replacement_line`로 교정했다. 전체 58개 파일 271개 테스트, production build와 실제 Demo browser 흐름을 통과했다. 실제 `퍼스트클로 슬리브리스`·`무탠다드 슬리브리스` rollback fixture에서 `Ivory Layered Summer` 중복 소속 2개만 제거되고 `Ivory Layered Sleeveless` 소속 2개와 edge 1개가 보존되는 것을 확인했으며 rollback 뒤 운영 데이터는 그대로다. 새 Advisor 성능 경고는 없고 signed-in 전용 `SECURITY DEFINER` 안내는 내부 workspace 검사와 최소 실행 권한을 확인한 의도된 경고다. frontend 공개 배포와 실제 production UI 검증은 남아 있다.
 
-Item에서 새 Line으로 옮기는 기존 방향에 더해, Replacement Lines 상단에서 Line을 먼저 만들고 상세 화면에서 Item을 추가하는 반대 방향을 연결했다. 신규 Line은 이름, 선택적인 Style Identity와 필수 대표 색상 category를 기존 `closet_replacement_lines` 한 row에 저장하며 별도 table이나 임시 migration data를 만들지 않는다. production migration `20260805002809_create_empty_replacement_line` 적용 뒤 실제 workspace member claim으로 공백 정규화, active·ready 상태와 membership 0개를 transaction rollback에서 확인했고 검증용 Line은 남지 않았다. frontend 공개 배포와 production UI 검증은 남아 있다.
+Item에서 새 Line으로 옮기는 기존 방향에 더해, Replacement Lines 상단에서 Line을 먼저 만들고 상세 화면에서 Item을 추가하는 반대 방향을 연결했다. 신규 Line은 이름, 선택적인 Style Identity와 필수 대표 색상 category를 기존 `closet_replacement_lines` 한 row에 저장하며 별도 table이나 임시 migration data를 만들지 않는다. production migration `20260805002809_create_empty_replacement_line` 적용 뒤 실제 workspace member claim으로 공백 정규화, active·ready 상태와 membership 0개를 transaction rollback에서 확인했고 검증용 Line은 남지 않았다. J가 공개 production UI에서 상단 Line 생성이 정상 동작하는 것을 직접 확인했다.
 
 Line lifecycle로 삭제 대신 독립 보관·복원과 대표 Line 병합을 구현했다. 병합은 source membership·edge·유효한 시작점을 target에 원자적으로 합치고 겹치는 membership은 중복 없이 보존하며, source는 대표 Line을 가리키는 읽기 전용 보관 상태가 된다. 합친 graph의 cycle과 동일 edge 충돌은 변경 전에 차단하고 source·target을 모두 `needs_review`로 되돌린다. Color Index에서는 active Line만 보여 주고 관리 현황에서는 보관 Line과 대표 Line 연결을 다시 찾을 수 있다. production migration `20260804193058_manage_replacement_line_lifecycle` 적용 뒤 실제 workspace member claim의 transaction fixture에서 독립 보관·복원, stale·비회원 거절, archived child 수정 차단, 동일 edge·합친 graph cycle 차단과 병합 Line 직접 복원 거절을 확인했다. 실제로 두 Item을 공유하는 `Ivory Layered Summer → Ivory Layered Sleeveless` 병합도 rollback 안에서 실행해 membership `4 + 2 - 공유 2 = 4`, edge 2개, source 보관·대표 참조와 양쪽 `needs_review`를 검증했다. rollback 뒤 `53 Line · active 53 · archived 0 · 165 membership · 87 edge · 25 start · needs_review 0`과 적용 전 네 checksum이 모두 일치한다. 새 RPC 두 개는 빈 `search_path`, 함수 내부 workspace membership 검사와 `authenticated` 단독 실행 권한을 사용한다. Advisor의 두 signed-in `SECURITY DEFINER` 경고는 이 전용 쓰기 RPC에 대해 의도된 항목이며, 신규 lifecycle index의 미사용 안내는 기능 적용 직후라 예상되는 정보성 항목이다.
 
@@ -566,11 +566,17 @@ membership 이동 뒤 남던 `needs_review` 상태를 사람이 마무리할 수
 - [x] TypeScript 검사, 전체 Vitest, production build
 - [ ] Item 통계와 production Wear Log 표본·전체 집계 대조
 - [ ] PC와 iPhone 크기에서 Statistics·Item 상세·Lineage QA
-- [ ] 키보드 탐색, focus, label, 그래프 접근성 확인
-- [ ] 초기 데이터·이미지 요청량과 렌더 시간 비교
-- [ ] schema 변경 시 격리 pgTAP, RLS, grant, Advisor 검증
+- [x] 키보드 탐색, focus, label, 그래프 접근성 확인
+- [x] 초기 데이터·이미지 요청량과 렌더 시간 비교
+- [x] schema 변경 시 격리 pgTAP, RLS, grant, Advisor 검증
 - [x] production 적용 전후 Line·membership·edge count 검증
 - [x] GitHub Pages 배포와 공개 asset·로그인 화면 확인
+
+2026-08-05 마감 QA에서 Line 생성 disclosure의 Enter 키 실행과 이름 필드 `autoFocus`, label 연결, Item 상세 링크의 Enter 키 이동을 자동 테스트로 고정했다. 계보 묶음은 이름 있는 `region`으로 노출하고 세대 card는 heading이 연결된 section, connector는 `aria-hidden` 장식 요소로 확인했다. 데스크톱과 390px 계보 표본에서 blocking overlay·가로 넘침·console warning/error가 없었고 focus outline은 `2.4px solid`로 계산됐다.
+
+같은 로컬 Vite Demo의 warm reload 3회 중앙값은 Color 첫 화면 149ms, 2개 Item 계보 211ms, Statistics 236ms였다. Color 첫 화면은 Item image element·image asset 요청이 모두 0개였고, 계보는 2개 Item 중 실제 image asset 1개만 요청했다. page 전용 데이터 조회는 공통 App snapshot 밖에서 Color 첫 화면 3회(Line·membership 병렬 2회 + Legacy Link 1회), 계보 4회(Line·membership 병렬 2회 + edge·start 각 1회)이며 각 묶음은 병렬 실행한다. 이 수치는 production network 지연이 아닌 동일 기기·Demo 상대 비교 기준이다.
+
+production catalog에서 4개 Lineage table 모두 RLS가 켜져 있고 anon 권한 없음, authenticated SELECT만 허용, 직접 INSERT·UPDATE·DELETE 없음과 각 table의 workspace policy를 확인했다. 17개 Lineage RPC는 anon/public 실행이 차단되고 authenticated만 실행 가능하며 `SECURITY DEFINER` + 빈 `search_path`를 유지한다. Security Advisor의 해당 경고는 이 전용 쓰기 경계에 대한 의도된 항목이고, Performance Advisor의 Lineage 신규 항목은 작은 start table의 FK 보조 index 권고 1건과 사용 초기 index의 미사용 정보뿐이다. production과 Git의 Closet migration은 35개이며 최신 `20260805002809`까지 일치한다. GitHub Actions run `30967739713`에서 현재 `main`을 새 Supabase DB에 처음부터 적용한 뒤 5개 pgTAP 파일·92개 test가 모두 통과했고 컨테이너 정리까지 성공했다. Node 20 기반 action이 Node 24에서 강제 실행된다는 deprecation 안내만 있었으며 test 결과에는 영향을 주지 않았다.
 
 ## 11. 테스트 기준
 

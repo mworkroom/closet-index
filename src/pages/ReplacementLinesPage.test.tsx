@@ -56,8 +56,13 @@ describe('ReplacementLinesPage', () => {
       </MemoryRouter>,
     )
 
-    await user.click(await screen.findByRole('button', { name: '새 Line 추가' }))
-    await user.type(screen.getByLabelText('Line 이름'), 'Brown Bottom Spring')
+    const createButton = await screen.findByRole('button', { name: '새 Line 추가' })
+    createButton.focus()
+    expect(createButton).toHaveFocus()
+    await user.keyboard('{Enter}')
+    const nameField = screen.getByLabelText('Line 이름')
+    expect(nameField).toHaveFocus()
+    await user.type(nameField, 'Brown Bottom Spring')
     await user.type(screen.getByLabelText('Style Identity (선택)'), 'Brown Bottom')
     await user.selectOptions(screen.getByLabelText('대표 색상 category'), 'Brown')
     await user.click(

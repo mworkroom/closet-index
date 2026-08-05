@@ -2123,6 +2123,7 @@ export function ReplacementLineagePage() {
           {lineage.generations.length > 0 && !lineage.cyclic ? (
             <div
               className="lineage-generations"
+              role="region"
               aria-label={`${lineage.line.name} 확인된 계보`}
             >
               {lineage.generations.map((generation) => (
