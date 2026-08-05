@@ -21,6 +21,12 @@ const savedEdge: ReplacementLineEdge = {
   updatedAt: '2026-08-03T00:00:00.000Z',
 }
 
+async function openManagementTools(user: ReturnType<typeof userEvent.setup>) {
+  const summary = screen.getByText('관리 도구').closest('summary')
+  expect(summary).not.toBeNull()
+  await user.click(summary!)
+}
+
 describe('ReplacementLineagePage', () => {
   beforeEach(() => {
     window.localStorage.clear()
@@ -42,6 +48,42 @@ describe('ReplacementLineagePage', () => {
     )
   })
   afterEach(cleanup)
+
+  it('hides Line details and exposes only the management buttons when opened', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/replacement-lines/line-navy-tee']}>
+        <DataProvider repository={new DemoRepository()}>
+          <Routes>
+            <Route
+              path="/replacement-lines/:lineId"
+              element={<ReplacementLineagePage />}
+            />
+          </Routes>
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'Navy Tee' })
+    const tools = screen.getByText('관리 도구').closest('details')!
+    expect(tools).not.toHaveAttribute('open')
+    expect(screen.queryByText('LINE MANAGEMENT')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Line 관리' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Style Identity')).not.toBeInTheDocument()
+    expect(
+      within(tools).getByRole('button', { name: '이름 수정' }),
+    ).not.toBeVisible()
+
+    await openManagementTools(user)
+
+    expect(tools).toHaveAttribute('open')
+    expect(within(tools).getByRole('button', { name: '이름 수정' })).toBeInTheDocument()
+    expect(within(tools).getByRole('button', { name: '색상 수정' })).toBeInTheDocument()
+    expect(within(tools).getByRole('button', { name: 'Item 추가' })).toBeInTheDocument()
+    expect(within(tools).getByRole('button', { name: 'Line 병합' })).toBeInTheDocument()
+    expect(within(tools).getByRole('button', { name: 'Line 보관' })).toBeInTheDocument()
+    expect(screen.queryByText('같은 계열의 Line을 하나로 합치거나')).not.toBeInTheDocument()
+  })
 
   it('renders graph generations from confirmed direction and opens Item detail', async () => {
     const user = userEvent.setup()
@@ -386,6 +428,7 @@ describe('ReplacementLineagePage', () => {
     )
 
     await screen.findByRole('heading', { name: 'Navy Tee' })
+    await openManagementTools(user)
     await user.click(screen.getByRole('button', { name: 'Line 보관' }))
     await user.click(screen.getByRole('button', { name: 'Line 보관' }))
 
@@ -421,12 +464,14 @@ describe('ReplacementLineagePage', () => {
     )
 
     await screen.findByRole('heading', { name: 'Navy Tee' })
-    expect(screen.getByText('Navy')).toBeInTheDocument()
+    await openManagementTools(user)
     await user.click(screen.getByRole('button', { name: '색상 수정' }))
     await user.selectOptions(screen.getByLabelText('Line 색상 category'), 'Blue')
     await user.click(screen.getByRole('button', { name: '색상 저장' }))
 
-    expect(await screen.findByText('Blue')).toBeInTheDocument()
+    expect(
+      screen.queryByText('대표 색상 category'),
+    ).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: '색상 수정' })).toBeInTheDocument()
     const savedSnapshot = JSON.parse(
       window.localStorage.getItem('closet-index-demo-replacement-lines:v1') ?? '{}',
@@ -454,7 +499,8 @@ describe('ReplacementLineagePage', () => {
     )
 
     await screen.findByRole('heading', { name: 'Navy Tee' })
-    await user.click(screen.getByRole('button', { name: '정보 수정' }))
+    await openManagementTools(user)
+    await user.click(screen.getByRole('button', { name: '이름 수정' }))
     const nameField = screen.getByLabelText('Line 이름')
     await user.clear(nameField)
     await user.type(nameField, 'Navy Top Summer')
@@ -466,7 +512,6 @@ describe('ReplacementLineagePage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Navy Top Summer' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('Summer Daily')).toBeInTheDocument()
     const savedSnapshot = JSON.parse(
       window.localStorage.getItem('closet-index-demo-replacement-lines:v1') ?? '{}',
     )
@@ -479,10 +524,9 @@ describe('ReplacementLineagePage', () => {
       styleIdentity: 'Summer Daily',
     })
 
-    await user.click(screen.getByRole('button', { name: '정보 수정' }))
+    await user.click(screen.getByRole('button', { name: '이름 수정' }))
     await user.clear(screen.getByLabelText('Style Identity (선택)'))
     await user.click(screen.getByRole('button', { name: 'Line 정보 저장' }))
-    expect(await screen.findByText('미지정')).toBeInTheDocument()
     const clearedSnapshot = JSON.parse(
       window.localStorage.getItem('closet-index-demo-replacement-lines:v1') ?? '{}',
     )
@@ -527,6 +571,7 @@ describe('ReplacementLineagePage', () => {
     )
 
     await screen.findByRole('heading', { name: 'Empty Brown Line' })
+    await openManagementTools(user)
     await user.click(screen.getByRole('button', { name: '빈 Line 삭제' }))
     await user.click(screen.getByRole('button', { name: '빈 Line 완전 삭제' }))
 
@@ -555,8 +600,9 @@ describe('ReplacementLineagePage', () => {
     )
 
     await screen.findByRole('heading', { name: 'Navy Tee' })
+    await openManagementTools(user)
     await user.click(
-      screen.getByRole('button', { name: '대표 Line으로 병합' }),
+      screen.getByRole('button', { name: 'Line 병합' }),
     )
     await user.selectOptions(screen.getByLabelText('대표 Line'), 'line-soft-layer')
     await user.click(
@@ -609,6 +655,7 @@ describe('ReplacementLineagePage', () => {
     )
 
     await screen.findByRole('heading', { name: 'Navy Tee' })
+    await openManagementTools(user)
     await user.click(screen.getByRole('button', { name: 'Item 추가' }))
     await user.type(screen.getByLabelText('Item 검색'), '차콜')
     await user.click(screen.getByRole('button', { name: /차콜 스커트/ }))
@@ -674,6 +721,7 @@ describe('ReplacementLineagePage', () => {
     )
 
     await screen.findByRole('heading', { name: 'Navy Tee' })
+    await openManagementTools(user)
     await user.click(screen.getByRole('button', { name: 'Item 추가' }))
     await user.type(screen.getByLabelText('Item 검색'), '차콜')
     await user.click(screen.getByRole('button', { name: /차콜 스커트/ }))
@@ -713,6 +761,7 @@ describe('ReplacementLineagePage', () => {
     )
 
     await screen.findByRole('heading', { name: 'Navy Tee' })
+    await openManagementTools(user)
     await user.click(screen.getByRole('button', { name: 'Item 추가' }))
     await user.type(screen.getByLabelText('Item 검색'), '차콜')
     await user.click(screen.getByRole('button', { name: /차콜 스커트/ }))
@@ -760,6 +809,7 @@ describe('ReplacementLineagePage', () => {
     )
 
     await screen.findByRole('heading', { name: 'Navy Tee' })
+    await openManagementTools(user)
     await user.click(screen.getByRole('button', { name: 'Item 추가' }))
     await user.type(screen.getByLabelText('Item 검색'), '차콜')
     await user.click(screen.getByRole('button', { name: /차콜 스커트/ }))

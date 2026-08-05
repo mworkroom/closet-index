@@ -53,7 +53,7 @@ MVP는 기능의 범위이고, Phase는 작업 순서이며, v1.0은 검증을 �
 | Phase 3.5 | Calendar·내비게이션 개선 | 월요일 시작 월간 착장 달력, 전면 메뉴 재배치 | 한 달 착장을 한 화면에서 보고 기존 착장으로 바로 이동할 수 있음 |
 | Phase 4 | 각종 통계·Replacement Line | Item 활용률, 월별 실제 착용 분포, Replacement Lineage | 실제 착용 패턴과 대체 계보를 앱에서 확인·정리할 수 있음 |
 | Phase 5 | 추천 알고리즘 | 기존 맥락 순위, 장소 HVAC Profile, Item 체감 관측 | 과거에 검증한 착장을 현재 장소·온도 맥락에 맞게 더 잘 고름 |
-| Phase 6 | 세탁·재구매 주기 관리 | 세탁 기록, 교체 주기, 재구매 알림, 세일 레이더 | 서로 다른 관리 주기를 신뢰할 수 있는 원본 기록으로 운영함 |
+| Phase 6 | Care & Replenishment | Item 상세 계보, 재구매·수량, 점검, 손세탁·드라이클리닝 | 네 관리 신호를 공통 계산과 원본 사건으로 일관되게 운영함 |
 
 ## Phase 0 — Discovery & Product Rules
 
@@ -259,24 +259,27 @@ Phase 4에 들어가기 전에 자주 쓰는 Calendar를 전면 메뉴로 옮기
 
 ## Phase 6 — Care & Replenishment
 
+[Phase 6 Care & Replenishment Plan](./phase-6-care-replenishment-plan.md)
+
 ### 목표
 
-착용 후 세탁과 구매 후 교체·재구매를 서로 다른 관리 주기로 기록하고, 필요한 시점에 부담이 적은 내부 알림을 제공한다.
+Item 상세 페이지에서 교체 계보를 확인하고, 구매·착용·관리 사건을 바탕으로 재구매, 장기 미착용 점검, 손세탁·드라이클리닝 필요 시점을 관리한다.
 
 ### 주요 범위
 
-- 마지막 세탁 이후 착용 횟수를 기준으로 한 세탁 주기
-- 구매일·경과 개월을 기준으로 한 독립 `Innerwear` 교체 주기
-- 흰 티셔츠 같은 기본 Item의 경과 기간·누적 착용·Replacement Line을 결합한 재구매 판단
-- 교체 시기 임박 신호와 세일 레이더
-- 새 대체품을 Replacement Line의 후속 Item으로 연결하는 흐름
-- 앱 내부 관리 신호를 우선한 알림
+- Item 상세의 직접 부모 → 본인 → 직접 자식 Replacement Line
+- 재구매 날짜·구매 수량·현재 보유 수량 기록과 최근 구매 기준 교체 계산
+- 착용 기록 없음과 2년 이상 미착용을 통합한 `점검` 신호
+- Category 규칙과 최근 관리 이후 착용 횟수를 사용한 손세탁·드라이클리닝 관리
+- Item 목록의 우선순위 배지 1개와 Item 상세의 전체 배지
+- More → Maintenance의 점검·교체·손세탁·드라이클리닝 목록
 
 ### 완료 조건
 
-- 세탁 주기와 교체·재구매 주기가 같은 사건이나 같은 계산값으로 혼합되지 않는다.
-- Outfit에 들어가지 않는 독립 `Innerwear`도 Wear Log 없이 구매주기를 관리할 수 있다.
-- 알림의 근거가 구매일, 세탁 기록, 누적 착용 또는 확인된 Replacement Line으로 설명된다.
+- 교체 계보, 구매 사건, Wear Log, 관리 사건이 각자의 원본을 유지한다.
+- Item 목록, Item 상세, Maintenance 페이지가 같은 공통 계산으로 동일한 신호와 근거를 보여준다.
+- Outfit에 들어가지 않는 `Innerwear`도 구매일 기준으로 교체 주기를 관리할 수 있다.
+- 운영체제 알림 없이 Maintenance 페이지에서 필요한 Item을 네 영역으로 한눈에 확인할 수 있다.
 
 ## 지금 다음으로 할 일
 
@@ -290,4 +293,5 @@ Phase 4에 들어가기 전에 자주 쓰는 Calendar를 전면 메뉴로 옮기
 8. P4-2A Line Overview 뒤 P4-2B Legacy Link 방향 검토 흐름 구현
 9. 방향 검토 결과를 확인한 뒤 P4-2C Lineage Editing schema와 쓰기 권한 적용
 10. Phase 4 공개 검증 뒤 Phase 5 초기 계획을 현재 production 데이터로 갱신하고 P5-0 추천 근거 audit 시작
-11. Phase 6 세탁·교체·재구매 주기는 별도 원본 사건과 입력 흐름이 확정될 때 착수
+11. [계획 완료] Phase 6의 교체 계보·재구매·점검·특수 세탁 관리 기준과 원본 사건 흐름 확정
+12. Phase 6 P6-1 Item 상세 Replacement Line 구현부터 착수

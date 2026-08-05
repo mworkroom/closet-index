@@ -297,150 +297,180 @@ export function LineManagementPanel({
   return (
     <section
       className="section lineage-line-management"
-      aria-labelledby="line-management-heading"
+      aria-label="Line 관리"
     >
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">LINE MANAGEMENT</p>
-          <h2 id="line-management-heading">Line 관리</h2>
-        </div>
+      <div className="lineage-line-management__count-row">
         <span className="count">
           {line.lifecycleStatus === 'archived' ? '보관됨' : `${membershipCount} Item`}
         </span>
       </div>
 
-      <div className="lineage-line-management__details">
-        <div>
-          <span>Line 이름</span>
-          <strong>{line.name}</strong>
-        </div>
-        <div>
-          <span>Style Identity</span>
-          <strong>{line.styleIdentity ?? '미지정'}</strong>
-        </div>
-        {line.lifecycleStatus === 'active' && action !== 'details' ? (
-          <button
-            className="lineage-edge-edit-button"
-            type="button"
-            onClick={() => {
-              setAction('details')
-              setName(line.name)
-              setStyleIdentity(line.styleIdentity ?? '')
-              setSaveError(null)
-            }}
-          >
-            정보 수정
-          </button>
-        ) : null}
-      </div>
+      {line.lifecycleStatus === 'active' ? (
+        <>
+          <details className="lineage-line-management__tools">
+            <summary>관리 도구</summary>
+            {action === null ? (
+              <div className="lineage-line-management__actions">
+                <div className="lineage-line-management__actions-row lineage-line-management__actions-row--two">
+                  <button
+                    className="button button--secondary"
+                    type="button"
+                    onClick={() => {
+                      setAction('details')
+                      setName(line.name)
+                      setStyleIdentity(line.styleIdentity ?? '')
+                      setSaveError(null)
+                    }}
+                  >
+                    이름 수정
+                  </button>
+                  <button
+                    className="button button--secondary"
+                    type="button"
+                    onClick={() => {
+                      setAction('color')
+                      setColorCategory(line.colorCategory ?? '')
+                      setSaveError(null)
+                    }}
+                  >
+                    색상 수정
+                  </button>
+                </div>
+                <div className="lineage-line-management__actions-row lineage-line-management__actions-row--three">
+                  <button
+                    className="button button--secondary"
+                    type="button"
+                    onClick={() => {
+                      setAction('add-item')
+                      setSaveError(null)
+                    }}
+                    disabled={availableItems.length === 0}
+                  >
+                    Item 추가
+                  </button>
+                  <button
+                    className="button button--secondary"
+                    type="button"
+                    onClick={() => setAction('merge')}
+                    disabled={targetLines.length === 0}
+                  >
+                    Line 병합
+                  </button>
+                  <button
+                    className="button button--secondary"
+                    type="button"
+                    onClick={() => setAction('archive')}
+                  >
+                    Line 보관
+                  </button>
+                  {membershipCount === 0 ? (
+                    <button
+                      className="button button--danger"
+                      type="button"
+                      onClick={() => {
+                        setAction('delete')
+                        setSaveError(null)
+                      }}
+                    >
+                      빈 Line 삭제
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+          </details>
 
-      {action === 'details' ? (
-        <form className="lineage-line-management__form" onSubmit={handleDetails}>
-          <label className="field">
-            <span>Line 이름</span>
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              maxLength={200}
-              required
-              autoFocus
-            />
-          </label>
-          <label className="field">
-            <span>Style Identity (선택)</span>
-            <input
-              value={styleIdentity}
-              onChange={(event) => setStyleIdentity(event.target.value)}
-              maxLength={200}
-              placeholder="예: Soft Structure"
-            />
-          </label>
-          <div className="lineage-edge-form__actions">
-            <button
-              className="button button--secondary"
-              type="button"
-              onClick={resetAction}
-              disabled={saving}
-            >
-              취소
-            </button>
-            <button
-              className="button button--primary"
-              type="submit"
-              disabled={
-                saving ||
-                !name.trim() ||
-                (name.trim() === line.name &&
-                  (styleIdentity.trim() || null) === line.styleIdentity)
-              }
-            >
-              {saving ? '저장 중…' : 'Line 정보 저장'}
-            </button>
-          </div>
-        </form>
-      ) : null}
+          {action === 'details' ? (
+            <form className="lineage-line-management__form" onSubmit={handleDetails}>
+              <label className="field">
+                <span>Line 이름</span>
+                <input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  maxLength={200}
+                  required
+                  autoFocus
+                />
+              </label>
+              <label className="field">
+                <span>Style Identity (선택)</span>
+                <input
+                  value={styleIdentity}
+                  onChange={(event) => setStyleIdentity(event.target.value)}
+                  maxLength={200}
+                  placeholder="예: Soft Structure"
+                />
+              </label>
+              <div className="lineage-edge-form__actions">
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={resetAction}
+                  disabled={saving}
+                >
+                  취소
+                </button>
+                <button
+                  className="button button--primary"
+                  type="submit"
+                  disabled={
+                    saving ||
+                    !name.trim() ||
+                    (name.trim() === line.name &&
+                      (styleIdentity.trim() || null) === line.styleIdentity)
+                  }
+                >
+                  {saving ? '저장 중…' : 'Line 정보 저장'}
+                </button>
+              </div>
+            </form>
+          ) : null}
 
-      <div className="lineage-line-management__color">
-        <span>대표 색상 category</span>
-        <strong>{line.colorCategory ?? '자동 제안 사용 중'}</strong>
-        {line.lifecycleStatus === 'active' && action !== 'color' ? (
-          <button
-            className="lineage-edge-edit-button"
-            type="button"
-            onClick={() => {
-              setAction('color')
-              setColorCategory(line.colorCategory ?? '')
-              setSaveError(null)
-            }}
-          >
-            색상 수정
-          </button>
-        ) : null}
-      </div>
-
-      {action === 'color' ? (
-        <form
-          className="lineage-line-management__form"
-          onSubmit={handleColorCategory}
-        >
-          <label className="field">
-            <span>Line 색상 category</span>
-            <select
-              value={colorCategory}
-              onChange={(event) => setColorCategory(event.target.value)}
-              autoFocus
+          {action === 'color' ? (
+            <form
+              className="lineage-line-management__form"
+              onSubmit={handleColorCategory}
             >
-              <option value="">자동 제안 사용</option>
-              {REPLACEMENT_LINE_COLOR_CATEGORIES.map((category) => (
-                <option value={category} key={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </label>
-          <p className="muted">
-            직접 지정한 값은 Line 이름과 Item 색상으로 만든 자동 제안보다 우선합니다.
-          </p>
-          <div className="lineage-edge-form__actions">
-            <button
-              className="button button--secondary"
-              type="button"
-              onClick={resetAction}
-              disabled={saving}
-            >
-              취소
-            </button>
-            <button
-              className="button button--primary"
-              type="submit"
-              disabled={
-                saving || (colorCategory || null) === line.colorCategory
-              }
-            >
-              {saving ? '저장 중…' : '색상 저장'}
-            </button>
-          </div>
-        </form>
+              <label className="field">
+                <span>Line 색상 category</span>
+                <select
+                  value={colorCategory}
+                  onChange={(event) => setColorCategory(event.target.value)}
+                  autoFocus
+                >
+                  <option value="">자동 제안 사용</option>
+                  {REPLACEMENT_LINE_COLOR_CATEGORIES.map((category) => (
+                    <option value={category} key={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="muted">
+                직접 지정한 값은 Line 이름과 Item 색상으로 만든 자동 제안보다 우선합니다.
+              </p>
+              <div className="lineage-edge-form__actions">
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={resetAction}
+                  disabled={saving}
+                >
+                  취소
+                </button>
+                <button
+                  className="button button--primary"
+                  type="submit"
+                  disabled={
+                    saving || (colorCategory || null) === line.colorCategory
+                  }
+                >
+                  {saving ? '저장 중…' : '색상 저장'}
+                </button>
+              </div>
+            </form>
+          ) : null}
+        </>
       ) : null}
 
       {line.lifecycleStatus === 'archived' ? (
@@ -497,53 +527,6 @@ export function LineManagementPanel({
         )
       ) : (
         <>
-          <p className="muted">
-            같은 계열의 Line을 하나로 합치거나, 삭제하지 않고 Color 목록에서 보관할 수
-            있습니다.
-          </p>
-          {action === null ? (
-            <div className="lineage-line-management__actions">
-              <button
-                className="button button--secondary"
-                type="button"
-                onClick={() => {
-                  setAction('add-item')
-                  setSaveError(null)
-                }}
-                disabled={availableItems.length === 0}
-              >
-                Item 추가
-              </button>
-              <button
-                className="button button--secondary"
-                type="button"
-                onClick={() => setAction('merge')}
-                disabled={targetLines.length === 0}
-              >
-                대표 Line으로 병합
-              </button>
-              <button
-                className="button button--secondary"
-                type="button"
-                onClick={() => setAction('archive')}
-              >
-                Line 보관
-              </button>
-              {membershipCount === 0 ? (
-                <button
-                  className="button button--danger"
-                  type="button"
-                  onClick={() => {
-                    setAction('delete')
-                    setSaveError(null)
-                  }}
-                >
-                  빈 Line 삭제
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-
           {action === 'add-item' ? (
             <form
               className="lineage-line-management__form"

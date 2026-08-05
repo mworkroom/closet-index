@@ -4857,51 +4857,48 @@ button:disabled {
   margin-top: 28px;
 }
 
-.lineage-line-management__details,
-.lineage-line-management__color {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 4px 12px;
-  margin: 14px 0;
-  padding: 14px 16px;
+.lineage-line-management__count-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.lineage-line-management__tools {
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 14px;
-  background: var(--surface-soft);
+  background: var(--surface);
 }
 
-.lineage-line-management__details > div {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
+.lineage-line-management__tools > summary {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+  padding: 12px 16px;
+  font-weight: 750;
 }
 
-.lineage-line-management__details > div > span,
-.lineage-line-management__color > span {
+.lineage-line-management__tools > summary::-webkit-details-marker {
+  display: none;
+}
+
+.lineage-line-management__tools > summary::after {
+  content: '+';
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1;
 }
 
-.lineage-line-management__details > div > strong {
-  overflow-wrap: anywhere;
+.lineage-line-management__tools[open] > summary {
+  border-bottom: 1px solid var(--line);
 }
 
-.lineage-line-management__details > button {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-}
-
-.lineage-line-management__color {
-  margin-top: 0;
-}
-
-.lineage-line-management__color > strong {
-  grid-column: 1;
-}
-
-.lineage-line-management__color > button {
-  grid-column: 2;
-  grid-row: 1 / span 2;
+.lineage-line-management__tools[open] > summary::after {
+  content: '−';
 }
 
 .lineage-line-management__actions,
@@ -4913,7 +4910,23 @@ button:disabled {
 }
 
 .lineage-line-management__actions {
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  background: var(--surface);
+}
+
+.lineage-line-management__actions-row {
+  display: grid;
+  gap: 12px;
+}
+
+.lineage-line-management__actions-row--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.lineage-line-management__actions-row--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .lineage-line-management__form,
@@ -5057,7 +5070,8 @@ button:disabled {
 }
 
 @media (max-width: 640px) {
-  .lineage-line-management__actions {
+  .lineage-line-management__actions-row--two,
+  .lineage-line-management__actions-row--three {
     grid-template-columns: 1fr;
   }
 
