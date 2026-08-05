@@ -1,8 +1,8 @@
 # Closet Index Roadmap
 
-- 최종 수정일: 2026-08-02
+- 최종 수정일: 2026-08-06
 - 문서 상태: 기준 문서
-- 현재 위치: Phase 3 완료, Phase 3.5 로컬 구현·검증 완료 및 공개 배포 전, Phase 4 계획 개정 완료 및 P4-0 시작 전, Phase 5 초기 구상 기록 완료
+- 현재 위치: Phase 6 로컬 구현 완료, P6-2·P6-4 격리 DB 계약 검증 준비 완료 및 CI 실행·production 적용 전
 - 관련 문서: [Product Plan](./product-plan.md), [Phase 1 MVP Spec](./phase-1-mvp-spec.md), [Implementation Status](./phase-1-implementation-status.md), [Phase 2 Weather Plan](./phase-2-weather-plan.md), [Phase 3 Visual Wardrobe Plan](./phase-3-visual-wardrobe-plan.md), [Phase 3.5 Calendar & Navigation Upgrade](<./Phase 3.5 — Calendar & Navigation Upgrade.md>)
 
 ## 이 문서의 목적
@@ -283,15 +283,9 @@ Item 상세 페이지에서 교체 계보를 확인하고, 구매·착용·관�
 
 ## 지금 다음으로 할 일
 
-1. [완료] Phase 2 Weather Automation 구현·검증·공개
-2. [완료] Phase 3 Visual Wardrobe Expansion 구현·검증·공개
-3. [로컬 완료] Phase 3.5 Calendar & Navigation Upgrade 구현·검증
-4. Phase 3.5를 실제 iPhone과 공개 환경에서 확인하고 배포 상태를 기록
-5. [완료] Phase 4 통계·Replacement Line 상세 계획 개정
-6. Phase 4 P4-0에서 production 통계와 53개 Line·165개 membership·49개 무방향 연결 기준선을 읽기 전용으로 재확인
-7. P4-1 Item Statistics 계산 계약과 모바일 월별 세로 막대 그래프 구현
-8. P4-2A Line Overview 뒤 P4-2B Legacy Link 방향 검토 흐름 구현
-9. 방향 검토 결과를 확인한 뒤 P4-2C Lineage Editing schema와 쓰기 권한 적용
-10. Phase 4 공개 검증 뒤 Phase 5 초기 계획을 현재 production 데이터로 갱신하고 P5-0 추천 근거 audit 시작
-11. [계획 완료] Phase 6의 교체 계보·재구매·점검·특수 세탁 관리 기준과 원본 사건 흐름 확정
-12. Phase 6 P6-1 Item 상세 Replacement Line 구현부터 착수
+1. [로컬 완료] Phase 6 P6-1·P6-1.1·P6-2·P6-3·P6-4 구현과 앱 회귀 검증
+2. [준비 완료] P6-2·P6-4 migration과 37개 pgTAP 계약을 실행하는 격리 GitHub Actions workflow 작성
+3. 별도 승인 후 workflow 변경을 commit·push하고 격리 DB 계약 결과 확인
+4. 격리 검증 통과 후 production project와 migration 상태를 읽기 전용으로 재확인
+5. 별도 승인 후 production migration 적용·배포·실환경 검증 여부 결정
+6. Phase 6 완료 상태를 기록한 뒤 다음 제품 단계의 범위와 상세 계획 확정
