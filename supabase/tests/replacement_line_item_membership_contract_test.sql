@@ -13,7 +13,7 @@ select has_function(
   'public',
   'remove_closet_replacement_line_item',
   array['uuid', 'uuid', 'uuid', 'timestamp with time zone'],
-  'remove Item from every Line RPC exists'
+  'remove Item from one source Line RPC exists'
 );
 
 select ok(
@@ -84,17 +84,19 @@ select ok(
 );
 
 select ok(
-  pg_get_functiondef('public.remove_closet_replacement_line_item(uuid,uuid,uuid,timestamptz)'::regprocedure) like '%disconnect all lineage edges%'
+  pg_get_functiondef('public.remove_closet_replacement_line_item(uuid,uuid,uuid,timestamptz)'::regprocedure) like '%disconnect lineage edges in the source line%'
+  and pg_get_functiondef('public.remove_closet_replacement_line_item(uuid,uuid,uuid,timestamptz)'::regprocedure) like '%edge.replacement_line_id = p_source_line_id%'
   and pg_get_functiondef('public.remove_closet_replacement_line_item(uuid,uuid,uuid,timestamptz)'::regprocedure) like '%predecessor_item_id%'
   and pg_get_functiondef('public.remove_closet_replacement_line_item(uuid,uuid,uuid,timestamptz)'::regprocedure) like '%successor_item_id%',
-  'Item remove requires every lineage connection to be disconnected first'
+  'Item remove requires only source Line lineage connections to be disconnected first'
 );
 
 select ok(
   pg_get_functiondef('public.remove_closet_replacement_line_item(uuid,uuid,uuid,timestamptz)'::regprocedure) like '%delete from public.closet_replacement_line_starts%'
   and pg_get_functiondef('public.remove_closet_replacement_line_item(uuid,uuid,uuid,timestamptz)'::regprocedure) like '%delete from public.closet_replacement_line_items%'
+  and pg_get_functiondef('public.remove_closet_replacement_line_item(uuid,uuid,uuid,timestamptz)'::regprocedure) like '%replacement_line_id = p_source_line_id%'
   and pg_get_functiondef('public.remove_closet_replacement_line_item(uuid,uuid,uuid,timestamptz)'::regprocedure) like '%item_id = p_item_id%',
-  'Item remove clears starts and memberships for the Item across all Lines'
+  'Item remove clears starts and membership only in the source Line'
 );
 
 select ok(

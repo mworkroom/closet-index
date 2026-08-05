@@ -621,7 +621,7 @@ describe('ReplacementLineagePage', () => {
     expect(
       screen.getByText('Closet Item과 이미지는 삭제되지 않습니다.'),
     ).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: '모든 Line에서 빼기' }))
+    await user.click(screen.getByRole('button', { name: '현재 Line에서 빼기' }))
 
     expect(
       screen.queryByRole('link', { name: '차콜 스커트 Item 상세 보기' }),
@@ -639,5 +639,77 @@ describe('ReplacementLineagePage', () => {
         (item) => item.id === 'item-skirt',
       ),
     ).toBe(true)
+  })
+
+  it('중복 소속은 현재 Line에서만 빼고 다른 Line의 소속과 계보를 보존한다', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/replacement-lines/line-blue-layer']}>
+        <DataProvider repository={new DemoRepository()}>
+          <Routes>
+            <Route
+              path="/replacement-lines/:lineId"
+              element={<ReplacementLineagePage />}
+            />
+          </Routes>
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'Blue Layer' })
+    const duplicatedItem = screen
+      .getByRole('link', { name: '블루 가디건 Item 상세 보기' })
+      .closest<HTMLElement>('.lineage-unconnected__item')
+    expect(duplicatedItem).not.toBeNull()
+
+    await user.click(
+      within(duplicatedItem!).getByRole('button', { name: '다른 Line으로 옮기기' }),
+    )
+    expect(
+      within(duplicatedItem!).getByText(/Soft Layer에는 이미 소속되어 있습니다/),
+    ).toBeInTheDocument()
+    expect(
+      within(duplicatedItem!).queryByRole('option', { name: 'Soft Layer' }),
+    ).not.toBeInTheDocument()
+    await user.click(within(duplicatedItem!).getByRole('button', { name: '취소' }))
+
+    await user.click(
+      within(duplicatedItem!).getByRole('button', { name: 'Line에서 빼기' }),
+    )
+    expect(
+      within(duplicatedItem!).getByText(
+        (_content, element) =>
+          element?.tagName === 'P' &&
+          element.textContent === '블루 가디건을 Blue Layer에서만 뺄까요?',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      within(duplicatedItem!).getByText('Soft Layer 소속과 계보는 그대로 유지됩니다.'),
+    ).toBeInTheDocument()
+    await user.click(
+      within(duplicatedItem!).getByRole('button', {
+        name: '현재 Line에서 빼기',
+      }),
+    )
+
+    expect(
+      screen.queryByRole('link', { name: '블루 가디건 Item 상세 보기' }),
+    ).not.toBeInTheDocument()
+    const savedSnapshot = JSON.parse(
+      window.localStorage.getItem('closet-index-demo-replacement-lines:v1') ?? '{}',
+    )
+    expect(savedSnapshot.memberships).not.toContainEqual({
+      replacementLineId: 'line-blue-layer',
+      itemId: 'item-cardigan',
+    })
+    expect(savedSnapshot.memberships).toContainEqual({
+      replacementLineId: 'line-soft-layer',
+      itemId: 'item-cardigan',
+    })
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('closet-index-demo-lineage-edges:v1') ?? '[]',
+      ),
+    ).toEqual([savedEdge])
   })
 })

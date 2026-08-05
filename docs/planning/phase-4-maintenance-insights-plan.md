@@ -516,9 +516,9 @@ P4-2B의 canonical pair schema, workspace RLS, 49-pair importer와 검토 화면
 - [x] predecessor 재선택, edge 해제와 successor 시작점 전환
 - [x] 선택 이유 3종 드롭다운과 왼쪽 branch connector
 - [x] 연결 없는 Item의 기존·새 Line 이동 UI와 원자 RPC 로컬 구현
-- [x] Line 없는 Closet Item 검색·추가와 edge 없는 Item의 전체 Line 제외 UI·원자 RPC 로컬 구현
-- [x] Item 추가·전체 Line 제외 production migration·인증 rollback·Advisor 검증
-- [ ] Item 추가·전체 Line 제외 frontend 공개 배포·실제 UI 검증
+- [x] Line 없는 Closet Item 검색·추가와 edge 없는 Item의 현재 Line 제외 UI·원자 RPC 로컬 구현
+- [x] Item 추가·현재 Line 제외 production migration·인증 rollback·Advisor 검증
+- [ ] Item 추가·현재 Line 제외 frontend 공개 배포·실제 UI 검증
 - [x] Line 병합·보관·대표 Line 로컬 UI·원자 RPC 구현
 - [x] Line lifecycle production migration·인증 RPC·rollback·Advisor 검증
 - [x] membership 변경 시 `needs_review` production migration·인증 RPC·Advisor 검증
@@ -537,7 +537,7 @@ Line 선택이 필요한 1개 관계에는 기본값 없는 두 선택지를 제
 
 Line 관리의 첫 조각으로 계보 연결 전 Item을 기존 Line 또는 새 Line으로 옮기는 UI와 atomic RPC를 구현했다. 이동한 Item은 대상 Line의 명시적 시작점이 되고 source·target Line 모두 `needs_review`로 바뀐다. 기존 edge가 하나라도 남은 Item은 이력을 손상하지 않도록 이동을 거부한다. Demo 저장 지속성, Supabase RPC mapping, 라우트 전환, 데스크톱·390px 모바일 UI를 검증한 뒤 production migration `20260804183905_move_replacement_line_items`를 적용했다. 실제 workspace member 권한의 rollback fixture에서 기존 Line 이동과 새 Line 생성, membership·시작점·재검토 상태 변경을 확인했고 연결된 Item 이동 차단과 rollback 뒤 `53 Line · 165 membership · 87 edge · 25 start · needs_review 0` 유지를 재확인했다. RPC는 빈 `search_path`, 함수 내부 workspace membership 검사와 `authenticated` 단독 실행 권한을 사용하며 Advisor의 로그인 사용자용 `SECURITY DEFINER` 경고는 이 전용 쓰기 RPC에 대해 의도된 항목으로 검토했다.
 
-Line 관리의 후속으로 현재 어떤 Line에도 속하지 않은 Closet Item을 이름·category·색상으로 검색해 선택한 Line에 추가하고, edge가 없는 Item은 Closet Item을 삭제하지 않은 채 모든 Replacement Line membership에서 제외하는 흐름을 구현했다. 추가 Item은 명시적 시작점이 되고, 제외는 다중 membership까지 모두 제거하며 영향받은 Line을 `needs_review`로 바꾼다. predecessor·successor edge가 하나라도 있으면 먼저 연결 해제를 요구한다. 전체 58개 파일 269개 테스트, production build와 실제 Demo browser의 데스크톱·390px 왕복 흐름을 통과했다. production migration `20260804233509_manage_replacement_line_item_membership`을 적용하고 실제 member claim rollback fixture에서 추가·시작점·전체 제외·Item 보존과 stale·중복·edge·비회원 차단을 확인했다. rollback 뒤 `57 Line · 165 membership · 92 edge · 35 start · needs_review 1`이 유지되고 최근 검증 membership·start가 0개인 것을 재확인했다. 새 Advisor 성능 경고는 없고 signed-in 전용 `SECURITY DEFINER` 안내 두 건은 내부 workspace 검사와 최소 실행 권한을 확인한 의도된 경고다. frontend 공개 배포와 실제 production UI 검증은 남아 있다.
+Line 관리의 후속으로 현재 어떤 Line에도 속하지 않은 Closet Item을 이름·category·색상으로 검색해 선택한 Line에 추가하고, edge가 없는 Item은 Closet Item을 삭제하지 않은 채 현재 보고 있는 Replacement Line에서 제외하는 흐름을 구현했다. 추가 Item은 명시적 시작점이 되고, 제외는 source Line의 membership·start만 제거하며 source Line을 `needs_review`로 바꾼다. 다른 Line 소속과 계보는 보존하고 source Line에 predecessor·successor edge가 있을 때만 먼저 연결 해제를 요구한다. 초기 production RPC의 전체 Line 제거 의미는 복수 Line legacy membership 정정 흐름을 막는 문제를 확인해 forward migration `20260805000354_remove_item_from_single_replacement_line`로 교정했다. 전체 58개 파일 271개 테스트, production build와 실제 Demo browser 흐름을 통과했다. 실제 `퍼스트클로 슬리브리스`·`무탠다드 슬리브리스` rollback fixture에서 `Ivory Layered Summer` 중복 소속 2개만 제거되고 `Ivory Layered Sleeveless` 소속 2개와 edge 1개가 보존되는 것을 확인했으며 rollback 뒤 운영 데이터는 그대로다. 새 Advisor 성능 경고는 없고 signed-in 전용 `SECURITY DEFINER` 안내는 내부 workspace 검사와 최소 실행 권한을 확인한 의도된 경고다. frontend 공개 배포와 실제 production UI 검증은 남아 있다.
 
 Line lifecycle로 삭제 대신 독립 보관·복원과 대표 Line 병합을 구현했다. 병합은 source membership·edge·유효한 시작점을 target에 원자적으로 합치고 겹치는 membership은 중복 없이 보존하며, source는 대표 Line을 가리키는 읽기 전용 보관 상태가 된다. 합친 graph의 cycle과 동일 edge 충돌은 변경 전에 차단하고 source·target을 모두 `needs_review`로 되돌린다. Color Index에서는 active Line만 보여 주고 관리 현황에서는 보관 Line과 대표 Line 연결을 다시 찾을 수 있다. production migration `20260804193058_manage_replacement_line_lifecycle` 적용 뒤 실제 workspace member claim의 transaction fixture에서 독립 보관·복원, stale·비회원 거절, archived child 수정 차단, 동일 edge·합친 graph cycle 차단과 병합 Line 직접 복원 거절을 확인했다. 실제로 두 Item을 공유하는 `Ivory Layered Summer → Ivory Layered Sleeveless` 병합도 rollback 안에서 실행해 membership `4 + 2 - 공유 2 = 4`, edge 2개, source 보관·대표 참조와 양쪽 `needs_review`를 검증했다. rollback 뒤 `53 Line · active 53 · archived 0 · 165 membership · 87 edge · 25 start · needs_review 0`과 적용 전 네 checksum이 모두 일치한다. 새 RPC 두 개는 빈 `search_path`, 함수 내부 workspace membership 검사와 `authenticated` 단독 실행 권한을 사용한다. Advisor의 두 signed-in `SECURITY DEFINER` 경고는 이 전용 쓰기 RPC에 대해 의도된 항목이며, 신규 lifecycle index의 미사용 안내는 기능 적용 직후라 예상되는 정보성 항목이다.
 
@@ -647,7 +647,7 @@ membership 이동 뒤 남던 `needs_review` 상태를 사람이 마무리할 수
 - [x] G0·G1·G2가 구매 연도가 아니라 확인된 graph depth로 표시된다.
 - [x] 모든 세대의 thumbnail이 같은 크기이며 실제 가지가 있을 때만 branch를 표시한다.
 - [x] Line 병합·보관·대표 Line과 재검토 상태가 안전하게 동작한다.
-- [ ] Line 미소속 Item 추가와 Item의 전체 Line 제외가 공개 frontend UI에서 검증된다.
+- [ ] Line 미소속 Item 추가와 Item의 현재 Line 제외가 공개 frontend UI에서 검증된다.
 
 ### Phase 4 전체 완료
 

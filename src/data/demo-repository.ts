@@ -968,34 +968,33 @@ export class DemoRepository implements ClosetRepository {
     if (
       readDemoReplacementLineEdges().some(
         (edge) =>
-          edge.predecessorItemId === input.itemId ||
-          edge.successorItemId === input.itemId,
+          edge.replacementLineId === sourceLine.id &&
+          (edge.predecessorItemId === input.itemId ||
+            edge.successorItemId === input.itemId),
       )
     ) {
       throw new Error('계보 연결을 모두 해제한 뒤 Line에서 빼 주세요.')
     }
 
-    const affectedLineIds = new Set(
-      snapshot.memberships
-        .filter((entry) => entry.itemId === input.itemId)
-        .map((entry) => entry.replacementLineId),
-    )
     const changedAt = new Date().toISOString()
     snapshot.memberships = snapshot.memberships.filter(
-      (entry) => entry.itemId !== input.itemId,
+      (entry) =>
+        entry.replacementLineId !== sourceLine.id ||
+        entry.itemId !== input.itemId,
     )
     snapshot.lines = snapshot.lines.map((entry) =>
-      affectedLineIds.has(entry.id)
+      entry.id === sourceLine.id
         ? { ...entry, reviewStatus: 'needs_review', updatedAt: changedAt }
         : entry,
     )
     const starts = readDemoReplacementLineStarts().filter(
-      (start) => start.itemId !== input.itemId,
+      (start) =>
+        start.replacementLineId !== sourceLine.id || start.itemId !== input.itemId,
     )
     window.localStorage.setItem(LINEAGE_START_STORAGE_KEY, JSON.stringify(starts))
     writeDemoReplacementLineSnapshot(snapshot)
     return structuredClone(
-      snapshot.lines.filter((entry) => affectedLineIds.has(entry.id)),
+      snapshot.lines.filter((entry) => entry.id === sourceLine.id),
     )
   }
 

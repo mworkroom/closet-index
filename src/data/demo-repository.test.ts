@@ -347,7 +347,7 @@ describe('DemoRepository wear log contract', () => {
     })
   })
 
-  it('Line 없는 Item을 시작점으로 추가한 뒤 모든 Line에서 뺀다', async () => {
+  it('Line 없는 Item을 시작점으로 추가한 뒤 현재 Line에서 뺀다', async () => {
     const repository = new DemoRepository()
     const before = await repository.loadReplacementLines()
     const line = before.lines.find((entry) => entry.id === 'line-navy-tee')!
@@ -390,5 +390,63 @@ describe('DemoRepository wear log contract', () => {
         (start) => start.itemId === 'item-skirt',
       ),
     ).toBe(false)
+  })
+
+  it('중복 소속의 현재 Line만 빼고 다른 Line의 계보는 보존한다', async () => {
+    const repository = new DemoRepository()
+    const before = await repository.loadReplacementLines()
+    const duplicateLine = before.lines.find((line) => line.id === 'line-blue-layer')!
+    const originalLine = before.lines.find((line) => line.id === 'line-soft-layer')!
+    window.localStorage.setItem(
+      'closet-index-demo-lineage-edges:v1',
+      JSON.stringify([
+        {
+          id: 'edge-original-line',
+          replacementLineId: originalLine.id,
+          predecessorItemId: 'item-cardigan',
+          successorItemId: 'item-knit',
+          sourceLegacyLinkId: null,
+          sourceKind: 'manual',
+          branchName: null,
+          decisionReason: '단순 교체',
+          status: 'confirmed',
+          confirmedAt: '2026-08-05T00:00:00Z',
+          updatedAt: '2026-08-05T00:00:00Z',
+        },
+      ]),
+    )
+
+    await expect(
+      repository.removeReplacementLineItem({
+        sourceLineId: duplicateLine.id,
+        itemId: 'item-cardigan',
+        expectedSourceUpdatedAt: duplicateLine.updatedAt,
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({ id: duplicateLine.id, reviewStatus: 'needs_review' }),
+    ])
+
+    const after = await repository.loadReplacementLines()
+    expect(after.memberships).not.toContainEqual({
+      replacementLineId: duplicateLine.id,
+      itemId: 'item-cardigan',
+    })
+    expect(after.memberships).toContainEqual({
+      replacementLineId: originalLine.id,
+      itemId: 'item-cardigan',
+    })
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('closet-index-demo-lineage-edges:v1') ?? '[]',
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        id: 'edge-original-line',
+        replacementLineId: originalLine.id,
+      }),
+    ])
+    expect(after.lines.find((line) => line.id === originalLine.id)?.updatedAt).toBe(
+      originalLine.updatedAt,
+    )
   })
 })

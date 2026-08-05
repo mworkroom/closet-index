@@ -181,7 +181,7 @@
 - 주요 columns: `replacement_line_id`, `item_id`, `created_at`.
 - foreign keys: Line `ON DELETE CASCADE`, Item `ON DELETE RESTRICT`.
 - 읽기: `src/data/supabase/replacement-lines.ts`, Phase 4 audit script.
-- 쓰기: Item 이동·Line 병합, Line 미소속 Item 추가·전체 Line 제외 RPC와 초기 import.
+- 쓰기: Item 이동·Line 병합, Line 미소속 Item 추가·현재 Line 제외 RPC와 초기 import.
 - trigger/dependency: `require_active_closet_replacement_line_membership`; edge와 start의 composite FK가 이 membership을 참조한다.
 - 유지 이유와 cleanup: “어떤 Item이 어떤 Line인가”의 source of truth다.
 
@@ -254,7 +254,7 @@
 | `update_closet_replacement_line_details(workspace, line, expected_updated_at, name, style_identity)` | `updateDetails`; Line 관리 UI | lines | 이름·Style Identity 검증과 optimistic concurrency | 필요 |
 | `delete_empty_closet_replacement_line(workspace, line, expected_updated_at)` | `deleteEmpty`; 빈 Line 삭제 UI | lines, line_items, edges, starts | 모든 dependency 재확인 뒤 빈 Line만 삭제 | 필요 |
 | `add_closet_replacement_line_item(workspace, line, item, expected_updated_at)` | `addItem`; Line 관리의 Item 추가 UI | items, lines, line_items, starts | Line 미소속 재확인·membership·start·review 상태를 원자 처리 | 필요 |
-| `remove_closet_replacement_line_item(workspace, source, item, expected_source_updated_at)` | `removeItem`; 계보 Item의 Line에서 빼기 UI | items, lines, line_items, edges, starts | 모든 edge 차단·전체 membership/start 제거·영향 Line review 전환 | 필요 |
+| `remove_closet_replacement_line_item(workspace, source, item, expected_source_updated_at)` | `removeItem`; 계보 Item의 Line에서 빼기 UI | items, lines, line_items, edges, starts | source Line edge만 차단·source membership/start만 제거·source Line review 전환; 다른 Line 소속과 계보 보존 | 필요 |
 
 ## 6. Trigger와 view dependency
 

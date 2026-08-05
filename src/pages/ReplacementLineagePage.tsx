@@ -40,12 +40,18 @@ function acquisitionLabel(acquiredOn: string | null) {
   return acquiredOn ? acquiredOn.slice(0, 4) : '취득연도 미상'
 }
 
+const EMPTY_LINE_ID_SET: ReadonlySet<string> = new Set()
+
 function RemoveLineMembershipControl({
   item,
+  sourceLineName,
+  otherLineNames,
   hasLineageConnection,
   onRemove,
 }: {
   item: Item
+  sourceLineName: string
+  otherLineNames: readonly string[]
   hasLineageConnection: boolean
   onRemove: (itemId: string) => Promise<void>
 }) {
@@ -101,11 +107,25 @@ function RemoveLineMembershipControl({
 
   return (
     <div className="lineage-membership-remove__confirmation" role="alert">
-      <p>
-        <strong>{item.name}</strong>을 어떤 Replacement Line에도 속하지 않게
-        뺄까요?
-      </p>
-      <small>Closet Item과 이미지는 삭제되지 않습니다.</small>
+      {otherLineNames.length > 0 ? (
+        <>
+          <p>
+            <strong>{item.name}</strong>을 <strong>{sourceLineName}</strong>에서만
+            뺄까요?
+          </p>
+          <small>
+            {otherLineNames.join(', ')} 소속과 계보는 그대로 유지됩니다.
+          </small>
+        </>
+      ) : (
+        <>
+          <p>
+            <strong>{item.name}</strong>을 어떤 Replacement Line에도 속하지 않게
+            뺄까요?
+          </p>
+          <small>Closet Item과 이미지는 삭제되지 않습니다.</small>
+        </>
+      )}
       {saveError ? (
         <p className="form-error" role="alert">
           {saveError}
@@ -129,7 +149,7 @@ function RemoveLineMembershipControl({
           onClick={() => void handleRemove()}
           disabled={saving}
         >
-          {saving ? '빼는 중…' : '모든 Line에서 빼기'}
+          {saving ? '빼는 중…' : '현재 Line에서 빼기'}
         </button>
       </div>
     </div>
@@ -150,6 +170,8 @@ interface LineageItemRowProps {
   ) => Promise<void>
   onSetStart: (itemId: string, isStart: boolean) => Promise<void>
   onRemoveItem: (itemId: string) => Promise<void>
+  sourceLineName: string
+  otherLineNames: readonly string[]
   hasLineageConnection: boolean
   readOnly: boolean
 }
@@ -162,6 +184,8 @@ function LineageItemRow({
   onReverseEdge,
   onSetStart,
   onRemoveItem,
+  sourceLineName,
+  otherLineNames,
   hasLineageConnection,
   readOnly,
 }: LineageItemRowProps) {
@@ -381,6 +405,8 @@ function LineageItemRow({
       {!readOnly && !editingEdge && !reversingEdge ? (
         <RemoveLineMembershipControl
           item={node.item}
+          sourceLineName={sourceLineName}
+          otherLineNames={otherLineNames}
           hasLineageConnection={hasLineageConnection}
           onRemove={onRemoveItem}
         />
@@ -541,6 +567,7 @@ function LineageItemRow({
 
 function LineageGeneration({
   generation,
+  sourceLineName,
   members,
   onUpdateEdge,
   onDisconnectEdge,
@@ -548,9 +575,11 @@ function LineageGeneration({
   onSetStart,
   onRemoveItem,
   connectedItemIds,
+  otherLineNamesByItemId,
   readOnly,
 }: {
   generation: ReplacementLineageGeneration
+  sourceLineName: string
   members: Item[]
   onUpdateEdge: LineageItemRowProps['onUpdateEdge']
   onDisconnectEdge: LineageItemRowProps['onDisconnectEdge']
@@ -558,6 +587,7 @@ function LineageGeneration({
   onSetStart: LineageItemRowProps['onSetStart']
   onRemoveItem: LineageItemRowProps['onRemoveItem']
   connectedItemIds: ReadonlySet<string>
+  otherLineNamesByItemId: ReadonlyMap<string, readonly string[]>
   readOnly: boolean
 }) {
   const isBranched = generation.groups.length > 1
@@ -603,6 +633,8 @@ function LineageGeneration({
                       onReverseEdge={onReverseEdge}
                       onSetStart={onSetStart}
                       onRemoveItem={onRemoveItem}
+                      sourceLineName={sourceLineName}
+                      otherLineNames={otherLineNamesByItemId.get(node.item.id) ?? []}
                       hasLineageConnection={connectedItemIds.has(node.item.id)}
                       readOnly={readOnly}
                     />
@@ -627,6 +659,8 @@ function UnconnectedLineageItem({
   onCreateManualEdge,
   onMoveItem,
   onRemoveItem,
+  otherMembershipLineIds,
+  otherLineNames,
   hasLineageConnection,
   readOnly,
 }: {
@@ -639,6 +673,8 @@ function UnconnectedLineageItem({
   onCreateManualEdge: (input: ReplacementLineManualEdgeInput) => Promise<void>
   onMoveItem: (input: ReplacementLineItemMoveInput) => Promise<void>
   onRemoveItem: (itemId: string) => Promise<void>
+  otherMembershipLineIds: ReadonlySet<string>
+  otherLineNames: readonly string[]
   hasLineageConnection: boolean
   readOnly: boolean
 }) {
@@ -655,7 +691,10 @@ function UnconnectedLineageItem({
   const predecessorOptions = members.filter((member) => member.id !== item.id)
   const targetLineOptions = lines
     .filter(
-      (line) => line.id !== sourceLine.id && line.lifecycleStatus === 'active',
+      (line) =>
+        line.id !== sourceLine.id &&
+        !otherMembershipLineIds.has(line.id) &&
+        line.lifecycleStatus === 'active',
     )
     .sort((left, right) => left.name.localeCompare(right.name, 'ko'))
   const normalizedReason = decisionReason.trim()
@@ -777,6 +816,8 @@ function UnconnectedLineageItem({
           </button>
           <RemoveLineMembershipControl
             item={item}
+            sourceLineName={sourceLine.name}
+            otherLineNames={otherLineNames}
             hasLineageConnection={hasLineageConnection}
             onRemove={onRemoveItem}
           />
@@ -849,6 +890,12 @@ function UnconnectedLineageItem({
           <p className="lineage-edge-form__context">
             {item.name} · {sourceLine.name}에서 옮기기
           </p>
+          {otherLineNames.length > 0 ? (
+            <p className="lineage-move-note">
+              {otherLineNames.join(', ')}에는 이미 소속되어 있습니다. 중복 소속만
+              정리하려면 현재 Line에서 빼기를 사용해 주세요.
+            </p>
+          ) : null}
           <label className="field">
             <span>옮길 Line</span>
             <select
@@ -1855,13 +1902,18 @@ export function ReplacementLineagePage() {
           ? {
               lines: current.lines.map((line) => savedById.get(line.id) ?? line),
               memberships: current.memberships.filter(
-                (membership) => membership.itemId !== itemId,
+                (membership) =>
+                  membership.replacementLineId !== sourceLine.id ||
+                  membership.itemId !== itemId,
               ),
             }
           : current,
       )
       setStarts((current) =>
-        current?.filter((start) => start.itemId !== itemId) ?? current,
+        current?.filter(
+          (start) =>
+            start.replacementLineId !== sourceLine.id || start.itemId !== itemId,
+        ) ?? current,
       )
     },
     [lineId, removeReplacementLineItem, snapshot],
@@ -1975,6 +2027,39 @@ export function ReplacementLineagePage() {
     }
     return result
   }, [edges, lineId])
+  const otherMembershipsByItemId = useMemo(() => {
+    const linesById = new Map((snapshot?.lines ?? []).map((line) => [line.id, line]))
+    const result = new Map<string, ReplacementLineRecord[]>()
+    for (const membership of snapshot?.memberships ?? []) {
+      if (membership.replacementLineId === lineId) continue
+      const memberLine = linesById.get(membership.replacementLineId)
+      if (!memberLine) continue
+      const current = result.get(membership.itemId)
+      if (current) current.push(memberLine)
+      else result.set(membership.itemId, [memberLine])
+    }
+    return result
+  }, [lineId, snapshot])
+  const otherLineNamesByItemId = useMemo(
+    () =>
+      new Map(
+        [...otherMembershipsByItemId].map(([itemId, lines]) => [
+          itemId,
+          lines.map((line) => line.name),
+        ]),
+      ),
+    [otherMembershipsByItemId],
+  )
+  const otherLineIdsByItemId = useMemo(
+    () =>
+      new Map(
+        [...otherMembershipsByItemId].map(([itemId, lines]) => [
+          itemId,
+          new Set(lines.map((line) => line.id)),
+        ]),
+      ),
+    [otherMembershipsByItemId],
+  )
   const lineName =
     lineage?.line.name ??
     snapshot?.lines.find((line) => line.id === lineId)?.name ??
@@ -2043,6 +2128,7 @@ export function ReplacementLineagePage() {
               {lineage.generations.map((generation) => (
                 <LineageGeneration
                   generation={generation}
+                  sourceLineName={lineage.line.name}
                   members={lineage.members}
                   onUpdateEdge={updateEdge}
                   onDisconnectEdge={disconnectEdge}
@@ -2050,6 +2136,7 @@ export function ReplacementLineagePage() {
                   onSetStart={setStart}
                   onRemoveItem={removeItem}
                   connectedItemIds={connectedItemIds}
+                  otherLineNamesByItemId={otherLineNamesByItemId}
                   readOnly={lineage.line.lifecycleStatus === 'archived'}
                   key={generation.depth}
                 />
@@ -2089,6 +2176,10 @@ export function ReplacementLineagePage() {
                     onCreateManualEdge={createManualEdge}
                     onMoveItem={moveItem}
                     onRemoveItem={removeItem}
+                    otherMembershipLineIds={
+                      otherLineIdsByItemId.get(item.id) ?? EMPTY_LINE_ID_SET
+                    }
+                    otherLineNames={otherLineNamesByItemId.get(item.id) ?? []}
                     hasLineageConnection={connectedItemIds.has(item.id)}
                     readOnly={lineage.line.lifecycleStatus === 'archived'}
                     key={item.id}
