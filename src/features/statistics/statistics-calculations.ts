@@ -1,5 +1,6 @@
 import {
   getItemCategoryGroupId,
+  isMadeItemCategory,
   type ItemCategoryGroupId,
 } from '../../lib/item-categories'
 import { todayInKorea } from '../../lib/date'
@@ -116,7 +117,7 @@ function getItemStatisticsCategoryIds(item: Pick<Item, 'category'>) {
   if (wearableGroupIds.has(groupId)) {
     ids.add(groupId as Exclude<StatisticsCategoryId, 'made'>)
   }
-  if (item.category.trim().toLocaleLowerCase('en').endsWith('-made')) {
+  if (isMadeItemCategory(item)) {
     ids.add('made')
   }
   return ids

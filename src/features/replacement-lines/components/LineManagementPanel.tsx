@@ -299,12 +299,6 @@ export function LineManagementPanel({
       className="section lineage-line-management"
       aria-label="Line 관리"
     >
-      <div className="lineage-line-management__count-row">
-        <span className="count">
-          {line.lifecycleStatus === 'archived' ? '보관됨' : `${membershipCount} Item`}
-        </span>
-      </div>
-
       {line.lifecycleStatus === 'active' ? (
         <>
           <details className="lineage-line-management__tools">

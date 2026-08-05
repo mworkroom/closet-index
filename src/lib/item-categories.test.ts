@@ -3,6 +3,7 @@ import {
   getAvailableItemCategoryGroups,
   getItemCategoryGroupId,
   getItemCategoryStatistics,
+  isMadeItemCategory,
   isItemVisibleInWardrobeSelection,
   itemMatchesCategoryGroup,
 } from './item-categories'
@@ -122,6 +123,12 @@ describe('item category groups', () => {
     expect(itemMatchesCategoryGroup(item, 'outer')).toBe(true)
     expect(itemMatchesCategoryGroup(item, 'top')).toBe(false)
     expect(item.category).toBe('Outer-Cardigan-made')
+  })
+
+  it('Statistics와 Closet에서 같은 -made 접미사 기준을 사용한다', () => {
+    expect(isMadeItemCategory({ category: 'Outer-Cardigan-made' })).toBe(true)
+    expect(isMadeItemCategory({ category: ' Acc-Neck-MADE ' })).toBe(true)
+    expect(isMadeItemCategory({ category: 'Outer-Cardigan' })).toBe(false)
   })
 
   it('counts detailed tags and active items inside their upper group', () => {

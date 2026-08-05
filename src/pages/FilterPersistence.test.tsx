@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { DataProvider } from '../context/DataContext'
 import { SeasonScopeProvider } from '../context/SeasonScopeContext'
+import { demoData } from '../data/demo-data'
 import { DemoRepository } from '../data/demo-repository'
 import { ClosetPage } from './ClosetPage'
 import { HomePage } from './HomePage'
@@ -75,6 +76,49 @@ describe('section filter persistence', () => {
       await screen.findByRole('combobox', { name: '카테고리' }),
     ).toHaveValue('top')
     expect(screen.getByRole('checkbox', { name: 'Unworn' })).toBeChecked()
+  })
+
+  it('Closet에서 Made Item만 거르고 선택 상태를 복원한다', async () => {
+    const user = userEvent.setup()
+    const template = demoData.items.find((item) => !item.retired)
+    if (!template) throw new Error('item fixture missing')
+    window.localStorage.setItem(
+      'closet-index-demo-data-v3',
+      JSON.stringify({
+        ...demoData,
+        items: [
+          ...demoData.items,
+          {
+            ...template,
+            id: 'made-filter-item',
+            name: '직접 만든 가디건',
+            category: 'Outer-Cardigan-made',
+            retired: false,
+          },
+        ],
+      }),
+    )
+
+    const first = renderCloset()
+    const made = await screen.findByRole('checkbox', { name: 'Made' })
+    await user.click(made)
+
+    expect(made).toBeChecked()
+    expect(
+      screen.getByRole('link', {
+        name: '직접 만든 가디건 아이템 상세 보기',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', {
+        name: '블루 가디건 아이템 상세 보기',
+      }),
+    ).not.toBeInTheDocument()
+
+    first.unmount()
+    renderCloset()
+
+    expect(await screen.findByRole('checkbox', { name: 'Made' })).toBeChecked()
   })
 
   it('이전 날짜의 HOME 조건은 복원하지 않는다', async () => {

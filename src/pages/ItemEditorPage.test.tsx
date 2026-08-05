@@ -111,7 +111,7 @@ describe('Item editor', () => {
     )
   })
 
-  it('정보 수정 화면 최하단에서 삭제 가능 여부와 보관·복원을 제공한다', async () => {
+  it('정보 수정 화면 최하단에서 삭제 가능 여부와 Retired 전환·해제를 제공한다', async () => {
     const user = userEvent.setup()
     const repository = new DemoRepository()
     const setItemRetired = vi.spyOn(repository, 'setItemRetired')
@@ -121,20 +121,22 @@ describe('Item editor', () => {
     expect(
       await screen.findByRole('heading', { name: /Item 이미지 (추가|교체)/ }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: 'Item 삭제 및 보관' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('region', { name: 'Item 삭제 및 Retired 관리' }),
+    ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '삭제' })).toBeDisabled()
     expect(screen.getByText(/포함된 Outfit \d+개가 있어 삭제할 수 없습니다\./)).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: '보관' }))
+    await user.click(screen.getByRole('button', { name: 'Retired' }))
     expect(
-      screen.getByText('이 Item을 보관할까요?'),
+      screen.getByText('이 Item을 Retired로 전환할까요?'),
     ).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: '보관 확인' }))
+    await user.click(screen.getByRole('button', { name: 'Retired 확인' }))
 
     expect(setItemRetired).toHaveBeenCalledWith('item-cardigan', true)
     expect(
-      await screen.findByRole('button', { name: '복원' }),
+      await screen.findByRole('button', { name: 'Retired 해제' }),
     ).toBeInTheDocument()
   })
 
@@ -205,7 +207,7 @@ describe('Item editor', () => {
       screen.queryByRole('heading', { name: /Item 이미지 (추가|교체)/ }),
     ).not.toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: '보관' }),
+      screen.queryByRole('button', { name: 'Retired' }),
     ).not.toBeInTheDocument()
   })
 })

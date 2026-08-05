@@ -90,6 +90,10 @@ export function itemMatchesCategoryGroup(
   return !groupId || getItemCategoryGroupId(item.category) === groupId
 }
 
+export function isMadeItemCategory(item: Pick<Item, 'category'>) {
+  return item.category.trim().toLocaleLowerCase('en').endsWith('-made')
+}
+
 export function isItemVisibleInWardrobeSelection(
   item: Pick<Item, 'category'>,
 ) {

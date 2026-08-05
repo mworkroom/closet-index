@@ -11,6 +11,7 @@ import { formatMonthDayYear } from '../lib/date'
 import {
   getAvailableItemCategoryGroups,
   isItemCategoryFilterGroupId,
+  isMadeItemCategory,
   isItemVisibleInWardrobeSelection,
   itemMatchesCategoryGroup,
   type ItemCategoryFilterGroupId,
@@ -27,6 +28,7 @@ interface StoredClosetFilters {
   categoryGroup: ItemCategoryFilterGroupId | ''
   color: string
   includeRetired: boolean
+  madeOnly: boolean
   unwornOnly: boolean
   sort: ItemSort
 }
@@ -35,6 +37,7 @@ const defaultFilters: StoredClosetFilters = {
   categoryGroup: '',
   color: '',
   includeRetired: false,
+  madeOnly: false,
   unwornOnly: false,
   sort: defaultSort,
 }
@@ -57,6 +60,7 @@ function readStoredFilters(): StoredClosetFilters {
         typeof parsed.includeRetired === 'boolean'
           ? parsed.includeRetired
           : false,
+      madeOnly: typeof parsed.madeOnly === 'boolean' ? parsed.madeOnly : false,
       unwornOnly:
         typeof parsed.unwornOnly === 'boolean' ? parsed.unwornOnly : false,
       sort: validSorts.includes(parsed.sort as ItemSort)
@@ -80,6 +84,7 @@ export function ClosetPage() {
   const [includeRetired, setIncludeRetired] = useState(
     initialFilters.includeRetired,
   )
+  const [madeOnly, setMadeOnly] = useState(initialFilters.madeOnly)
   const [unwornOnly, setUnwornOnly] = useState(initialFilters.unwornOnly)
   const [sort, setSort] = useState<ItemSort>(initialFilters.sort)
   const [visibleItemCount, setVisibleItemCount] = useState(COLLECTION_BATCH_SIZE)
@@ -89,6 +94,7 @@ export function ClosetPage() {
       categoryGroup,
       color,
       includeRetired,
+      madeOnly,
       unwornOnly,
       sort,
     }
@@ -100,7 +106,7 @@ export function ClosetPage() {
     } catch {
       // Storage can be unavailable in private browsing; filters still work in memory.
     }
-  }, [categoryGroup, color, includeRetired, sort, unwornOnly])
+  }, [categoryGroup, color, includeRetired, madeOnly, sort, unwornOnly])
 
   useEffect(() => {
     setVisibleItemCount(COLLECTION_BATCH_SIZE)
@@ -109,6 +115,7 @@ export function ClosetPage() {
     categoryGroup,
     color,
     includeRetired,
+    madeOnly,
     query,
     sort,
     unwornOnly,
@@ -145,6 +152,7 @@ export function ClosetPage() {
       data.items.filter((item) => {
         if (!isItemVisibleInWardrobeSelection(item)) return false
         if (!includeRetired && item.retired) return false
+        if (madeOnly && !isMadeItemCategory(item)) return false
         if (unwornOnly && wornItemIds.has(item.id)) return false
         if (!itemMatchesSeasonScope(item, activeSeasons)) return false
         if (!itemMatchesCategoryGroup(item, categoryGroup)) return false
@@ -163,6 +171,7 @@ export function ClosetPage() {
     color,
     data,
     includeRetired,
+    madeOnly,
     query,
     sort,
     unwornOnly,
@@ -174,6 +183,7 @@ export function ClosetPage() {
     setCategoryGroup('')
     setColor('')
     setIncludeRetired(false)
+    setMadeOnly(false)
     setUnwornOnly(false)
     setSort(defaultSort)
   }
@@ -253,6 +263,14 @@ export function ClosetPage() {
               onChange={(event) => setIncludeRetired(event.target.checked)}
             />
             Retired 포함
+          </label>
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={madeOnly}
+              onChange={(event) => setMadeOnly(event.target.checked)}
+            />
+            Made
           </label>
         </div>
       </section>

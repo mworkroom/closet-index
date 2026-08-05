@@ -452,7 +452,7 @@ export function ItemEditorPage() {
       </form>
 
       {editingItem && (
-        <section className="record-management" aria-label="Item 삭제 및 보관">
+        <section className="record-management" aria-label="Item 삭제 및 Retired 관리">
           <div className="record-management__actions">
             <button
               className="button button--danger"
@@ -481,8 +481,8 @@ export function ItemEditorPage() {
               {retireSaving
                 ? '변경 중…'
                 : editingItem.retired
-                  ? '복원'
-                  : '보관'}
+                  ? 'Retired 해제'
+                  : 'Retired'}
             </button>
           </div>
 
@@ -519,8 +519,11 @@ export function ItemEditorPage() {
 
           {retireConfirming && !editingItem.retired && (
             <div className="record-management__confirmation" role="alert">
-              <strong>이 Item을 보관할까요?</strong>
-              <p>기존 Outfit과 착용 기록은 유지되며 언제든 복원할 수 있습니다.</p>
+              <strong>이 Item을 Retired로 전환할까요?</strong>
+              <p>
+                기존 Outfit과 착용 기록은 유지되며 언제든 Retired를 해제할 수
+                있습니다.
+              </p>
               <div>
                 <button
                   className="button button--secondary"
@@ -536,7 +539,7 @@ export function ItemEditorPage() {
                   disabled={retireSaving}
                   onClick={() => void changeRetired(true)}
                 >
-                  {retireSaving ? '보관 중…' : '보관 확인'}
+                  {retireSaving ? '변경 중…' : 'Retired 확인'}
                 </button>
               </div>
             </div>
