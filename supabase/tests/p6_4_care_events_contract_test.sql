@@ -36,12 +36,12 @@ select table_privs_are(
   'authenticated clients receive only table-level read and delete privileges'
 );
 select column_privs_are(
-  'public', 'closet_care_events', 'cared_on', 'authenticated', array['INSERT', 'UPDATE'],
-  'authenticated clients can insert and correct the care date'
+  'public', 'closet_care_events', 'cared_on', 'authenticated', array['INSERT', 'SELECT', 'UPDATE'],
+  'authenticated clients can read, insert, and correct the care date'
 );
 select column_privs_are(
-  'public', 'closet_care_events', 'care_method', 'authenticated', array['INSERT', 'UPDATE'],
-  'authenticated clients can insert and correct method-at-event'
+  'public', 'closet_care_events', 'care_method', 'authenticated', array['INSERT', 'SELECT', 'UPDATE'],
+  'authenticated clients can read, insert, and correct method-at-event'
 );
 
 select * from finish();
