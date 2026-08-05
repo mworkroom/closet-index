@@ -218,3 +218,81 @@ describe('ItemDetailPage replenishment', () => {
     expect(purchase.quantity).toBe(2)
   })
 })
+
+describe('ItemDetailPage care history', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+  afterEach(cleanup)
+
+  it('Category에서 정한 관리 방식을 기록하고 이력을 수정·삭제한다', async () => {
+    const user = userEvent.setup()
+    const repository = new DemoRepository()
+    renderItemDetail(repository, 'item-knit')
+
+    const section = await screen.findByRole('region', {
+      name: '손세탁·드라이클리닝',
+    })
+    expect(within(section).getByText('현재 관리 방식')).toBeInTheDocument()
+    expect(within(section).getByText('드라이클리닝')).toBeInTheDocument()
+
+    await user.click(
+      within(section).getByRole('button', { name: '드라이클리닝 완료' }),
+    )
+    await user.clear(within(section).getByLabelText('관리 날짜'))
+    await user.type(within(section).getByLabelText('관리 날짜'), '2026-08-01')
+    await user.click(
+      within(section).getByRole('button', { name: '관리 기록 저장' }),
+    )
+
+    expect(
+      (await within(section).findAllByText(/2026년 8월 1일/)).length,
+    ).toBeGreaterThan(0)
+    expect(await repository.care.load('item-knit')).toHaveLength(1)
+
+    await user.click(within(section).getByRole('button', { name: '수정' }))
+    await user.selectOptions(
+      within(section).getByLabelText('당시 관리 방식'),
+      'hand_wash',
+    )
+    await user.click(
+      within(section).getByRole('button', { name: '변경 저장' }),
+    )
+    expect(
+      (await repository.care.load('item-knit'))[0].method,
+    ).toBe('hand_wash')
+
+    await user.click(within(section).getByRole('button', { name: '삭제' }))
+    expect(
+      within(section).getByText(/현재 주기는 남은 최신 기록으로 다시 계산/),
+    ).toBeInTheDocument()
+    await user.click(
+      within(section).getByRole('button', { name: '기록 삭제' }),
+    )
+    expect(
+      await within(section).findByText('아직 관리 기록이 없습니다.'),
+    ).toBeInTheDocument()
+  })
+
+  it('Retired Item은 관리 이력을 보이되 새 기록과 진행 상태를 숨긴다', async () => {
+    const repository = new DemoRepository()
+    await repository.care.create({
+      id: 'retired-care',
+      itemId: 'item-knit',
+      caredOn: '2026-08-01',
+      method: 'dry_cleaning',
+    })
+    await repository.setItemRetired('item-knit', true)
+    renderItemDetail(repository, 'item-knit')
+
+    const section = await screen.findByRole('region', {
+      name: '손세탁·드라이클리닝',
+    })
+    expect(within(section).getByText('전체 관리 이력')).toBeInTheDocument()
+    expect(within(section).getByRole('button', { name: '수정' })).toBeInTheDocument()
+    expect(
+      within(section).queryByRole('button', { name: '드라이클리닝 완료' }),
+    ).not.toBeInTheDocument()
+    expect(within(section).queryByRole('progressbar')).not.toBeInTheDocument()
+  })
+})

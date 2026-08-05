@@ -1,4 +1,11 @@
-import { BarChart3, ChevronRight, GitBranch, Heart, Settings } from 'lucide-react'
+import {
+  BarChart3,
+  ChevronRight,
+  ClipboardCheck,
+  GitBranch,
+  Heart,
+  Settings,
+} from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 
@@ -20,6 +27,12 @@ const links = [
     title: 'Replacement Lines',
     description: '같은 역할을 이어 온 Item 계보와 검토',
     icon: GitBranch,
+  },
+  {
+    to: '/maintenance',
+    title: 'Maintenance',
+    description: '장기 미착용 Item 점검',
+    icon: ClipboardCheck,
   },
   {
     to: '/settings',

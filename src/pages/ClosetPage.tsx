@@ -7,7 +7,9 @@ import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { ItemVisual } from '../components/ItemVisual'
 import { useClosetData } from '../context/DataContext'
 import { useSeasonScope } from '../context/SeasonScopeContext'
-import { formatMonthDayYear } from '../lib/date'
+import { getMaintenanceSignals } from '../features/maintenance/maintenance-signals'
+import { useMaintenanceEvents } from '../features/maintenance/useMaintenanceEvents'
+import { formatMonthDayYear, todayInKorea } from '../lib/date'
 import {
   getAvailableItemCategoryGroups,
   isItemCategoryFilterGroupId,
@@ -73,7 +75,7 @@ function readStoredFilters(): StoredClosetFilters {
 }
 
 export function ClosetPage() {
-  const { data, loading, error, refresh } = useClosetData()
+  const { data, loading, error, refresh, purchases, care } = useClosetData()
   const { activeSeasons } = useSeasonScope()
   const [initialFilters] = useState(readStoredFilters)
   const [query, setQuery] = useState('')
@@ -88,6 +90,7 @@ export function ClosetPage() {
   const [unwornOnly, setUnwornOnly] = useState(initialFilters.unwornOnly)
   const [sort, setSort] = useState<ItemSort>(initialFilters.sort)
   const [visibleItemCount, setVisibleItemCount] = useState(COLLECTION_BATCH_SIZE)
+  const today = todayInKorea()
 
   useEffect(() => {
     const filters: StoredClosetFilters = {
@@ -177,6 +180,30 @@ export function ClosetPage() {
     unwornOnly,
     wornItemIds,
   ])
+  const visibleItems = items.slice(0, visibleItemCount)
+  const visibleItemIds = useMemo(
+    () => visibleItems.map((item) => item.id),
+    [visibleItems],
+  )
+  const maintenanceEvents = useMaintenanceEvents(
+    purchases,
+    care,
+    visibleItemIds,
+  )
+  const maintenanceSignals = useMemo(
+    () =>
+      data && !maintenanceEvents.loading && !maintenanceEvents.error
+        ? getMaintenanceSignals({
+            items: visibleItems,
+            outfits: data.outfits,
+            wearLogs: data.wearLogs,
+            purchaseEvents: maintenanceEvents.purchaseEvents,
+            careEvents: maintenanceEvents.careEvents,
+            today,
+          })
+        : new Map(),
+    [data, maintenanceEvents, today, visibleItems],
+  )
 
   const reset = () => {
     setQuery('')
@@ -277,6 +304,14 @@ export function ClosetPage() {
 
       {loading && <LoadingState />}
       {error && <ErrorState message={error} onRetry={() => void refresh()} />}
+      {data && maintenanceEvents.error ? (
+        <div className="maintenance-load-error" role="alert">
+          <span>관리 상태를 불러오지 못했습니다: {maintenanceEvents.error}</span>
+          <button className="button button--secondary" type="button" onClick={() => void maintenanceEvents.reload()}>
+            다시 시도
+          </button>
+        </div>
+      ) : null}
       {data && (
         <section className="section">
           <div className="section-heading">
@@ -295,24 +330,33 @@ export function ClosetPage() {
           ) : (
             <>
               <div className="item-grid">
-                {items.slice(0, visibleItemCount).map((item) => {
+                {visibleItems.map((item) => {
                   const stats = getItemStats(item.id, data.outfits, data.wearLogs)
+                  const maintenanceSignal = maintenanceSignals.get(item.id)
+                  const badge = maintenanceSignal?.primaryBadge ?? null
 
                   return (
                     <Link
                       className="item-card"
                       to={`/closet/${item.id}`}
                       key={item.id}
-                      aria-label={`${item.name} 아이템 상세 보기`}
+                      aria-label={`${item.name} 아이템 상세 보기${badge ? `, 관리 상태 ${badge}` : ''}`}
                     >
                       <ItemVisual item={item} className="item-visual--grid" />
                       <span className="item-card__summary" aria-hidden="true">
-                        <span>착용 {stats.wearCount}회</span>
-                        <span>
-                          {stats.lastWornOn
-                            ? `최근 ${formatMonthDayYear(stats.lastWornOn)}`
-                            : '최근 기록 없음'}
+                        <span className="item-card__stats">
+                          <span>착용 {stats.wearCount}회</span>
+                          <span>
+                            {stats.lastWornOn
+                              ? `최근 ${formatMonthDayYear(stats.lastWornOn)}`
+                              : '최근 기록 없음'}
+                          </span>
                         </span>
+                        {badge ? (
+                          <span className={`badge badge--${badge === '점검' ? 'warning' : badge === '교체' ? 'error' : badge === '손세탁' ? 'hand_wash' : 'dry_cleaning'}`}>
+                            {badge}
+                          </span>
+                        ) : null}
                       </span>
                     </Link>
                   )

@@ -14,6 +14,10 @@ import type {
   PurchaseEventDeleteInput,
   PurchaseEventUpdateInput,
   CurrentQuantityUpdateInput,
+  CareEvent,
+  CareEventCreateInput,
+  CareEventDeleteInput,
+  CareEventUpdateInput,
   WeatherForecastRequest,
   WeatherForecastResponse,
   WeatherLocation,
@@ -24,11 +28,13 @@ import type {
 import { demoData } from './demo-data'
 import { DemoReplacementLineRepository } from './demo/replacement-lines'
 import type { PurchaseRepository } from './purchase-repository'
+import type { CareRepository } from './care-repository'
 import type { ClosetRepository } from './repository'
 import { todayInKorea } from '../lib/date'
 
 const STORAGE_KEY = 'closet-index-demo-data-v3'
 const PURCHASE_EVENT_STORAGE_KEY = 'closet-index-demo-purchase-events:v1'
+const CARE_EVENT_STORAGE_KEY = 'closet-index-demo-care-events:v1'
 
 function normalizeItem(input: ItemWriteInput, id: string): Item {
   const name = input.name.trim()
@@ -104,6 +110,115 @@ function writePurchaseEvents(events: PurchaseEvent[]) {
   window.localStorage.setItem(PURCHASE_EVENT_STORAGE_KEY, JSON.stringify(events))
 }
 
+function readCareEvents(): CareEvent[] {
+  try {
+    const stored = window.localStorage.getItem(CARE_EVENT_STORAGE_KEY)
+    return stored ? (JSON.parse(stored) as CareEvent[]) : []
+  } catch {
+    return []
+  }
+}
+
+function writeCareEvents(events: CareEvent[]) {
+  window.localStorage.setItem(CARE_EVENT_STORAGE_KEY, JSON.stringify(events))
+}
+
+function sortCareEvents(events: CareEvent[]) {
+  return events.sort(
+    (left, right) =>
+      right.caredOn.localeCompare(left.caredOn) ||
+      right.createdAt.localeCompare(left.createdAt) ||
+      right.id.localeCompare(left.id),
+  )
+}
+
+function validateCareDate(caredOn: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(caredOn)) {
+    throw new Error('올바른 관리 날짜를 입력해 주세요.')
+  }
+  const [year, month, day] = caredOn.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    throw new Error('올바른 관리 날짜를 입력해 주세요.')
+  }
+  if (caredOn > todayInKorea()) {
+    throw new Error('미래 날짜에는 관리를 기록할 수 없습니다.')
+  }
+}
+
+class DemoCareRepository implements CareRepository {
+  async load(itemId: string) {
+    return structuredClone(
+      sortCareEvents(readCareEvents().filter((event) => event.itemId === itemId)),
+    )
+  }
+
+  async loadForItems(itemIds: readonly string[]) {
+    const ids = new Set(itemIds)
+    return structuredClone(sortCareEvents(readCareEvents().filter((event) => ids.has(event.itemId))))
+  }
+
+  async create(input: CareEventCreateInput) {
+    const item = readData().items.find((entry) => entry.id === input.itemId)
+    if (!item) throw new Error('Item을 찾을 수 없습니다.')
+    validateCareDate(input.caredOn)
+    const events = readCareEvents()
+    const existing = events.find((event) => event.id === input.id)
+    if (existing) {
+      if (
+        existing.itemId === input.itemId &&
+        existing.caredOn === input.caredOn &&
+        existing.method === input.method
+      ) {
+        return structuredClone(existing)
+      }
+      throw new Error('이미 다른 내용으로 사용된 관리 기록 ID입니다.')
+    }
+
+    const changedAt = new Date().toISOString()
+    const careEvent: CareEvent = {
+      id: input.id,
+      itemId: input.itemId,
+      caredOn: input.caredOn,
+      method: input.method,
+      createdAt: changedAt,
+      updatedAt: changedAt,
+    }
+    events.push(careEvent)
+    writeCareEvents(events)
+    return structuredClone(careEvent)
+  }
+
+  async update(input: CareEventUpdateInput) {
+    const events = readCareEvents()
+    const event = events.find((entry) => entry.id === input.eventId)
+    if (!event || event.updatedAt !== input.expectedUpdatedAt) {
+      throw new Error('관리 기록이 변경되었습니다. 다시 불러와 주세요.')
+    }
+    validateCareDate(input.caredOn)
+    event.caredOn = input.caredOn
+    event.method = input.method
+    event.updatedAt = new Date(
+      Math.max(Date.now(), new Date(event.updatedAt).getTime() + 1),
+    ).toISOString()
+    writeCareEvents(events)
+    return structuredClone(event)
+  }
+
+  async delete(input: CareEventDeleteInput) {
+    const events = readCareEvents()
+    const event = events.find((entry) => entry.id === input.eventId)
+    if (!event || event.updatedAt !== input.expectedUpdatedAt) {
+      throw new Error('관리 기록이 변경되었습니다. 다시 불러와 주세요.')
+    }
+    writeCareEvents(events.filter((entry) => entry.id !== input.eventId))
+  }
+}
+
 function validateQuantity(value: number, label: string, allowZero: boolean) {
   if (!Number.isInteger(value) || value < (allowZero ? 0 : 1)) {
     throw new Error(`${label}은 ${allowZero ? '0' : '1'} 이상의 정수여야 합니다.`)
@@ -127,6 +242,20 @@ class DemoPurchaseRepository implements PurchaseRepository {
     return structuredClone(
       readPurchaseEvents()
         .filter((event) => event.itemId === itemId)
+        .sort(
+          (left, right) =>
+            right.purchasedOn.localeCompare(left.purchasedOn) ||
+            right.createdAt.localeCompare(left.createdAt) ||
+            right.id.localeCompare(left.id),
+        ),
+    )
+  }
+
+  async loadForItems(itemIds: readonly string[]) {
+    const ids = new Set(itemIds)
+    return structuredClone(
+      readPurchaseEvents()
+        .filter((event) => ids.has(event.itemId))
         .sort(
           (left, right) =>
             right.purchasedOn.localeCompare(left.purchasedOn) ||
@@ -230,6 +359,7 @@ export class DemoRepository implements ClosetRepository {
     readData().items.some((item) => item.id === itemId),
   )
   readonly purchases = new DemoPurchaseRepository()
+  readonly care = new DemoCareRepository()
 
   async load() {
     return readData()
@@ -299,6 +429,7 @@ export class DemoRepository implements ClosetRepository {
     writePurchaseEvents(
       readPurchaseEvents().filter((event) => event.itemId !== itemId),
     )
+    writeCareEvents(readCareEvents().filter((event) => event.itemId !== itemId))
   }
 
   async updateItemSuitability(

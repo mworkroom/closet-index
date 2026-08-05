@@ -5,10 +5,13 @@ import { ItemVisual } from '../components/ItemVisual'
 import { OutfitCard } from '../components/OutfitCard'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
+import { getCareRule } from '../features/maintenance/care-cycle'
+import { ItemCareSection } from '../features/maintenance/components/ItemCareSection'
+import { getMaintenanceSignals } from '../features/maintenance/maintenance-signals'
+import { useItemCareEvents } from '../features/maintenance/useItemCareEvents'
 import { ItemReplacementLineageSection } from '../features/replacement-lines/components/ItemReplacementLineageSection'
 import { ItemReplenishmentSection } from '../features/replenishment/components/ItemReplenishmentSection'
 import {
-  getPurchaseCycleStatus,
   getPurchaseReplacementRule,
 } from '../features/replenishment/purchase-replenishment'
 import { useItemPurchaseEvents } from '../features/replenishment/useItemPurchaseEvents'
@@ -19,10 +22,11 @@ const calendarMonths = Array.from({ length: 12 }, (_, index) => index + 1)
 
 export function ItemDetailPage() {
   const { itemId = '' } = useParams()
-  const { data, loading, error, refresh, purchases } = useClosetData()
+  const { data, loading, error, refresh, purchases, care } = useClosetData()
   const item = data?.items.find((entry) => entry.id === itemId)
   const [visibleOutfitCount, setVisibleOutfitCount] = useState(9)
   const purchaseEventsState = useItemPurchaseEvents(purchases, itemId)
+  const careEventsState = useItemCareEvents(care, itemId)
   const today = todayInKorea()
 
   useEffect(() => {
@@ -51,19 +55,33 @@ export function ItemDetailPage() {
   const visibleIncludedOutfits = includedOutfits.slice(0, visibleOutfitCount)
   const stats =
     data && item ? getItemStats(item.id, data.outfits, data.wearLogs) : null
-  const purchaseCycle = useMemo(
+  const maintenanceSignals = useMemo(
     () =>
       data && item
-        ? getPurchaseCycleStatus({
-            item,
-            events: purchaseEventsState.events,
+        ? getMaintenanceSignals({
+            items: [item],
             outfits: data.outfits,
             wearLogs: data.wearLogs,
+            purchaseEvents: purchaseEventsState.events,
+            careEvents: careEventsState.events,
             today,
-          })
+            purchaseEventsAvailable: !purchaseEventsState.error,
+            careEventsAvailable: !careEventsState.error,
+          }).get(item.id) ?? null
         : null,
-    [data, item, purchaseEventsState.events, today],
+    [
+      careEventsState.error,
+      careEventsState.events,
+      data,
+      item,
+      purchaseEventsState.error,
+      purchaseEventsState.events,
+      today,
+    ],
   )
+  const inspectionSignal = maintenanceSignals?.inspection ?? null
+  const purchaseCycle = maintenanceSignals?.replacement ?? null
+  const careCycle = maintenanceSignals?.care ?? null
   const maximumMonthlyWearCount = Math.max(
     0,
     ...(stats?.monthlyWearCounts ?? []),
@@ -113,9 +131,14 @@ export function ItemDetailPage() {
                 <dt>상태</dt>
                 <dd className="item-status-summary">
                   <span>{item.retired ? 'Retired' : '사용 중'}</span>
-                  {purchaseCycle?.due ? (
-                    <span className="badge badge--error">교체</span>
-                  ) : null}
+                  {maintenanceSignals?.allBadges.map((label) => (
+                    <span
+                      className={`badge badge--${label === '점검' ? 'warning' : label === '교체' ? 'error' : label === '손세탁' ? 'hand_wash' : 'dry_cleaning'}`}
+                      key={label}
+                    >
+                      {label}
+                    </span>
+                  ))}
                 </dd>
               </div>
             </dl>
@@ -146,6 +169,19 @@ export function ItemDetailPage() {
               <strong>{formatMonthDayYear(stats?.lastWornOn ?? null)}</strong>
             </div>
           </section>
+
+          {inspectionSignal ? (
+            <section
+              className="item-inspection-reason"
+              aria-labelledby="item-inspection-heading"
+            >
+              <div>
+                <span className="badge badge--warning">점검</span>
+                <h2 id="item-inspection-heading">점검 근거</h2>
+              </div>
+              <p>{inspectionSignal.reason}</p>
+            </section>
+          ) : null}
 
           <section
             className="section monthly-wear-section"
@@ -222,6 +258,17 @@ export function ItemDetailPage() {
             isReplacementTarget={Boolean(
               getPurchaseReplacementRule(item.category),
             )}
+            today={today}
+          />
+
+          <ItemCareSection
+            item={item}
+            events={careEventsState.events}
+            loading={careEventsState.loading}
+            loadError={careEventsState.error}
+            reload={careEventsState.reload}
+            cycle={careCycle}
+            rule={getCareRule(item.category)}
             today={today}
           />
 

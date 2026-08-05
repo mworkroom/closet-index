@@ -51,6 +51,7 @@ describe('Phase 3.5 navigation', () => {
         'Replacement Lines같은 역할을 이어 온 Item 계보와 검토',
         '/replacement-lines',
       ],
+      ['Maintenance장기 미착용 Item 점검', '/maintenance'],
       ['Settings계정과 데이터 원본 상태', '/settings'],
     ])
     expect(within(menu!).queryByText('Calendar')).not.toBeInTheDocument()

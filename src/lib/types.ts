@@ -138,6 +138,36 @@ export interface CurrentQuantityUpdateInput {
   currentQuantity: number | null
 }
 
+export type CareMethod = 'hand_wash' | 'dry_cleaning'
+
+export interface CareEvent {
+  id: string
+  itemId: string
+  caredOn: string
+  method: CareMethod
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CareEventCreateInput {
+  id: string
+  itemId: string
+  caredOn: string
+  method: CareMethod
+}
+
+export interface CareEventUpdateInput {
+  eventId: string
+  caredOn: string
+  method: CareMethod
+  expectedUpdatedAt: string
+}
+
+export interface CareEventDeleteInput {
+  eventId: string
+  expectedUpdatedAt: string
+}
+
 export interface Outfit {
   id: string
   displayName: string | null

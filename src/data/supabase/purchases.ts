@@ -51,6 +51,21 @@ export class SupabasePurchaseRepository implements PurchaseRepository {
     return ((data ?? []) as PurchaseEventRow[]).map(toPurchaseEvent)
   }
 
+  async loadForItems(itemIds: readonly string[]): Promise<PurchaseEvent[]> {
+    if (itemIds.length === 0) return []
+    const { data, error } = await this.client
+      .from('closet_purchase_events')
+      .select(PURCHASE_EVENT_SELECTION)
+      .eq('workspace_id', this.workspaceId)
+      .in('item_id', [...new Set(itemIds)])
+      .order('purchased_on', { ascending: false })
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+
+    if (error) throw error
+    return ((data ?? []) as PurchaseEventRow[]).map(toPurchaseEvent)
+  }
+
   async create(input: PurchaseEventCreateInput): Promise<PurchaseEvent> {
     const { data, error } = await this.client.rpc(
       'create_closet_purchase_event',

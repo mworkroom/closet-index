@@ -19,11 +19,13 @@ import type {
 } from '../lib/types'
 import type { ReplacementLineRepository } from './replacement-line-repository'
 import type { PurchaseRepository } from './purchase-repository'
+import type { CareRepository } from './care-repository'
 
 export interface ClosetRepository {
   load(): Promise<AppData>
   readonly replacementLines: ReplacementLineRepository
   readonly purchases: PurchaseRepository
+  readonly care: CareRepository
   createItem(input: ItemCreateInput): Promise<Item>
   updateItem(itemId: string, input: ItemWriteInput): Promise<Item>
   replaceItemImage(

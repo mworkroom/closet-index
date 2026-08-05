@@ -178,10 +178,11 @@ describe('Phase 1B screen visuals', () => {
     const grid = document.querySelector<HTMLElement>('.item-grid')
     expect(grid).toBeInTheDocument()
     const links = within(grid!).getAllByRole('link')
-    expect(links).toHaveLength(1)
-    expect(links[0]).toHaveAccessibleName(
-      '미착용 테스트 Item 아이템 상세 보기',
-    )
+    expect(links).toHaveLength(2)
+    const testItemLink = within(grid!).getByRole('link', {
+      name: '미착용 테스트 Item 아이템 상세 보기, 관리 상태 점검',
+    })
+    expect(within(testItemLink).getByText('점검')).toBeInTheDocument()
     links.forEach((link) => {
       const itemId = link.getAttribute('href')?.replace('/closet/', '')
       expect(

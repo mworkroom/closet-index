@@ -14,6 +14,7 @@ import { ItemDetailPage } from './pages/ItemDetailPage'
 import { ItemEditorPage } from './pages/ItemEditorPage'
 import { AccessDeniedPage, LoginPage } from './pages/LoginPage'
 import { LookbookPage } from './pages/LookbookPage'
+import { MaintenancePage } from './pages/MaintenancePage'
 import { MorePage } from './pages/MorePage'
 import { ReplacementLinesPage } from './pages/ReplacementLinesPage'
 import { ReplacementLegacyLinkReviewPage } from './pages/ReplacementLegacyLinkReviewPage'
@@ -68,6 +69,7 @@ function AuthenticatedApp() {
           <Route path="/more" element={<MorePage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/statistics" element={<StatisticsPage />} />
+          <Route path="/maintenance" element={<MaintenancePage />} />
           <Route
             path="/replacement-lines"
             element={<ReplacementLinesPage />}

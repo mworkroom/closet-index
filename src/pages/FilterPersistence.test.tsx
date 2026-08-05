@@ -106,7 +106,7 @@ describe('section filter persistence', () => {
     expect(made).toBeChecked()
     expect(
       screen.getByRole('link', {
-        name: '직접 만든 가디건 아이템 상세 보기',
+        name: '직접 만든 가디건 아이템 상세 보기, 관리 상태 점검',
       }),
     ).toBeInTheDocument()
     expect(

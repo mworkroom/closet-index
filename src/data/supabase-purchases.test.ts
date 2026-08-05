@@ -75,6 +75,20 @@ describe('SupabaseRepository P6-2 purchases', () => {
     expect(events).toHaveLength(1)
   })
 
+  it('현재 화면 Item의 구매 사건을 한 query로 일괄 조회한다', async () => {
+    const builder: Record<string, ReturnType<typeof vi.fn>> = {}
+    for (const method of ['select', 'eq', 'in', 'order']) {
+      builder[method] = vi.fn(() => builder)
+    }
+    builder.then = vi.fn((resolve) => resolve({ data: [row], error: null }))
+    const client = { from: vi.fn(() => builder) } as unknown as SupabaseClient
+    const repository = new SupabaseRepository(client, 'workspace-1')
+
+    await repository.purchases.loadForItems(['item-1', 'item-2'])
+
+    expect(builder.in).toHaveBeenCalledWith('item_id', ['item-1', 'item-2'])
+  })
+
   it('수동 수량 snapshot만 활성 workspace의 Item에 저장한다', async () => {
     const builder: Record<string, ReturnType<typeof vi.fn>> = {}
     for (const method of ['update', 'eq', 'select']) {
