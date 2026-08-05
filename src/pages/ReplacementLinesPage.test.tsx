@@ -1,11 +1,12 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { DataProvider } from '../context/DataContext'
 import { DemoRepository } from '../data/demo-repository'
 import { ReplacementLinesPage } from './ReplacementLinesPage'
 
+beforeEach(() => window.localStorage.clear())
 afterEach(cleanup)
 
 describe('ReplacementLinesPage', () => {
@@ -132,6 +133,38 @@ describe('ReplacementLinesPage', () => {
 
     await user.click(navyLine)
     expect(screen.getByText('계보 화면')).toBeInTheDocument()
+  })
+
+  it('replaces the single-Item warning with an accessible Line survival badge', async () => {
+    const repository = new DemoRepository()
+    await repository.setItemRetired('item-tee', true)
+    const snapshot = await repository.replacementLines.load()
+    snapshot.lines = snapshot.lines.map((line) =>
+      line.id === 'line-navy-tee'
+        ? { ...line, reviewStatus: 'needs_review' }
+        : line,
+    )
+    window.localStorage.setItem(
+      'closet-index-demo-replacement-lines:v1',
+      JSON.stringify(snapshot),
+    )
+
+    render(
+      <MemoryRouter initialEntries={['/replacement-lines?color=navy']}>
+        <DataProvider repository={repository}>
+          <ReplacementLinesPage />
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    const lineCard = await screen.findByRole('link', {
+      name: 'Navy Tee 계보 보기. 💀 멸종: 현재 사용할 대체 Item 없음',
+    })
+    expect(within(lineCard).getByText('💀 멸종')).toHaveAccessibleName(
+      '💀 멸종: 현재 사용할 대체 Item 없음',
+    )
+    expect(within(lineCard).getByText('재검토 필요')).toBeInTheDocument()
+    expect(within(lineCard).queryByText('단일 Item')).not.toBeInTheDocument()
   })
 
   it('keeps only archived Line tools inside the compact management section', async () => {

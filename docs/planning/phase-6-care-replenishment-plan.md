@@ -1,7 +1,7 @@
 # Closet Index Phase 6 Care & Replenishment Plan
 
 - 작성일: 2026-08-05
-- 상태: 구현 전 최종 확정 계획
+- 상태: P6-1 및 P6-1.1 구현 완료
 - 선행 단계: Phase 4 Replacement Line 완료
 - 목적: Item 상세 페이지와 Maintenance 페이지에서 교체 계보, 재구매, 장기 미착용 점검, 특수 세탁 관리를 일관된 기준으로 제공한다.
 - 관련 문서: [Roadmap](./roadmap.md), [Phase 4 Maintenance & Insights Plan](./phase-4-maintenance-insights-plan.md), [Product Plan](./product-plan.md)
@@ -12,7 +12,7 @@
 
 Phase 6은 다음 네 단계로 나눈다.
 
-1. **P6-1 교체 계보**: Item 상세 페이지에서 기존 Replacement Line 관계를 읽어 부모·본인·자식을 보여준다.
+1. **P6-1 교체 계보**: Item 상세 페이지에서 기존 Replacement Line 관계를 읽어 부모·본인·자식을 보여주고, P6-1.1에서 Line의 생존 상태를 표시한다.
 2. **P6-2 재구매**: 재구매 날짜와 수량, 현재 보유 수량을 기록하고 교체 시점을 계산한다.
 3. **P6-3 점검**: 착용 기록이 없거나 오랫동안 입지 않은 Item을 하나의 `점검` 신호로 모은다.
 4. **P6-4 세탁 관리**: 손세탁·드라이클리닝 대상과 완료 기록을 관리한다.
@@ -21,6 +21,7 @@ Phase 6은 다음 네 단계로 나눈다.
 
 - Item 목록: 가장 우선순위가 높은 관리 배지 1개
 - Item 상세: 해당하는 관리 배지 전체와 단계별 상세 영역
+- Replacement Line 목록: Line별 `멸종`, `멸종 위기`, `대체품 점검` 배지
 - More → Maintenance: `점검`, `교체`, `손세탁`, `드라이클리닝`별 대상 목록
 
 ## 2. 공통 원칙
@@ -103,6 +104,63 @@ Replacement Line 영역은 `월별 착용 분포` 아래, 재구매·세탁 관�
 - 새 테이블이나 RPC는 추가하지 않는다.
 - 계보 조회가 실패해도 Item 상세의 다른 영역은 정상적으로 표시한다.
 - 계보 영역 내부에서만 다시 시도할 수 있는 오류 상태를 제공한다.
+
+### 3.6 P6-1.1 Replacement Line 생존 상태
+
+#### 목적
+
+Replacement Line은 교체 이력을 보여주는 것뿐 아니라, 아직 만족스러운 대체품을 찾지 못했거나 현재 사용 가능한 Item이 오래된 필요 영역을 다시 떠올리게 하는 장치다. Line 카드에 생존 상태를 표시해 쇼핑할 때 기억해야 할 공백을 눈에 띄게 만든다.
+
+이 상태는 Item 관리 배지가 아니라 Replacement Line 전체의 계산 신호다. Item 목록·Item 상세의 `점검`, `교체`, `손세탁`, `드라이클리닝` 배지와 More → Maintenance에는 포함하지 않는다.
+
+#### 상태 계산
+
+활성 Replacement Line에 대해 다음 우선순위로 상태 하나만 계산한다.
+
+1. Item이 1개 이상이고 Active Item 수가 0이면 `💀 멸종`
+2. Active Item이 있고 `Newest Active Age >= Risk Threshold`이면 `⚠️ 멸종 위기`
+3. Active Item이 있고 `Newest Active Age >= Risk Threshold - 1`이면 `🔎 대체품 점검`
+4. 나머지는 생존 상태 배지를 표시하지 않는다.
+
+추가 경계는 다음과 같다.
+
+- Item이 없는 Line은 기존 `빈 Line`으로 표시하며 `멸종`으로 계산하지 않는다.
+- Item이 1개라는 사실만으로 `멸종`이 되지는 않는다. Active Item의 존재와 나이가 상태를 결정한다.
+- Active Item이 여러 개면 구매일이 가장 최근인 Item을 기준으로 한다.
+- `Newest Active Age`는 현재 로컬 날짜와 가장 최근 Active Item의 구매일 사이에 완료된 달력 연수다.
+- 구매일이 있는 Active Item만 연령 계산에 사용한다. Active Item은 있지만 구매일이 하나도 없으면 연령 기반 배지를 표시하지 않는다.
+- Retired 전환·해제, Item membership 변경, 구매일 수정, 날짜 경과에 따라 다시 계산한다.
+- 숨겨졌거나 해석되지 않은 membership이 있거나 Line 데이터 조회가 실패한 경우 `멸종`으로 추정하지 않는다.
+- 보관된 Line에는 생존 상태 배지를 표시하지 않는다.
+
+#### Style Identity별 Risk Threshold
+
+Style Identity 문자열을 공백·대소문자 차이에 안전하게 정규화한 뒤 아래 순서로 처음 일치하는 기준을 사용한다.
+
+| 판정 순서 | Style Identity 포함 문자열 | Risk Threshold | 대체품 점검 시작 | 멸종 위기 시작 |
+| ---: | --- | ---: | ---: | ---: |
+| 1 | `Bag` | 5년 | 4년 | 5년 |
+| 2 | `Shoes` | 4년 | 3년 | 4년 |
+| 3 | `Layered Top` | 2년 | 1년 | 2년 |
+| 4 | `Tee` | 2년 | 1년 | 2년 |
+| 5 | `Socks` | 1년 | 0년 | 1년 |
+| 기본 | 일치 없음 | 3년 | 2년 | 3년 |
+
+`Socks`는 Risk Threshold가 1년이므로 Active Item의 완료 연수가 0년이어도 `🔎 대체품 점검`, 1년 이상이면 `⚠️ 멸종 위기`가 된다. 이는 Notion에서 확정한 기존 규칙을 그대로 유지한다.
+
+#### 카드 표시
+
+- 활성 Replacement Line 카드에 계산된 생존 상태 배지 하나를 표시한다.
+- 기존 `단일 Item` 표시는 독립 경고로 사용하지 않고 생존 상태 계산으로 대체한다.
+- 눈에 보이는 문구는 `💀 멸종`, `⚠️ 멸종 위기`, `🔎 대체품 점검`을 그대로 사용한다.
+- 접근 가능한 이름에는 상태와 함께 `현재 사용할 대체 Item 없음`, `대체품 교체 시기 임박`, `대체품 탐색 점검 시기`처럼 의미를 풀어 쓴다.
+- 기존 `빈 Line`, `재검토 필요`, `복수 Line 소속`, `색상 확인 필요` 같은 데이터 관리 경고와는 별도 의미로 취급한다.
+
+#### 데이터 사용
+
+- 기존 `ReplacementLineOverviewRow.styleIdentity`, `activeItems`, `retiredItems`, `newestActiveAcquiredOn`, `hiddenMembershipCount`를 사용한다.
+- 생존 상태는 화면에서 계산하며 DB column으로 저장하지 않는다.
+- 새 테이블, RPC, migration, 추가 query를 만들지 않는다.
 
 ## 4. P6-2 재구매와 현재 보유 수량
 
@@ -377,7 +435,17 @@ More 메뉴에 `Maintenance` 진입점을 추가하고 페이지를 네 영역�
 - 사건 당시 관리 방식
 - 생성·수정 시각
 
-### 9.4 MaintenanceSignals
+### 9.4 ReplacementLineSurvivalSignal
+
+Line 생존 상태 계산 결과는 최소한 다음 정보를 제공한다.
+
+- 상태: `extinct`, `endangered`, `replacement_check`, `null`
+- 화면 표시 문구와 접근 가능한 설명
+- Active Item 수
+- 가장 최근 Active 구매일과 완료 연수
+- 적용된 Style Identity Risk Threshold
+
+### 9.5 MaintenanceSignals
 
 공통 계산 결과는 최소한 다음 정보를 제공한다.
 
@@ -389,7 +457,7 @@ More 메뉴에 `Maintenance` 진입점을 추가하고 페이지를 네 영역�
 - Item 상세에서 표시할 전체 배지
 - 계산에 사용한 현재 로컬 날짜와 주기 기준일
 
-### 9.5 저장과 보안
+### 9.6 저장과 보안
 
 - 새 테이블이 필요하면 기존 구조로 해결할 수 없는 이유를 먼저 기록한다.
 - 모든 구매·관리 사건은 workspace 소유권과 RLS를 적용한다.
@@ -407,6 +475,14 @@ More 메뉴에 `Maintenance` 진입점을 추가하고 페이지를 네 영역�
 2. 기존 확정 edge에서 직접 부모·자식을 계산한다.
 3. 계보 UI, 선택 이유, 이동, 빈 상태 숨김을 구현한다.
 4. 다중 부모·자식과 모바일 가로 스크롤을 검증한다.
+
+### P6-1.1 — Replacement Line 생존 상태 배지
+
+1. Style Identity별 Risk Threshold와 완료 연수 계산을 공통 selector로 구현한다.
+2. Active Item 0개, 멸종 위기, 대체품 점검을 우선순위에 따라 판정한다.
+3. Replacement Line 카드의 기존 `단일 Item` 표시를 생존 상태 배지로 대체한다.
+4. 빈 Line·보관 Line·구매일 없음·숨겨진 membership 경계를 검증한다.
+5. P6-1.1을 완료한 뒤 P6-2 구매 사건과 현재 수량으로 진행한다.
 
 ### P6-2 — 구매 사건과 현재 수량
 
@@ -444,7 +520,23 @@ More 메뉴에 `Maintenance` 진입점을 추가하고 페이지를 네 영역�
 - 날짜 경과만으로 730일·2년 경계에 도달하는 경우
 - Retired 전환 전후
 
-### 11.2 Category 규칙
+### 11.2 Replacement Line 생존 상태
+
+- Item 1개 이상, Active 0개이면 `💀 멸종`
+- Item 0개이면 `멸종`이 아니라 기존 `빈 Line`
+- Item 1개여도 최근 Active Item이면 개수만으로 배지를 만들지 않음
+- Active Item이 여러 개면 가장 최근 구매일 사용
+- 각 Style Identity의 Risk Threshold 1년 전과 정확한 도달 시점
+- `Bag → Shoes → Layered Top → Tee → Socks → 기본 3년` 판정 우선순위
+- `Socks`의 완료 연수 0년 점검, 1년 멸종 위기
+- Style Identity 미지정·불일치 시 기본 3년
+- Active Item은 있지만 구매일이 모두 없으면 연령 배지 없음
+- Retired 전환·해제, membership·구매일 변경, 날짜 경과 후 재계산
+- 숨겨진 membership과 조회 실패를 `멸종`으로 오인하지 않음
+- 보관 Line에는 생존 상태 배지 없음
+- 생존 상태와 기존 데이터 관리 경고의 의미·접근 가능한 이름 구분
+
+### 11.3 Category 규칙
 
 - `Bags-made` 제외
 - `made` 손세탁
@@ -454,7 +546,7 @@ More 메뉴에 `Maintenance` 진입점을 추가하고 페이지를 네 영역�
 - `Top-T-shirts-innerwear`와 `Innerwear` 중복 판정 방지
 - `Innerwear`의 점검 제외와 730일 교체 적용
 
-### 11.3 사건 기록
+### 11.4 사건 기록
 
 - 재구매 날짜·구매 수량·현재 수량 저장
 - 현재 수량의 미입력/0/양수 구분
@@ -469,7 +561,7 @@ More 메뉴에 `Maintenance` 진입점을 추가하고 페이지를 네 영역�
 - Category를 손세탁·드라이클리닝·관리 대상 아님 사이에서 변경
 - 같은 날짜에 구매·관리 사건이 여러 개 있는 경우의 안정적인 이력 표시
 
-### 11.4 화면 동기화
+### 11.5 화면 동기화
 
 - Item 목록은 우선순위에 따른 배지 1개만 표시
 - Item 상세는 해당 배지 전체 표시
@@ -484,18 +576,21 @@ More 메뉴에 `Maintenance` 진입점을 추가하고 페이지를 네 영역�
 - 모바일 3열 Item 카드에서 배지가 겹치지 않음
 - 키보드 탐색과 스크린리더용 이름으로 상태를 확인할 수 있음
 
-### 11.5 회귀 범위
+### 11.6 회귀 범위
 
 - Closet 필터·검색·페이지네이션
 - Item 상세 통계와 월별 착용 분포
 - Wear Log 추가·수정·삭제
 - Outfit 상세와 포함 Item
 - Replacement Line 편집과 확정 관계
+- Replacement Line 색상·Style Identity 그룹과 카드 관리 경고
 - Home 화면의 기존 집계
 
 ## 12. 완료 조건
 
 - Item 상세에서 기존 Replacement Line의 직접 부모·본인·직접 자식과 현재 Item의 선택 이유를 확인할 수 있다.
+- Replacement Line 카드에서 기존 Notion 연수 기준에 따라 `멸종`, `멸종 위기`, `대체품 점검` 중 해당 상태 하나를 확인할 수 있다.
+- 빈 Line, 보관 Line, 구매일 없음, 숨겨진 membership을 멸종 상태로 잘못 표시하지 않는다.
 - 재구매 날짜·구매 수량을 기록·수정·삭제하고 전체 구매 이력을 볼 수 있다.
 - 현재 보유 수량은 다른 계산과 연동되지 않는 단순 숫자 snapshot으로 입력할 수 있다.
 - 재구매 기록과 저장 후 현재 수량은 하나의 DB transaction으로 저장된다.

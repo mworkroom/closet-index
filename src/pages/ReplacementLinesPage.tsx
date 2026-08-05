@@ -9,6 +9,8 @@ import {
   type ReplacementLineColorGroup,
   type ReplacementLineOverviewRow,
 } from '../features/replacement-lines/replacement-line-overview'
+import { getReplacementLineSurvivalStatus } from '../features/replacement-lines/replacement-line-survival'
+import { todayInKorea } from '../lib/date'
 import type {
   ReplacementLineColorCategory,
   ReplacementLineSnapshot,
@@ -24,14 +26,24 @@ function usesLightText(hex: string) {
   return (red * 299 + green * 587 + blue * 114) / 1000 < 142
 }
 
-function ReplacementLineCard({ line }: { line: ReplacementLineOverviewRow }) {
+function ReplacementLineCard({
+  line,
+  today,
+}: {
+  line: ReplacementLineOverviewRow
+  today: string
+}) {
   const isEmpty = line.membershipCount === 0
-  const isSingle = line.membershipCount === 1
+  const survivalStatus = getReplacementLineSurvivalStatus(line, today)
   return (
     <Link
       className="replacement-line-card replacement-line-card--link"
       to={`/replacement-lines/${line.id}`}
-      aria-label={`${line.name} 계보 보기`}
+      aria-label={
+        survivalStatus
+          ? `${line.name} 계보 보기. ${survivalStatus.accessibleLabel}`
+          : `${line.name} 계보 보기`
+      }
     >
       <span className="replacement-line-card__heading">
         <strong>{line.name}</strong>
@@ -44,15 +56,22 @@ function ReplacementLineCard({ line }: { line: ReplacementLineOverviewRow }) {
       </span>
       <ChevronRight aria-hidden="true" size={18} />
 
+      {survivalStatus ? (
+        <span
+          className={`replacement-line-survival replacement-line-survival--${survivalStatus.kind}`}
+          aria-label={survivalStatus.accessibleLabel}
+        >
+          {survivalStatus.label}
+        </span>
+      ) : null}
+
       {isEmpty ||
-      isSingle ||
       line.hasMultipleLineItem ||
       line.hasMultipleSemanticColors ||
       line.reviewStatus === 'needs_review' ? (
         <span className="replacement-line-warnings" aria-label="Line 점검 상태">
           {line.reviewStatus === 'needs_review' ? <span>재검토 필요</span> : null}
           {isEmpty ? <span>빈 Line</span> : null}
-          {isSingle ? <span>단일 Item</span> : null}
           {line.hasMultipleLineItem ? <span>복수 Line 소속</span> : null}
           {line.hasMultipleSemanticColors ? <span>색상 확인 필요</span> : null}
         </span>
@@ -115,6 +134,7 @@ export function ReplacementLinesPage() {
   const [newLineStyleIdentity, setNewLineStyleIdentity] = useState('')
   const [newLineColorCategory, setNewLineColorCategory] = useState('')
   const [createError, setCreateError] = useState<string | null>(null)
+  const today = todayInKorea()
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -297,7 +317,11 @@ export function ReplacementLinesPage() {
                 </div>
                 <div className="replacement-line-list">
                   {group.lines.map((line) => (
-                    <ReplacementLineCard line={line} key={line.id} />
+                    <ReplacementLineCard
+                      line={line}
+                      today={today}
+                      key={line.id}
+                    />
                   ))}
                 </div>
               </section>

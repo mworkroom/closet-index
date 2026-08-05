@@ -3557,6 +3557,31 @@ a.item-detail-lineage__item:focus-visible {
   color: var(--muted);
 }
 
+.replacement-line-survival {
+  grid-column: 1 / -1;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.replacement-line-survival--extinct {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.replacement-line-survival--endangered {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.replacement-line-survival--replacement_check {
+  background: #edf1f5;
+  color: #3f4b59;
+}
+
 .replacement-line-warnings {
   grid-column: 1 / -1;
   display: flex;
