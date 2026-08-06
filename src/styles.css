@@ -2346,51 +2346,19 @@ a.item-detail-lineage__item:focus-visible {
   font-weight: 800;
 }
 
+.item-detail-lineage__inheritance-badge {
+  width: fit-content;
+  border: 1px solid rgba(88, 97, 65, 0.26);
+  border-radius: 999px;
+  background: #eef1e5;
+  padding: 3px 6px;
+  font-size: 0.6rem;
+  line-height: 1.1;
+}
+
 .item-detail-lineage__arrow {
   flex: none;
   color: var(--muted);
-}
-
-.item-detail-lineage__reasons {
-  display: grid;
-  gap: 9px;
-  margin-top: 4px;
-  border-radius: 14px;
-  background: var(--surface);
-  padding: 14px;
-}
-
-.item-detail-lineage__reasons h3 {
-  font-size: 0.82rem;
-}
-
-.item-detail-lineage__reasons ul {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.item-detail-lineage__reasons li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline;
-  gap: 10px;
-  border-top: 1px solid var(--line);
-  padding-top: 8px;
-  font-size: 0.72rem;
-}
-
-.item-detail-lineage__reasons li span {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: var(--muted);
-}
-
-.item-detail-lineage__reasons li strong {
-  color: #586141;
-  text-align: right;
 }
 
 .included-outfits-more {

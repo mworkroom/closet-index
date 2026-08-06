@@ -33,7 +33,15 @@ function RelatedItemCard({
   )
 }
 
-function CurrentItemCard({ item, isStart }: { item: Item; isStart: boolean }) {
+function CurrentItemCard({
+  item,
+  isStart,
+  showInheritanceBadge,
+}: {
+  item: Item
+  isStart: boolean
+  showInheritanceBadge: boolean
+}) {
   return (
     <div
       className="item-detail-lineage__item item-detail-lineage__item--current"
@@ -44,6 +52,11 @@ function CurrentItemCard({ item, isStart }: { item: Item; isStart: boolean }) {
         <small>현재 Item</small>
         <strong>{item.name}</strong>
         {isStart ? <span>시작 Item</span> : null}
+        {showInheritanceBadge ? (
+          <span className="item-detail-lineage__inheritance-badge" aria-label="계승">
+            계승 👑
+          </span>
+        ) : null}
       </span>
     </div>
   )
@@ -111,6 +124,9 @@ export function ItemReplacementLineageSection({
   const hasRelations = Boolean(
     lineage && (lineage.parents.length > 0 || lineage.children.length > 0),
   )
+  const hasInheritanceBadge = Boolean(
+    lineage?.parents.some((relation) => relation.decisionReason === '계승 👑'),
+  )
 
   if (!error && edges && !hasRelations) return null
 
@@ -157,6 +173,7 @@ export function ItemReplacementLineageSection({
             <CurrentItemCard
               item={item}
               isStart={lineage.parents.length === 0}
+              showInheritanceBadge={hasInheritanceBadge}
             />
 
             {lineage.children.length > 0 ? (
@@ -171,21 +188,6 @@ export function ItemReplacementLineageSection({
             ) : null}
           </div>
 
-          {lineage.parents.length > 0 ? (
-            <div className="item-detail-lineage__reasons">
-              <h3>현재 Item 선택 이유</h3>
-              <ul>
-                {lineage.parents.map((relation) => (
-                  <li key={relation.edgeId}>
-                    <span>
-                      {relation.item.name} → {item.name}
-                    </span>
-                    <strong>{relation.decisionReason}</strong>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
         </>
       )}
     </section>

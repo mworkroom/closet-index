@@ -22,7 +22,7 @@ import type { Item } from '../lib/types'
 interface MaintenanceRow {
   item: Item
   reason: string
-  badge: ManagementBadgeLabel
+  badge: ManagementBadgeLabel | '관리 중'
   lastWornOn: string | null
 }
 
@@ -75,7 +75,11 @@ function MaintenanceList({ rows }: { rows: readonly MaintenanceRow[] }) {
             <span>{reason}</span>
           </span>
           <span
-            className={`badge badge--${getManagementBadgeClass(badge)}`}
+            className={
+              badge === '관리 중'
+                ? 'badge'
+                : `badge badge--${getManagementBadgeClass(badge)}`
+            }
             aria-hidden="true"
           >
             {badge}
@@ -219,11 +223,16 @@ function ManagementPage({ kind }: { kind: ManagementPageKind }) {
           lastWornOn: lastWornOnByItem.get(item.id) ?? null,
         })
       }
-      if (signal.replacement?.due) {
+      if (
+        signal.replacement?.due ||
+        signal.replacement?.category === 'Innerwear'
+      ) {
         replacement.push({
           item,
-          reason: getReplacementReason(signal.replacement),
-          badge: '교체',
+          reason: signal.replacement.basisDate
+            ? getReplacementReason(signal.replacement)
+            : '구매 기준일 없음',
+          badge: signal.replacement.due ? '교체' : '관리 중',
           lastWornOn: lastWornOnByItem.get(item.id) ?? null,
         })
       }
@@ -280,7 +289,7 @@ function ManagementPage({ kind }: { kind: ManagementPageKind }) {
             <>
               <MaintenanceSection id="inspection-heading" eyebrow="INSPECTION" title="점검" description="착용 기록이 없거나 마지막 착용 후 2년 이상 3년 미만인 Item입니다." emptyTitle="지금 점검할 Item이 없어요" rows={sections.inspection} groupByCategory />
               <MaintenanceSection id="declutter-heading" eyebrow="DECLUTTER" title="정리 후보" description="마지막 착용 후 3년 이상 지난 Item입니다." emptyTitle="지금 정리 후보인 Item이 없어요" rows={sections.declutter} groupByCategory />
-              <MaintenanceSection id="replacement-heading" eyebrow="REPLACEMENT" title="교체" description="현재 구매 주기가 Category별 교체 기준에 도달한 Item입니다." emptyTitle="지금 교체할 Item이 없어요" rows={sections.replacement} groupByCategory />
+              <MaintenanceSection id="replacement-heading" eyebrow="REPLACEMENT" title="교체" description="Innerwear는 항상 표시하고, 그 외 Item은 현재 구매 주기가 Category별 교체 기준에 도달하면 표시합니다." emptyTitle="지금 교체할 Item이 없어요" rows={sections.replacement} groupByCategory />
             </>
           )}
         </div>

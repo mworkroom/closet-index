@@ -60,7 +60,10 @@ const maintenanceData: AppData = {
     item('블라우스 미착용 Item', { category: 'Top-Blouse' }),
     item('착용일이 오래된 Item', { category: 'Outer-Jacket' }),
     item('교체 양말', { category: 'Socks' }),
-    item('제외할 속옷', { category: 'Innerwear' }),
+    item('관리 중인 속옷', {
+      category: 'Innerwear',
+      acquiredOn: '2026-01-01',
+    }),
     item('제외할 Retired', { retired: true }),
   ],
   outfits: [
@@ -144,14 +147,22 @@ describe('P6-4 Maintenance flow', () => {
     expect(within(declutter).getByText('Outer').closest('details')).not.toHaveAttribute('open')
 
     const replacement = screen.getByRole('region', { name: '교체' })
-    expect(replacement.querySelector('.section-heading .count')).toHaveTextContent('1개')
+    expect(replacement.querySelector('.section-heading .count')).toHaveTextContent('2개')
     expect(within(replacement).getByText('Acc').closest('details')).not.toHaveAttribute('open')
+    const innerwearGroup = within(replacement).getByText('Innerwear').closest('details')
+    expect(innerwearGroup).not.toHaveAttribute('open')
+    await user.click(within(replacement).getByText('Innerwear'))
+    expect(
+      within(innerwearGroup as HTMLElement).getByRole('link', {
+        name: /관리 중인 속옷 관리 중: 최근 구매 이후 \d+일 경과, Item 상세 보기/,
+      }),
+    ).toBeInTheDocument()
 
     const sectionHeadings = screen
       .getAllByRole('heading', { level: 2 })
       .map((heading) => heading.textContent)
     expect(sectionHeadings).toEqual(['점검', '정리 후보', '교체'])
-    expect(within(section).queryByText('제외할 속옷')).not.toBeInTheDocument()
+    expect(within(section).queryByText('관리 중인 속옷')).not.toBeInTheDocument()
     expect(within(section).queryByText('제외할 Retired')).not.toBeInTheDocument()
     expect(screen.queryByRole('region', { name: '손세탁' })).not.toBeInTheDocument()
     expect(screen.queryByRole('region', { name: '드라이클리닝' })).not.toBeInTheDocument()

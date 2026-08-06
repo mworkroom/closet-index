@@ -46,12 +46,12 @@ describe('ItemDetailPage Replacement Line', () => {
   })
   afterEach(cleanup)
 
-  it('shows multiple direct parents, the current Item, children, and incoming reasons', async () => {
+  it('shows multiple direct parents, the current Item, children, and an inheritance badge', async () => {
     const user = userEvent.setup()
     window.localStorage.setItem(
       'closet-index-demo-lineage-edges:v1',
       JSON.stringify([
-        edge('parent-active', 'item-cardigan', 'item-knit', '온도 세분화'),
+        edge('parent-active', 'item-cardigan', 'item-knit', '계승 👑'),
         edge('parent-retired', 'item-loafers', 'item-knit', '대체 시도'),
         edge('child-tee', 'item-knit', 'item-tee', '기능 세분화'),
         edge('child-pants', 'item-knit', 'item-pants', '계승 👑'),
@@ -62,15 +62,20 @@ describe('ItemDetailPage Replacement Line', () => {
 
     const section = await screen.findByRole('region', { name: 'Replacement Line' })
     expect(await within(section).findByText('이전 2 · 다음 2')).toBeInTheDocument()
-    expect(within(section).getByLabelText('현재 Item 아이보리 니트')).toBeInTheDocument()
+    const currentCard = within(section).getByLabelText('현재 Item 아이보리 니트')
+    expect(currentCard).toBeInTheDocument()
+    expect(within(currentCard).getByText('계승 👑')).toBeInTheDocument()
     expect(
       within(section).getByRole('link', { name: '브라운 로퍼 Item 상세 보기' }),
     ).toBeInTheDocument()
     expect(within(section).getByText('Retired')).toBeInTheDocument()
-    expect(within(section).getByText('블루 가디건 → 아이보리 니트')).toBeInTheDocument()
-    expect(within(section).getByText('온도 세분화')).toBeInTheDocument()
-    expect(within(section).getByText('브라운 로퍼 → 아이보리 니트')).toBeInTheDocument()
-    expect(within(section).getByText('대체 시도')).toBeInTheDocument()
+    expect(
+      within(section).queryByRole('heading', { name: '현재 Item 선택 이유' }),
+    ).not.toBeInTheDocument()
+    expect(within(section).queryByText('블루 가디건 → 아이보리 니트')).not.toBeInTheDocument()
+    expect(within(section).queryByText('온도 세분화')).not.toBeInTheDocument()
+    expect(within(section).queryByText('브라운 로퍼 → 아이보리 니트')).not.toBeInTheDocument()
+    expect(within(section).queryByText('대체 시도')).not.toBeInTheDocument()
     expect(within(section).queryByText('기능 세분화')).not.toBeInTheDocument()
 
     await user.click(
@@ -99,6 +104,29 @@ describe('ItemDetailPage Replacement Line', () => {
         screen.queryByRole('region', { name: 'Replacement Line' }),
       ).not.toBeInTheDocument()
     })
+  })
+
+  it('places Replacement Line before replenishment and included Outfit', async () => {
+    window.localStorage.setItem(
+      'closet-index-demo-lineage-edges:v1',
+      JSON.stringify([edge('order-edge', 'item-cardigan', 'item-tee', '대체 시도')]),
+    )
+
+    renderItemDetail(new DemoRepository(), 'item-tee')
+
+    await screen.findByRole('region', { name: 'Replacement Line' })
+    const headingNames = within(screen.getByRole('main'))
+      .getAllByRole('heading')
+      .map((heading) => heading.textContent)
+    const monthlyWearIndex = headingNames.indexOf('월별 착용 분포')
+    const replacementLineIndex = headingNames.indexOf('Replacement Line')
+    const replenishmentIndex = headingNames.indexOf('재구매와 현재 수량')
+    const includedOutfitIndex = headingNames.indexOf('포함된 Outfit')
+
+    expect(monthlyWearIndex).toBeGreaterThanOrEqual(0)
+    expect(monthlyWearIndex).toBeLessThan(replacementLineIndex)
+    expect(replacementLineIndex).toBeLessThan(replenishmentIndex)
+    expect(replenishmentIndex).toBeLessThan(includedOutfitIndex)
   })
 
   it('keeps the rest of Item detail usable when edge loading fails and retries locally', async () => {

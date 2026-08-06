@@ -257,6 +257,8 @@ export function ItemDetailPage() {
             </div>
           </section>
 
+          <ItemReplacementLineageSection item={item} items={data.items} />
+
           <ItemReplenishmentSection
             item={item}
             events={purchaseEventsState.events}
@@ -281,8 +283,6 @@ export function ItemDetailPage() {
             rule={getCareRule(item.category)}
             today={today}
           />
-
-          <ItemReplacementLineageSection item={item} items={data.items} />
 
           <section className="section">
             <div className="section-heading">
