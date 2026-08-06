@@ -438,7 +438,7 @@ button:disabled {
   gap: 8px;
   border: 1px solid transparent;
   border-radius: 13px;
-  padding: 0 18px;
+  padding: 0 12px;
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 750;
@@ -1796,9 +1796,7 @@ button:disabled {
 }
 
 .replenishment-section,
-.care-section {
-  padding: 18px;
-  border: 1px solid var(--line);
+.care-section { 
   border-radius: 18px;
   background: var(--surface);
 }
@@ -1981,11 +1979,7 @@ div.replenishment-feedback--error {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
-  padding: 13px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface-soft);
+  gap: 12px;   
 }
 
 .replenishment-history li > div:first-child {

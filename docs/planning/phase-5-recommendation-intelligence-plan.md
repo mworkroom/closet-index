@@ -1,7 +1,7 @@
 # Closet Index Phase 5 Recommendation Intelligence Initial Plan
 
 - 작성일: 2026-08-02
-- 상태: 초기 구상 기록, P5-0 검증 전
+- 상태: P5-0A·P5-0B 완료, P5A-1 disabled 정책 비교 완료, HOME 통합 결정 전
 - 선행 단계: Phase 4 Statistics & Replacement Lineage
 - 목적: Phase 4 논의 중 나온 추천 알고리즘의 제품 원칙과 구현 가설을 보존하고, Phase 5 착수 시 재검증할 출발점으로 사용
 - 관련 문서: [Roadmap](./roadmap.md), [Phase 4 Plan](./phase-4-maintenance-insights-plan.md), [Phase 2 Weather Plan](./phase-2-weather-plan.md), [Product Plan](./product-plan.md)
@@ -51,7 +51,7 @@ Phase 5에는 다음을 넣지 않는다.
 - 장소와 교통수단의 과거 착용 횟수는 추천 설명에 나타나지만 공동 맥락으로 순위에 반영하지 않는다.
 - Outfit은 고정된 Item 조합이며 Item 하나가 달라지면 다른 Outfit이다.
 
-현재 구조는 유지한다. Phase 5는 기존 온도 안전성을 버리고 장소 점수로 교체하는 작업이 아니라, **온도상 가능한 후보 안에서 실제 맥락의 익숙함과 관측 근거를 더하는 작업**이다.
+현재 overall thermal model은 P5A-1 이후에도 baseline이자 evidence가 부족할 때의 fallback으로 유지한다. 다만 모든 Transport의 관측을 합친 overall range만을 영구적인 유일 source로 확정하지 않는다. Phase 5는 기존 온도 안전성을 버리고 장소 점수로 교체하는 작업이 아니라, **온도상 가능한 후보 안에서 Transport·Place scope의 관측 근거와 실제 맥락의 결과를 더하는 작업**이다.
 
 ## 4. 제품 원칙
 
@@ -81,13 +81,27 @@ Phase 5에는 다음을 넣지 않는다.
 - 기존 Outfit을 복제해 Item을 추가하거나 새 Outfit을 만든다.
 - 실제로 입은 새 Outfit의 Wear Log로 보완 조합의 성공 여부를 검증한다.
 
-## 5. P5A — Existing Context Ranking
+## 5. P5A — Recommendation Evidence
 
-### 5.1 목표
+P5-0B에서 Transport가 단순한 familiarity 차원이 아니라 thermal evidence의 범위를 바꿀 수 있음이 확인됐다. 따라서 P5A를 다음 두 경계로 나눈다.
+
+### P5A-1. Transport-conditioned Thermal Evidence
+
+- `overall`, `currentTransport`, `currentPlace`, `exactContext`, `nullTransport` scope를 분리한다.
+- 각 scope에서 raw/expanded OK range와 cold/hot 관측, matched Wear Log ID, inferred endpoint, source Place·Transport를 보존한다.
+- historical null Transport는 특정 Transport 근거로 보지 않는다.
+- current Place가 null이면 `currentPlace`와 `exactContext`를, current Transport가 null이면 `currentTransport`와 `exactContext`를 만들지 않는다.
+- `longWalkCondition`을 Transport thermal evidence로 대체 사용하지 않는다.
+- HOME 통합 전에 최소 evidence threshold와 warning·deprioritize·exclude behavior를 별도 결정한다.
+- 세 behavior는 모두 미확정이지만 현재 감사는 hard exclusion을 지지하지 않으며 cold/hot·rain·long-walk 기존 warning을 약화하지 않는다.
+
+### P5A-2. Context Familiarity Ranking
+
+#### 목표
 
 새 schema 없이 현재 Wear Log의 Outfit·Place·Transport relation만으로 맥락 추천의 가치를 먼저 검증한다.
 
-### 5.2 초기 가설
+#### 초기 가설
 
 ```text
 1차 맥락 근거
@@ -99,7 +113,15 @@ Phase 5에는 다음을 넣지 않는다.
 
 `2건 이상`은 초기 후보값이며 영구 규칙이 아니다. P5-0에서 실제 분포를 확인해 한 번의 우연한 착용과 반복 습관을 구분할 최소값을 확정한다.
 
-### 5.3 추천 순서의 초기안
+반복 exposure만으로 positive familiarity를 주장하지 않는다. P5A-2의 후보 outcome tier는 다음과 같으며 아직 HOME ranking에 구현하거나 활성화하지 않는다.
+
+- `verified`: exposure >= 2, success >= 2, issue = 0
+- `mixed`: exposure >= 2, success와 issue가 모두 존재
+- `issue`: exposure >= 2, success = 0, issue >= 1
+
+위 조건에 들지 않는 반복은 exposure evidence일 뿐 성공으로 부르지 않는다. Positive familiarity ranking은 `verified`처럼 실제 success와 issue 부재가 확인된 경우만 후보가 될 수 있다.
+
+#### 추천 순서의 초기안
 
 ```text
 기존 온도 적합성·위험 판정
@@ -113,7 +135,7 @@ Phase 5에는 다음을 넣지 않는다.
 
 맥락 점수는 장소 횟수와 교통수단 횟수를 따로 더한 값이 아니다. 한 Wear Log가 현재 장소와 현재 교통수단을 동시에 만족할 때 공동 근거 1건으로 센다.
 
-### 5.4 HOME 설명 예시
+#### HOME 설명 예시
 
 - `CGV용산 · 지하철에서 5번 입음`
 - `이 장소에서 7번 입음`
@@ -308,17 +330,36 @@ schema 후보는 다음 책임을 분리한다.
 
 ### P5-0. Recommendation Evidence Audit
 
-- [ ] 현재 추천 순서와 점수 계산을 fixture로 고정
-- [ ] Place·Transport null과 공동 조합 분포 확인
-- [ ] 같은 Outfit + Place + Transport 반복 횟수 분포 확인
+- [x] 현재 추천 순서와 점수 계산을 fixture로 고정
+- [x] Place·Transport null과 공동 조합 분포 확인
+- [x] 같은 Outfit + Place + Transport 반복 횟수 분포 확인
 - [ ] specific venue와 generic place category 후보 분류
-- [ ] `temp_back_inferred`와 실제 endpoint 비율 재확인
+- [x] `temp_back_inferred`와 실제 endpoint 비율 재확인
 - [ ] 기존 HVAC memo와 장소별 반복 관측 확인
 - [ ] 직접 Item 체감을 기록할 실제 사례 3~5개 정리
-- [ ] `2회 이상` 임계값과 맥락 근거의 순위 영향 확정
+- [x] threshold 1·2·3 및 disabled 순위 영향 비교
 
-### P5A. Existing Context Ranking
+### P5-0B. Transport-conditioned Thermal Evidence Audit
 
+- [x] 현재 추천과 동일한 endpoint·dedup·±2°C baseline pass
+- [x] inferred 귀가 endpoint를 제외한 higher-confidence sensitivity pass
+- [x] Transport별 range·warning provenance와 null Transport 분리
+- [x] threshold 1·2·3 range borrowing 및 cross-Transport conflict 집계
+- [x] product policy 없이 익명 same-Place 후보 사례 검토
+
+### P5A-1. Transport-conditioned Thermal Evidence
+
+- [x] HOME에 연결되지 않은 순수 deterministic evidence calculator
+- [x] currentPlace·exactContext·nullTransport scope와 provenance 확장
+- [x] Policy A·B·C·D disabled 비교 및 production read-only 영향 집계
+- [ ] 최소 current-Transport evidence threshold 결정
+- [ ] overall fallback과 warning·deprioritize·exclude behavior 결정
+- [x] hard exclusion은 현재 audit 근거로 지지되지 않음
+- [ ] 결정 후에만 HOME eligibility·warning 연결 범위 검토
+
+### P5A-2. Context Familiarity Ranking
+
+- [ ] verified·mixed·issue outcome tier 확정
 - [ ] 공동 Place + Transport 착용 횟수 계산
 - [ ] Place-only fallback 계산
 - [ ] 기존 온도 후보 pool 뒤의 맥락 재정렬
@@ -361,12 +402,14 @@ schema 후보는 다음 책임을 분리한다.
 - Phase 5는 추천 알고리즘을 소유한다.
 - 장소와 교통수단은 독립 통계보다 HOME 추천 근거로 사용한다.
 - 기존 온도 적합성과 endpoint 경고를 유지한다.
+- overall thermal model은 baseline/fallback으로 유지하되 유일한 영구 source로 고정하지 않는다.
+- 현재 P5-0B·P5A-1 evidence는 Outfit hard exclusion을 지지하지 않는다.
 - Place의 예상 HVAC와 Wear Log의 실제 HVAC를 분리한다.
 - specific venue와 generic place category를 구분한다.
 - 직접 Item 관측과 derived evidence의 provenance를 보존한다.
 - 보완 Item이 추가되면 기존 Outfit을 수정하지 않고 새 Outfit으로 검증한다.
 
-### P5-0에서 확정할 항목
+### 아직 확정하지 않은 항목
 
 - 공동 맥락을 인정할 최소 반복 횟수
 - 맥락 근거가 기존 Rating·착용 횟수·최근 착용일보다 앞서는 정확한 범위
@@ -375,6 +418,9 @@ schema 후보는 다음 책임을 분리한다.
 - Item 체감 입력의 최소 단위와 영향 수준
 - ±2°C 관측 유사성의 endpoint 비교 방식
 - derived evidence를 저장할지 요청 시 계산할지
+- P5A-1에서 Policy B·C·D 중 어느 deprioritize 정책을 disabled integration 대상으로 채택할지
+- same-Place와 exactContext를 어느 threshold부터 ranking 근거로 사용할지
+- P5A-2 verified·mixed·issue tier의 comparator 위치
 
 ## 14. 완료 정의
 

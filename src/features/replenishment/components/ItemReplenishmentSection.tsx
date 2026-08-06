@@ -394,7 +394,7 @@ export function ItemReplenishmentSection({
       <div className={`replenishment-history${isReadOnlyHistory ? ' replenishment-history--compact' : ''}`}>
         {!isReadOnlyHistory ? (
           <div className="section-heading">
-            <h3>{isManagedDetail ? '전체 재구매 이력' : '기록된 이력'}</h3>
+            <h3>{isManagedDetail ? '재구매 이력' : '기록된 이력'}</h3>
             <span className="count">{events.length}건</span>
           </div>
         ) : null}
@@ -462,7 +462,7 @@ export function ItemReplenishmentSection({
                 )}
                 {!isReadOnlyHistory && deletingId === purchaseEvent.id ? (
                   <div className="replenishment-history__confirmation">
-                    <p>이 재구매 기록을 삭제할까요? 현재 보유 수량은 바뀌지 않습니다.</p>
+                    <p>이 기록을 삭제할까요? 현재 보유 수량은 바뀌지 않습니다.</p>
                     <div>
                       <button className="button button--secondary" type="button" onClick={() => setDeletingId(null)}>
                         취소

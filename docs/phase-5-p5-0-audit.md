@@ -174,3 +174,11 @@ issue 또는 현재 Error가 있는 사례는 10개다. exact의 9개 외에 Pla
 7. 기존 온도 level과 거리 뒤에서만 context를 비교한다.
 8. local feature flag 기본값은 false로 두고 production 추천은 바꾸지 않는다.
 
+## P5-0B 후속 주석 — Transport-conditioned Thermal Evidence
+
+P5-0A의 context repetition 분포와 결론은 그대로 유효하다. 이후 같은 Outfit의 overall OK 온도 범위가 다른 Transport의 관측을 빌려 current Transport의 실제 가능 범위보다 넓어지는 실패 사례가 발견되어, 별도 [P5-0B Transport thermal 감사](./phase-5-p5-0b-transport-thermal-audit.md)를 추가했다.
+
+기존 원칙인 “context는 온도 거리 뒤에서 비교한다”는 다음 두 질문으로 분리한다.
+
+- context familiarity는 여전히 thermal safety 판단 뒤에서만 비교한다.
+- Transport가 thermal evidence 자체의 의미를 바꾸는지는 P5A-1에서 별도 검토하며, warning·deprioritize·exclude 정책은 아직 정하지 않는다.
