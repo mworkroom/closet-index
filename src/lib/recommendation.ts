@@ -12,6 +12,12 @@ import type {
   ThermalFeeling,
   WearLog,
 } from './types'
+import {
+  activeContextEvidenceBucket,
+  calculateContextEvidence,
+  DEFAULT_CONTEXT_EVIDENCE_THRESHOLD,
+  type RecommendationContextEvidence,
+} from './context-evidence'
 
 interface Observation {
   temp: number
@@ -29,6 +35,17 @@ const ratingRank: Record<Exclude<OutfitRating, null> | 'unrated', number> = {
   ok: 1,
   unrated: 2,
   error: 3,
+}
+
+const contextTierRank: Record<RecommendationContextEvidence['activeTier'], number> = {
+  exact: 0,
+  place: 1,
+  none: 2,
+}
+
+export interface RecommendationOptions {
+  enableContextRanking?: boolean
+  contextEvidenceThreshold?: number
 }
 
 const recentPurchaseExcludedCategories = new Set([
@@ -356,12 +373,53 @@ function conditionWarnings(
   return warnings
 }
 
+function contextRankingReason(evidence: RecommendationContextEvidence) {
+  const active = activeContextEvidenceBucket(evidence)
+  if (!active) return null
+
+  const parts = [
+    evidence.activeTier === 'exact'
+      ? `같은 장소·교통수단에서 ${active.exposureCount}회 착용`
+      : `같은 장소에서 ${active.exposureCount}회 착용 · 교통수단 fallback`,
+  ]
+  if (active.successCount > 0) {
+    parts.push(`성공 ${active.successCount}회`)
+  }
+  if (active.issueCount > 0) parts.push(`온도 이슈 ${active.issueCount}회`)
+  if (active.unknownCount > 0) parts.push(`결과 미상 ${active.unknownCount}회`)
+  return parts.join(' · ')
+}
+
+function compareContextEvidence(
+  left: RecommendationContextEvidence,
+  right: RecommendationContextEvidence,
+) {
+  const tier = contextTierRank[left.activeTier] - contextTierRank[right.activeTier]
+  if (tier !== 0) return tier
+
+  const leftActive = activeContextEvidenceBucket(left)
+  const rightActive = activeContextEvidenceBucket(right)
+  if (!leftActive || !rightActive) return 0
+
+  if (leftActive.successCount !== rightActive.successCount) {
+    return rightActive.successCount - leftActive.successCount
+  }
+  if (leftActive.issueCount !== rightActive.issueCount) {
+    return leftActive.issueCount - rightActive.issueCount
+  }
+  if (leftActive.exposureCount !== rightActive.exposureCount) {
+    return rightActive.exposureCount - leftActive.exposureCount
+  }
+  return 0
+}
+
 function evaluateOutfit(
   outfit: Outfit,
   items: Item[],
   logs: WearLog[],
   input: RecommendationInput,
   similarEvidence: SimilarOutfitEvidence | null,
+  options: RecommendationOptions,
 ): RecommendationResult {
   const tempBack = input.tempBack ?? input.tempOut
   const targetTemp = (input.tempOut + tempBack) / 2
@@ -376,6 +434,10 @@ function evaluateOutfit(
 
   const conditionWarningsForItems = conditionWarnings(input, items)
   warnings.push(...conditionWarningsForItems)
+  const contextEvidence = calculateContextEvidence(logs, input, {
+    threshold:
+      options.contextEvidenceThreshold ?? DEFAULT_CONTEXT_EVIDENCE_THRESHOLD,
+  })
 
   let level: RecommendationLevel
   if (warnings.length > 0 || distance > 2) {
@@ -425,15 +487,18 @@ function evaluateOutfit(
     reasons.push('온도 근거 없음')
   }
 
-  const placeMatches = input.placeId
-    ? logs.filter((log) => log.placeId === input.placeId).length
-    : 0
-  const transportMatches = input.transportModeId
-    ? logs.filter((log) => log.transportModeId === input.transportModeId).length
-    : 0
-
-  if (placeMatches > 0) reasons.push(`같은 장소에서 ${placeMatches}회 착용`)
-  if (transportMatches > 0) reasons.push(`같은 교통수단으로 ${transportMatches}회 착용`)
+  if (options.enableContextRanking) {
+    const contextReason = contextRankingReason(contextEvidence)
+    if (contextReason) reasons.push(contextReason)
+  } else {
+    const placeMatches = contextEvidence.independent.placeMatchedWearLogIds.length
+    const transportMatches =
+      contextEvidence.independent.transportMatchedWearLogIds.length
+    if (placeMatches > 0) reasons.push(`같은 장소에서 ${placeMatches}회 착용`)
+    if (transportMatches > 0) {
+      reasons.push(`같은 교통수단으로 ${transportMatches}회 착용`)
+    }
+  }
 
   const sortedLogs = [...logs].sort((a, b) => b.wornOn.localeCompare(a.wornOn))
   const lastWornOn = sortedLogs[0]?.wornOn ?? null
@@ -455,6 +520,7 @@ function evaluateOutfit(
     level,
     evidence: logs.length > 0 ? 'observed' : 'untried',
     similarEvidence,
+    contextEvidence,
     reasons,
     warnings,
     okRange,
@@ -508,6 +574,7 @@ export function partitionRecommendations(
 export function recommendOutfits(
   data: AppData,
   input: RecommendationInput,
+  options: RecommendationOptions = {},
 ): RecommendationResult[] {
   const available = data.outfits.filter((outfit) => {
     if (outfit.archivedAt) return false
@@ -526,7 +593,14 @@ export function recommendOutfits(
       const logs = data.wearLogs.filter((log) => log.outfitId === outfit.id)
       const similarEvidence =
         logs.length === 0 ? similarOutfitEvidence(outfit, available, data) : null
-      return evaluateOutfit(outfit, items, logs, input, similarEvidence)
+      return evaluateOutfit(
+        outfit,
+        items,
+        logs,
+        input,
+        similarEvidence,
+        options,
+      )
     })
     .sort((a, b) => {
       const level = levelRank[a.level] - levelRank[b.level]
@@ -552,6 +626,14 @@ export function recommendOutfits(
         const bSimilarity =
           b.similarEvidence?.matches[0]?.weightedSimilarity ?? -1
         if (aSimilarity !== bSimilarity) return bSimilarity - aSimilarity
+      }
+
+      if (options.enableContextRanking) {
+        const context = compareContextEvidence(
+          a.contextEvidence,
+          b.contextEvidence,
+        )
+        if (context !== 0) return context
       }
 
       const aRating = ratingRank[a.outfit.rating ?? 'unrated']

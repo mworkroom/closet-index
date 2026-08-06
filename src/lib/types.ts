@@ -594,6 +594,7 @@ export interface RecommendationResult {
   level: RecommendationLevel
   evidence: RecommendationEvidence
   similarEvidence: SimilarOutfitEvidence | null
+  contextEvidence: import('./context-evidence').RecommendationContextEvidence
   reasons: string[]
   warnings: string[]
   okRange: { min: number; max: number } | null

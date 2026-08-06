@@ -8,6 +8,7 @@ interface ImportMetaEnv {
   readonly VITE_CLOSET_WORKSPACE_ID?: string
   readonly VITE_APP_VERSION?: string
   readonly VITE_DATA_VERSION?: string
+  readonly VITE_P5A_CONTEXT_RANKING?: string
 }
 
 interface ImportMeta {

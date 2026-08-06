@@ -55,6 +55,8 @@ const defaultInput: RecommendationInput = {
 const HOME_SESSION_KEY = 'closet-index:home-weather:v2'
 const HOME_LOCAL_STORAGE_KEY = 'closet-index:home-weather:v3'
 export const RECOMMENDATION_PAGE_SIZE = 3
+const LOCAL_P5A_CONTEXT_RANKING_ENABLED =
+  import.meta.env.DEV && import.meta.env.VITE_P5A_CONTEXT_RANKING === 'true'
 
 export const homeConditionValues: HomeConditionChoice[] = ['no', 'yes']
 export const hourOptions = Array.from(
@@ -386,7 +388,11 @@ export function useHomeRecommendation({
           }
         : null
       const results =
-        scopedData && submitted ? recommendOutfits(scopedData, submitted) : []
+        scopedData && submitted
+          ? recommendOutfits(scopedData, submitted, {
+              enableContextRanking: LOCAL_P5A_CONTEXT_RANKING_ENABLED,
+            })
+          : []
       return partitionRecommendations(results)
     },
     [activeSeasons, data, submitted],

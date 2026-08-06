@@ -34,6 +34,17 @@ describe('calculateContextEvidence', () => {
       'missing-transport',
       'other-transport',
     ])
+    expect(evidence.independent.placeMatchedWearLogIds).toEqual([
+      'exact-1',
+      'exact-2',
+      'missing-transport',
+      'other-transport',
+    ])
+    expect(evidence.independent.transportMatchedWearLogIds).toEqual([
+      'exact-1',
+      'exact-2',
+      'other-place',
+    ])
     expect(
       evidence.exact.matchedWearLogIds.some((id) =>
         evidence.placeOnly.matchedWearLogIds.includes(id),
@@ -165,4 +176,3 @@ describe('calculateContextEvidence', () => {
     ).toThrow('positive integer')
   })
 })
-

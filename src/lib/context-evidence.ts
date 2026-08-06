@@ -23,6 +23,10 @@ export interface RecommendationContextEvidence {
   threshold: number
   currentPlaceId: string | null
   currentTransportModeId: string | null
+  independent: {
+    placeMatchedWearLogIds: string[]
+    transportMatchedWearLogIds: string[]
+  }
   exact: ContextEvidenceBucket
   placeOnly: ContextEvidenceBucket
   activeTier: ContextEvidenceTier
@@ -131,6 +135,12 @@ export function calculateContextEvidence(
     : []
   const exactIds = new Set(exactLogs.map((log) => log.id))
   const placeOnlyLogs = placeLogs.filter((log) => !exactIds.has(log.id))
+  const transportLogs =
+    input.transportModeId === null
+      ? []
+      : distinctLogs.filter(
+          (log) => log.transportModeId === input.transportModeId,
+        )
 
   const exact = bucket(exactEnabled, exactLogs)
   const placeOnly = bucket(placeEnabled, placeOnlyLogs)
@@ -145,9 +155,16 @@ export function calculateContextEvidence(
     threshold,
     currentPlaceId: input.placeId,
     currentTransportModeId: input.transportModeId,
+    independent: {
+      placeMatchedWearLogIds: placeLogs
+        .map((log) => log.id)
+        .sort((left, right) => left.localeCompare(right)),
+      transportMatchedWearLogIds: transportLogs
+        .map((log) => log.id)
+        .sort((left, right) => left.localeCompare(right)),
+    },
     exact,
     placeOnly,
     activeTier,
   }
 }
-
