@@ -3099,12 +3099,12 @@ a.item-detail-lineage__item:focus-visible {
 .wear-log-editor__table-wrap {
   max-width: 100%;
   min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
+  max-height: min(70dvh, 680px);
+  overflow: auto;
   margin: 14px -16px 0;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
-  overscroll-behavior-x: contain;
+  overscroll-behavior: contain;
   scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
 }

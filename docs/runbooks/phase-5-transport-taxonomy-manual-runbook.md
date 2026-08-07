@@ -1,6 +1,6 @@
 # Phase 5 Transport Taxonomy Manual Runbook
 
-이 runbook은 기존 `closet_transport_modes`와 `closet_wear_logs.transport_mode_id`를 그대로 사용한다. migration 파일을 만들지 않으며, J가 Supabase SQL Editor에서 수동으로 적용하기 전까지 production에는 아무 변화도 없다.
+이 runbook은 기존 `closet_transport_modes`와 `closet_wear_logs.transport_mode_id`를 그대로 사용한다. migration 파일은 만들지 않았다. 아래 Transport taxonomy 전환은 2026-08-08 production에 적용했으며, 적용 결과는 이 문서의 검증 조건으로 확인했다.
 
 ## 목표 상태
 
@@ -43,12 +43,12 @@ order by tm.workspace_id, tm.name;
 
 ## 2. 적용 SQL
 
-아래 `v_workspace_id`의 `null`을 1단계에서 확인한 실제 workspace UUID로 바꾼 뒤 전체 block을 한 번에 실행한다.
+아래 block은 production 적용에 사용한 workspace UUID를 작은따옴표로 감싼 UUID literal로 기록한다. PostgreSQL에서 UUID를 따옴표 없이 쓰면 하이픈이 뺄셈 연산자로 해석될 수 있다.
 
 ```sql
 do $$
 declare
-  v_workspace_id constant uuid := null; -- 실제 workspace UUID로 교체
+  v_workspace_id constant uuid := '00000000-0000-0000-0000-000000000003';
   v_short_id constant uuid := '7d1fe2dc-47cd-5d4c-9db6-8215e94e42c2';
   v_existing_walk_id uuid;
   v_total_before bigint;
@@ -132,6 +132,13 @@ $$;
 
 ## 3. 적용 후 검증
 
+2026-08-08 production 검증 결과:
+
+- `도보 · 지속`: 기존 ID `ce3531e8-584c-5820-b777-92465d6b5128`, Wear Log 207건
+- `도보 · 근거리`: 신규 ID `7d1fe2dc-47cd-5d4c-9db6-8215e94e42c2`, Wear Log 0건
+- legacy `도보`/`Walk` row: 0개
+- workspace 전체 Wear Log: 적용 전후 모두 783건
+
 1단계 SELECT를 다시 실행하고 다음을 확인한다.
 
 - `도보 · 지속`의 ID가 적용 전 기존 Walk ID와 같다.
@@ -202,9 +209,8 @@ $$;
 
 Rollback 후 1단계 SELECT를 다시 실행해 기존 Walk ID와 reference 수가 보존되고 short row가 없는지 확인한다.
 
-## 5. 이 runbook에서 하지 않는 일
+## 5. 이번 production 적용에서 하지 않은 일
 
-- production SQL 자동 실행
 - migration 생성 또는 수정
 - 15건 short 기록의 자동 reassignment
 - 1건 sustained 기록의 불필요한 update
