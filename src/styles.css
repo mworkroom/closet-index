@@ -2927,7 +2927,7 @@ a.item-detail-lineage__item:focus-visible {
 }
 
 .app-frame--wide {
-  width: min(100%, 1480px);
+  width: 100%;
 }
 
 .wear-log-editor {
@@ -2947,6 +2947,10 @@ a.item-detail-lineage__item:focus-visible {
 .wear-log-editor__filter-panel,
 .wear-log-editor__workspace {
   padding: 16px;
+}
+
+.wear-log-editor__workspace {
+  min-width: 0;
 }
 
 .wear-log-editor__section-heading,
@@ -3085,16 +3089,29 @@ a.item-detail-lineage__item:focus-visible {
   margin-top: 4px;
 }
 
+.wear-log-editor__table-hint {
+  margin: 12px 0 -4px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-align: right;
+}
+
 .wear-log-editor__table-wrap {
-  overflow: auto;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
   margin: 14px -16px 0;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
 }
 
 .wear-log-editor__table {
-  width: 100%;
-  min-width: 1280px;
+  width: max-content;
+  min-width: max(100%, 1280px);
   border-collapse: separate;
   border-spacing: 0;
   font-size: 0.75rem;

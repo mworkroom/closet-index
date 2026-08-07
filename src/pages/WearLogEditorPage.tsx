@@ -27,6 +27,10 @@ import {
 } from '../features/wear-log-editor'
 import { outfitLabel } from '../lib/outfits'
 import {
+  transportDisplayName,
+  transportOptionsForSelection,
+} from '../lib/transport-options'
+import {
   conditionLabels,
   feelingLabels,
   type ConditionChoice,
@@ -61,6 +65,7 @@ function parseNumber(value: string) {
 function getEditorOptions(
   column: WearLogEditorColumn,
   data: NonNullable<ReturnType<typeof useClosetData>['data']>,
+  legacySelectedTransportModeId?: string | null,
 ): EditorOption[] {
   if (column.optionGroup === 'condition') {
     return [
@@ -85,7 +90,10 @@ function getEditorOptions(
   }
   return [
     { value: '', label: '미지정' },
-    ...data.transportModes.map((mode) => ({ value: mode.id, label: mode.name })),
+    ...transportOptionsForSelection(
+      data.transportModes,
+      legacySelectedTransportModeId,
+    ).map((mode) => ({ value: mode.id, label: mode.name })),
   ]
 }
 
@@ -145,7 +153,7 @@ export function WearLogEditorPage() {
     const outfits = new Map(data.outfits.map((outfit) => [outfit.id, outfit]))
     const places = new Map(data.places.map((place) => [place.id, place.name]))
     const transports = new Map(
-      data.transportModes.map((mode) => [mode.id, mode.name]),
+      data.transportModes.map((mode) => [mode.id, transportDisplayName(mode)]),
     )
 
     return data.wearLogs.map((log) => ({
@@ -382,7 +390,13 @@ export function WearLogEditorPage() {
           value={(value ?? '') as string}
           onChange={(event) => handleCellChange(row, key, event.target.value)}
         >
-          {data && getEditorOptions(column, data).map((option) => (
+          {data && getEditorOptions(
+            column,
+            data,
+            key === 'transportModeId'
+              ? sourceRowById.get(row.log.id)?.log.transportModeId
+              : null,
+          ).map((option) => (
             <option value={option.value} key={option.value || 'empty'}>
               {option.label}
             </option>
@@ -548,7 +562,7 @@ export function WearLogEditorPage() {
                 onChange={(event) => updateFilter('transportModeId', event.target.value)}
               >
                 <option value="">전체</option>
-                {data.transportModes.map((mode) => (
+                {transportOptionsForSelection(data.transportModes).map((mode) => (
                   <option value={mode.id} key={mode.id}>
                     {mode.name}
                   </option>
@@ -691,7 +705,15 @@ export function WearLogEditorPage() {
             />
           ) : (
             <>
-              <div className="wear-log-editor__table-wrap">
+              <p className="wear-log-editor__table-hint">
+                표를 좌우로 스크롤하면 추가 열까지 확인할 수 있습니다.
+              </p>
+              <div
+                className="wear-log-editor__table-wrap"
+                role="region"
+                aria-label="Wear Log 표 가로 스크롤 영역"
+                tabIndex={0}
+              >
                 <table className="wear-log-editor__table">
                   <caption className="sr-only">Wear Log 편집 표</caption>
                   <thead>

@@ -504,3 +504,25 @@ Before considering V1 complete:
 V1 is complete when I can open a single dense table, find old wear records using filters, edit Walk-related data directly, bulk-edit multiple records, save safely, and verify that the existing Supabase records were updated correctly.
 
 No new database architecture is required merely to support the editor.
+
+---
+
+# 17. Approved Transport Taxonomy
+
+Wear Log create/edit와 `/tools/wear-log`는 기존 `transport_mode_id` relation만 사용한다.
+
+새로운 선택지는 다음과 같다.
+
+- `도보 · 근거리`: 약 5~10분, 지속적인 보행 열부하가 거의 없는 이동
+- `도보 · 지속`: 약 20~30분 이상이거나, 빠른 보행으로 체열이 뚜렷하게 증가하는 이동
+
+10~20분 경계에서는 시간보다 실제 열부하를 우선한다.
+
+- 열감 증가가 거의 없음: `도보 · 근거리`
+- 땀, 뚜렷한 열감, 빠른 지속 보행: `도보 · 지속`
+
+수동 production 전환 전의 기존 `도보` row는 새 기록 선택지에 노출하지 않는다. 그 ID를 이미 참조하는 기록을 편집할 때만 `도보 · 기존 기록`으로 표시해 다른 필드 수정이 Transport 변환을 강제하지 않도록 한다.
+
+수동 전환 후에는 기존 row ID가 그대로 `도보 · 지속`이 되고, 새 `도보 · 근거리` row가 추가된다. 별도 legacy row, column, relation, `walk_unclassified` production option은 만들지 않는다.
+
+초기 QA 대상은 human-reviewed 16건이다. 15건은 editor에서 `도보 · 근거리`로 바꾸고, sustained 1건은 기존 ID와 `도보 · 지속` 표시를 확인한다. production SQL과 데이터 수정은 별도 수동 단계에서만 수행한다.

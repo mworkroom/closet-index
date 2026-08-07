@@ -4,6 +4,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { DataProvider } from '../context/DataContext'
 import { DemoRepository } from '../data/demo-repository'
+import {
+  LEGACY_WALK_TRANSPORT_LABEL,
+  WALK_SHORT_TRANSPORT_LABEL,
+  WALK_SUSTAINED_TRANSPORT_LABEL,
+} from '../lib/transport-options'
 import { WearLogEditorPage } from './WearLogEditorPage'
 
 function renderEditor(repository = new DemoRepository()) {
@@ -16,6 +21,21 @@ function renderEditor(repository = new DemoRepository()) {
       </DataProvider>
     </MemoryRouter>,
   )
+  return repository
+}
+
+async function repositoryWithApprovedTransportModes() {
+  const repository = new DemoRepository()
+  const data = await repository.load()
+  data.transportModes = [
+    { id: 'transport-walk-short', name: WALK_SHORT_TRANSPORT_LABEL },
+    { id: 'transport-walk-sustained', name: WALK_SUSTAINED_TRANSPORT_LABEL },
+    { id: 'transport-walk', name: '도보' },
+    { id: 'transport-car', name: '차' },
+    { id: 'transport-subway', name: '지하철' },
+    { id: 'transport-bus', name: '버스' },
+  ]
+  vi.spyOn(repository, 'load').mockResolvedValue(data)
   return repository
 }
 
@@ -92,5 +112,48 @@ describe('WearLogEditorPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('permission denied')
     expect(screen.getByText(/1건 실패/)).toBeVisible()
     expect(screen.getByText('미저장 1개 필드')).toBeVisible()
+  })
+
+  it('shows legacy Walk only on its existing row and does not force conversion when another field changes', async () => {
+    const user = userEvent.setup()
+    const repository = await repositoryWithApprovedTransportModes()
+    const updateFields = vi.spyOn(repository, 'updateWearLogFields')
+    renderEditor(repository)
+
+    await screen.findByRole('heading', { name: 'Wear Logs' })
+    const transportCell = screen.getByTestId(
+      'wear-log-cell-log-3-transportModeId',
+    )
+    expect(transportCell).toHaveValue('transport-walk')
+    expect(
+      screen.getByRole('option', { name: LEGACY_WALK_TRANSPORT_LABEL }),
+    ).toBeVisible()
+
+    await user.type(screen.getByTestId('wear-log-cell-log-3-memo'), '검토')
+    await user.click(screen.getByRole('button', { name: /변경 저장/ }))
+
+    expect(updateFields).toHaveBeenCalledWith('log-3', { memo: '검토' })
+    expect(updateFields.mock.calls[0]?.[1]).not.toHaveProperty('transportModeId')
+  })
+
+  it.each([
+    ['short', 'transport-walk-short'],
+    ['sustained', 'transport-walk-sustained'],
+  ])('can convert a legacy row to %s with the selected ID', async (_concept, transportId) => {
+    const user = userEvent.setup()
+    const repository = await repositoryWithApprovedTransportModes()
+    const updateFields = vi.spyOn(repository, 'updateWearLogFields')
+    renderEditor(repository)
+
+    await screen.findByRole('heading', { name: 'Wear Logs' })
+    await user.selectOptions(
+      screen.getByTestId('wear-log-cell-log-3-transportModeId'),
+      transportId,
+    )
+    await user.click(screen.getByRole('button', { name: /변경 저장/ }))
+
+    expect(updateFields).toHaveBeenCalledWith('log-3', {
+      transportModeId: transportId,
+    })
   })
 })

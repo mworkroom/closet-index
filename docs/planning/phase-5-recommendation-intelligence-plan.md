@@ -110,11 +110,14 @@ P5-0B에서 Transport가 단순한 familiarity 차원이 아니라 thermal evide
 #### 2026-08-07 Transport taxonomy validation
 
 - 역사적 Walk는 일반적인 모든 도보 이동이 아니라 약 20~30분 이상의 지속적이거나 빠른 걷기를 뜻했다.
-- `walk_short`(약 5~10분, 짧은 노출)와 `walk_sustained`(약 20~30분 이상, 지속적·빠른 걷기)를 candidate taxonomy로 분리한다.
-- 정확한 UI label과 10~20분 경계, 역사적 Walk 207건의 수동 재분류 여부는 unresolved다.
+- 새 데이터는 `walk_short`(`도보 · 근거리`) 또는 `walk_sustained`(`도보 · 지속`)를 사용한다.
+- 10~20분 경계는 시간만으로 정하지 않는다. 열감 증가가 거의 없으면 short, 땀·빠른 지속 보행처럼 체열이 뚜렷하게 오르면 sustained를 선택한다.
+- production 전환 전 기존 Walk는 audit에서 legacy/unclassified로 유지한다. 승인된 수동 전환은 기존 row ID를 유지한 채 `도보 · 지속`으로 rename하고 `도보 · 근거리` row를 정확히 1개만 추가한다.
+- 초기 수동 backfill 후보는 J가 확인한 16건뿐이다. 15건은 short로 editor에서 재지정하고, sustained 1건은 기존 ID가 유지되므로 별도 DB update가 필요하지 않다.
 - CGV + Walk 33°C는 synthetic stress fixture이며 실제 acceptance는 가까운 목적지의 short Walk, CGV + Car, sustained summer Walk, current Transport null이다.
-- 분리 fixture는 증거 오염을 막았지만 confirmed `walk_short` production evidence는 0건이므로 split만으로 원하는 순위를 만들지 못했다.
-- Policy B는 계속 disabled다. Place HVAC는 Transport taxonomy와 별개인 후속 신호로 유지한다.
+- human-reviewed replay에서 short/sustained 분리는 원하는 33°C nearby 결과를 복구했지만 weak 1건의 하락 폭은 여전히 과했다.
+- Policy B는 계속 disabled다. 다음 recommendation 실험에서는 current-Transport 1건을 informational evidence로만 표시하고, ranking 영향은 2건 이상에서만 허용한다.
+- HVAC와 Place Profile은 Transport taxonomy와 분리된 후속 작업으로 유지한다.
 
 ### P5A-2. Context Familiarity Ranking
 

@@ -8,6 +8,10 @@ import { todayInKorea } from '../lib/date'
 import type { RecommendationNavigationState } from '../lib/navigation'
 import { outfitLabel } from '../lib/outfits'
 import { sortPlacesForSelection } from '../lib/place-options'
+import {
+  isLegacyWalkTransportId,
+  transportOptionsForSelection,
+} from '../lib/transport-options'
 import type {
   ConditionChoice,
   ThermalFeeling,
@@ -105,6 +109,18 @@ export function WearLogPage() {
   const weatherLocationLabel =
     data?.weatherLocations?.find((entry) => entry.id === weatherLocationId)
       ?.label ?? null
+  const legacyTransportModeId =
+    existing && isLegacyWalkTransportId(data?.transportModes ?? [], existing.transportModeId)
+      ? existing.transportModeId
+      : null
+  const transportOptions = useMemo(
+    () =>
+      transportOptionsForSelection(
+        data?.transportModes ?? [],
+        legacyTransportModeId,
+      ),
+    [data?.transportModes, legacyTransportModeId],
+  )
 
   useEffect(() => {
     if (!data) return
@@ -131,7 +147,12 @@ export function WearLogPage() {
       setRainCondition(navigationState.input.rainCondition)
       setLongWalkCondition(navigationState.input.longWalkCondition)
       setPlaceId(navigationState.input.placeId ?? '')
-      setTransportModeId(navigationState.input.transportModeId ?? '')
+      const suggestedTransportModeId = navigationState.input.transportModeId
+      setTransportModeId(
+        isLegacyWalkTransportId(data.transportModes, suggestedTransportModeId)
+          ? ''
+          : suggestedTransportModeId ?? '',
+      )
     }
     setInitializedKey(initializationKey)
   }, [
@@ -367,7 +388,7 @@ export function WearLogPage() {
                 onChange={(event) => setTransportModeId(event.target.value)}
               >
                 <option value="">미지정</option>
-                {data?.transportModes.map((mode) => (
+                {transportOptions.map((mode) => (
                   <option value={mode.id} key={mode.id}>
                     {mode.name}
                   </option>
@@ -375,6 +396,10 @@ export function WearLogPage() {
               </select>
             </label>
           </div>
+          <p className="field-help">
+            10~20분 이동은 열감이 거의 없으면 근거리, 땀·빠른 지속 보행처럼
+            체열이 뚜렷하게 오르면 지속을 선택합니다.
+          </p>
 
           <label className="field">
             <span>메모</span>

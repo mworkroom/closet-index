@@ -1,5 +1,27 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { WearLogInput } from '../lib/types'
 import { collectAllPages } from './supabase-repository'
+import { toWearLogMutableRow, toWearLogPatchRow } from './supabase/shared'
+
+const wearLogInput: WearLogInput = {
+  outfitId: 'outfit-1',
+  wornOn: '2026-08-07',
+  tempOut: 30,
+  tempBack: 28,
+  tempBackInferred: false,
+  feelingOut: 'ok',
+  feelingBack: 'ok',
+  rainCondition: 'no',
+  longWalkCondition: 'yes',
+  placeId: 'place-1',
+  transportModeId: 'transport-walk-short',
+  memo: null,
+  temperatureSource: 'manual',
+  weatherLocationId: null,
+  weatherIssuedAt: null,
+  weatherOverridden: false,
+  submissionToken: 'submission-1',
+}
 
 describe('collectAllPages', () => {
   it('1,000행 제한을 넘는 관계를 마지막 페이지까지 모두 합친다', async () => {
@@ -34,5 +56,32 @@ describe('collectAllPages', () => {
       data: null,
       error,
     })
+  })
+})
+
+describe('Wear Log Transport repository payloads', () => {
+  it('preserves the selected Transport ID in create and full update payloads', () => {
+    expect(toWearLogMutableRow(wearLogInput)).toMatchObject({
+      transport_mode_id: 'transport-walk-short',
+      long_walk_condition: 'yes',
+    })
+    expect(
+      toWearLogMutableRow({
+        ...wearLogInput,
+        transportModeId: 'transport-walk-sustained',
+      }),
+    ).toMatchObject({
+      transport_mode_id: 'transport-walk-sustained',
+      long_walk_condition: 'yes',
+    })
+  })
+
+  it('preserves only the selected Transport ID in partial editor updates', () => {
+    expect(
+      toWearLogPatchRow({ transportModeId: 'transport-walk-short' }),
+    ).toEqual({ transport_mode_id: 'transport-walk-short' })
+    expect(
+      toWearLogPatchRow({ transportModeId: 'transport-walk-sustained' }),
+    ).toEqual({ transport_mode_id: 'transport-walk-sustained' })
   })
 })

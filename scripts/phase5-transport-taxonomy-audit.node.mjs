@@ -139,3 +139,37 @@ test('reports Starbucks threshold zero as the full Outfit Place Transport univer
   ])
   assert.equal(nearby.confirmedWalkShortDistinctWearLogCount, 0)
 })
+
+test('recognizes approved short and sustained labels after the manual transition', () => {
+  const approvedTransports = [
+    { id: 'transport-walk-short', name: '도보 · 근거리', active: true },
+    { id: 'transport-walk-sustained', name: '도보 · 지속', active: true },
+    { id: 'transport-car', name: '차', active: true },
+  ]
+  const result = analyzeTransportTaxonomyCoverage(
+    [
+      log('short-a', 'outfit-a', '2026-07-01', {
+        transportModeId: 'transport-walk-short',
+      }),
+      log('sustained-a', 'outfit-b', '2026-07-02', {
+        transportModeId: 'transport-walk-sustained',
+      }),
+    ],
+    outfits,
+    places,
+    approvedTransports,
+    labels,
+  )
+
+  assert.equal(result.publicReport.historicalWalk.matchingModeCount, 2)
+  assert.equal(result.publicReport.historicalWalk.distinctWearLogCount, 2)
+  assert.equal(
+    result.publicReport.nearbyStarbucks.confirmedWalkShortDistinctWearLogCount,
+    1,
+  )
+  assert.deepEqual(result.publicReport.activeTransportModes, [
+    { name: '도보 · 근거리', distinctWearLogCount: 1 },
+    { name: '도보 · 지속', distinctWearLogCount: 1 },
+    { name: '차', distinctWearLogCount: 0 },
+  ])
+})

@@ -62,7 +62,11 @@ function feelingOutcome(log) {
 }
 
 function isWalkName(name) {
-  return /^(walk|도보)$/iu.test(name?.trim() ?? '')
+  return /^(walk|도보|도보\s*·\s*(근거리|지속))$/iu.test(name?.trim() ?? '')
+}
+
+function isShortWalkName(name) {
+  return /^도보\s*·\s*근거리$/u.test(name?.trim() ?? '')
 }
 
 function isCarName(name) {
@@ -185,6 +189,11 @@ export function analyzeTransportTaxonomyCoverage(
   const activeTransports = transports.filter((transport) => transport.active !== false)
   const walkIds = new Set(
     transports.filter((transport) => isWalkName(transport.name)).map((entry) => entry.id),
+  )
+  const shortWalkIds = new Set(
+    transports
+      .filter((transport) => isShortWalkName(transport.name))
+      .map((entry) => entry.id),
   )
   const carIds = new Set(
     transports.filter((transport) => isCarName(transport.name)).map((entry) => entry.id),
@@ -315,7 +324,9 @@ export function analyzeTransportTaxonomyCoverage(
           starbucksPlaces,
           activeTransports,
         ),
-        confirmedWalkShortDistinctWearLogCount: 0,
+        confirmedWalkShortDistinctWearLogCount: starbucksLogs.filter((log) =>
+          shortWalkIds.has(log.transportModeId),
+        ).length,
       },
       cgvSummer: {
         plausiblePlaceCount: cgvPlaces.length,
