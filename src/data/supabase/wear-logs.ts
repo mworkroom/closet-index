@@ -1,8 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { WearLogInput } from '../../lib/types'
+import type { WearLogInput, WearLogPatch } from '../../lib/types'
 import {
   toWearLog,
   toWearLogMutableRow,
+  toWearLogPatchRow,
   type WearLogRow,
 } from './shared'
 
@@ -47,6 +48,27 @@ export class SupabaseWearLogRepository {
       .from('closet_wear_logs')
       .update({
         ...toWearLogMutableRow(input),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('workspace_id', this.workspaceId)
+      .select(WEAR_LOG_SELECTION)
+      .single()
+
+    if (error) throw error
+    return toWearLog(data as WearLogRow)
+  }
+
+  async updateFields(id: string, patch: WearLogPatch) {
+    const mutableRow = toWearLogPatchRow(patch)
+    if (Object.keys(mutableRow).length === 0) {
+      throw new Error('변경된 Wear Log 필드가 없습니다.')
+    }
+
+    const { data, error } = await this.client
+      .from('closet_wear_logs')
+      .update({
+        ...mutableRow,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)

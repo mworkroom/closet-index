@@ -307,6 +307,22 @@ export interface WearLogInput {
   submissionToken: string
 }
 
+export type WearLogEditableField =
+  | 'wornOn'
+  | 'tempOut'
+  | 'tempBack'
+  | 'feelingOut'
+  | 'feelingBack'
+  | 'rainCondition'
+  | 'longWalkCondition'
+  | 'placeId'
+  | 'transportModeId'
+  | 'memo'
+
+export type WearLogPatch = Partial<
+  Pick<WearLogInput, WearLogEditableField | 'tempBackInferred'>
+>
+
 export interface AppData {
   items: Item[]
   outfits: Outfit[]

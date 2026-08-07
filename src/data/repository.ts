@@ -14,6 +14,7 @@ import type {
   WeatherForecastResponse,
   WeatherLocation,
   WeatherLocationInput,
+  WearLogPatch,
   WearLog,
   WearLogInput,
 } from '../lib/types'
@@ -54,5 +55,6 @@ export interface ClosetRepository {
   ): Promise<WeatherForecastResponse>
   createWearLog(input: WearLogInput): Promise<WearLog>
   updateWearLog(id: string, input: WearLogInput): Promise<WearLog>
+  updateWearLogFields(id: string, patch: WearLogPatch): Promise<WearLog>
   deleteWearLog(id: string): Promise<void>
 }

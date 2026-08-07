@@ -143,6 +143,26 @@ describe('disabled Transport thermal policy simulations', () => {
     ).toMatchObject({ confidence: 'exact-strong', rankAdjustment: 0 })
   })
 
+  it('treats two exact borrowed-only logs as stronger negative evidence', () => {
+    const logs = [
+      wear('exact-low-1', 'outfit-exact-borrowed', 23, 'transport-walk', 'ok'),
+      wear('exact-low-2', 'outfit-exact-borrowed', 24, 'transport-walk', 'ok'),
+      wear('car-high', 'outfit-exact-borrowed', 33, 'transport-car', 'ok'),
+    ]
+    const input = { ...walkInput, outfitId: 'outfit-exact-borrowed' }
+    const result = evidence('outfit-exact-borrowed', logs, input)
+
+    expect(result.exactContext?.distinctWearLogCount).toBe(2)
+    expect(result.exactContext?.targetWithinRange).toBe(false)
+    expect(
+      evaluateTransportThermalPolicy('weak-1-strong-2', result, input),
+    ).toMatchObject({
+      status: 'borrowed-only',
+      confidence: 'exact-strong',
+      rankAdjustment: 2,
+    })
+  })
+
   it('marks repeated exact success and issue as warning evidence', () => {
     const logs = [
       wear('mixed-ok', 'outfit-mixed', 33, 'transport-walk', 'ok'),

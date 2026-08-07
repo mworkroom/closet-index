@@ -260,7 +260,7 @@ describe('ItemDetailPage replenishment', () => {
     await user.click(within(section).getByRole('button', { name: '삭제' }))
     expect(
       within(section).getByText(
-        '이 재구매 기록을 삭제할까요? 현재 보유 수량은 바뀌지 않습니다.',
+        '이 기록을 삭제할까요? 현재 보유 수량은 바뀌지 않습니다.',
       ),
     ).toBeInTheDocument()
     await user.click(

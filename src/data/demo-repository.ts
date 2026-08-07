@@ -23,6 +23,7 @@ import type {
   WeatherLocation,
   WeatherLocationInput,
   WearLog,
+  WearLogPatch,
   WearLogInput,
 } from '../lib/types'
 import { demoData } from './demo-data'
@@ -726,6 +727,24 @@ export class DemoRepository implements ClosetRepository {
     const log: WearLog = {
       ...data.wearLogs[index],
       ...input,
+      id,
+    }
+    data.wearLogs[index] = log
+    writeData(data)
+    return log
+  }
+
+  async updateWearLogFields(id: string, patch: WearLogPatch) {
+    const data = readData()
+    const index = data.wearLogs.findIndex((log) => log.id === id)
+    if (index < 0) throw new Error('착용 기록을 찾을 수 없습니다.')
+    if (Object.keys(patch).length === 0) {
+      throw new Error('변경된 Wear Log 필드가 없습니다.')
+    }
+
+    const log: WearLog = {
+      ...data.wearLogs[index],
+      ...patch,
       id,
     }
     data.wearLogs[index] = log

@@ -26,6 +26,7 @@ import { SettingsPage } from './pages/SettingsPage'
 import { StatisticsPage } from './pages/StatisticsPage'
 import { StatisticsItemListPage } from './pages/StatisticsItemListPage'
 import { WearLogPage } from './pages/WearLogPage'
+import { WearLogEditorPage } from './pages/WearLogEditorPage'
 
 function AuthenticatedApp() {
   const auth = useAuth()
@@ -66,6 +67,7 @@ function AuthenticatedApp() {
           <Route path="/outfits/:outfitId" element={<OutfitDetailPage />} />
           <Route path="/wear/:outfitId" element={<WearLogPage />} />
           <Route path="/records/:logId/edit" element={<WearLogPage />} />
+          <Route path="/tools/wear-log" element={<WearLogEditorPage />} />
           <Route path="/more" element={<MorePage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/statistics" element={<StatisticsPage />} />

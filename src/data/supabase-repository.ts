@@ -10,6 +10,7 @@ import type {
   OutfitItemPlacementInput,
   WeatherForecastRequest,
   WeatherLocationInput,
+  WearLogPatch,
   WearLogInput,
 } from '../lib/types'
 import type { ClosetRepository } from './repository'
@@ -126,6 +127,10 @@ export class SupabaseRepository implements ClosetRepository {
 
   updateWearLog(id: string, input: WearLogInput) {
     return this.wearLogs.update(id, input)
+  }
+
+  updateWearLogFields(id: string, patch: WearLogPatch) {
+    return this.wearLogs.updateFields(id, patch)
   }
 
   deleteWearLog(id: string) {

@@ -5,6 +5,7 @@ import type {
   ThermalFeeling,
   WearLog,
   WearLogInput,
+  WearLogPatch,
   WeatherLocation,
 } from '../../lib/types'
 
@@ -219,4 +220,30 @@ export function toWearLogMutableRow(input: WearLogInput) {
     weather_issued_at: input.weatherIssuedAt,
     weather_overridden: input.weatherOverridden,
   }
+}
+
+export function toWearLogPatchRow(input: WearLogPatch) {
+  const row: Record<string, unknown> = {}
+
+  if (input.wornOn !== undefined) row.worn_on = input.wornOn
+  if (input.tempOut !== undefined) row.temp_out = input.tempOut
+  if (input.tempBack !== undefined) row.temp_back = input.tempBack
+  if (input.tempBackInferred !== undefined) {
+    row.temp_back_inferred = input.tempBackInferred
+  }
+  if (input.feelingOut !== undefined) row.feeling_out = input.feelingOut
+  if (input.feelingBack !== undefined) row.feeling_back = input.feelingBack
+  if (input.rainCondition !== undefined) {
+    row.rain_condition = input.rainCondition
+  }
+  if (input.longWalkCondition !== undefined) {
+    row.long_walk_condition = input.longWalkCondition
+  }
+  if (input.placeId !== undefined) row.place_id = input.placeId
+  if (input.transportModeId !== undefined) {
+    row.transport_mode_id = input.transportModeId
+  }
+  if (input.memo !== undefined) row.memo = input.memo
+
+  return row
 }

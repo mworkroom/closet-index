@@ -22,6 +22,7 @@ import type {
   WeatherForecastRequest,
   WeatherForecastResponse,
   WeatherLocationInput,
+  WearLogPatch,
   WearLogInput,
 } from '../lib/types'
 import type { ClosetRepository } from '../data/repository'
@@ -63,6 +64,7 @@ interface DataState {
   ) => Promise<WeatherForecastResponse>
   createWearLog: (input: WearLogInput) => Promise<void>
   updateWearLog: (id: string, input: WearLogInput) => Promise<void>
+  updateWearLogFields: (id: string, patch: WearLogPatch) => Promise<void>
   deleteWearLog: (id: string) => Promise<void>
 }
 
@@ -125,6 +127,31 @@ export function DataProvider({
       }
     },
     [refresh],
+  )
+
+  const updateWearLogFields = useCallback(
+    async (id: string, patch: WearLogPatch) => {
+      setError(null)
+      try {
+        const log = await repository.updateWearLogFields(id, patch)
+        setData((current) =>
+          current
+            ? {
+                ...current,
+                wearLogs: current.wearLogs.map((entry) =>
+                  entry.id === log.id ? log : entry,
+                ),
+              }
+            : current,
+        )
+      } catch (cause) {
+        const message =
+          cause instanceof Error ? cause.message : 'Wear Log 저장에 실패했습니다.'
+        setError(message)
+        throw cause
+      }
+    },
+    [repository],
   )
 
   const updateOutfitItemPlacement = useCallback(
@@ -356,6 +383,7 @@ export function DataProvider({
       fetchWeatherForecast: (input) => repository.fetchWeatherForecast(input),
       createWearLog: (input) => mutate(() => repository.createWearLog(input)),
       updateWearLog: (id, input) => mutate(() => repository.updateWearLog(id, input)),
+      updateWearLogFields,
       deleteWearLog: (id) => mutate(() => repository.deleteWearLog(id)),
     }),
     [
@@ -371,6 +399,7 @@ export function DataProvider({
       repository,
       setOutfitArchived,
       updateItem,
+      updateWearLogFields,
       updateOutfitItemPlacement,
     ],
   )

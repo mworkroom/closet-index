@@ -128,6 +128,7 @@ describe('DataProvider outfit placement updates', () => {
       fetchWeatherForecast: vi.fn(),
       createWearLog: vi.fn(),
       updateWearLog: vi.fn(),
+      updateWearLogFields: vi.fn(),
       deleteWearLog: vi.fn(async () => undefined),
     }
 
@@ -188,6 +189,7 @@ describe('DataProvider outfit placement updates', () => {
       fetchWeatherForecast: vi.fn(),
       createWearLog: vi.fn(),
       updateWearLog: vi.fn(),
+      updateWearLogFields: vi.fn(),
       deleteWearLog: vi.fn(async () => undefined),
     }
 
@@ -229,6 +231,7 @@ describe('DataProvider outfit placement updates', () => {
       fetchWeatherForecast: vi.fn(),
       createWearLog: vi.fn(),
       updateWearLog: vi.fn(),
+      updateWearLogFields: vi.fn(),
       deleteWearLog: vi.fn(async () => undefined),
     }
 

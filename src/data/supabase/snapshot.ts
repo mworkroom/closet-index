@@ -51,6 +51,24 @@ export class SupabaseSnapshotRepository {
         }
       },
     )
+    const wearLogsPromise = collectAllPages<WearLogRow>(
+      async (from, to) => {
+        const result = await this.client
+          .from('closet_wear_logs')
+          .select(
+            'id,outfit_id,worn_on,temp_out,temp_back,temp_back_inferred,feeling_out,feeling_back,rain_condition,long_walk_condition,place_id,transport_mode_id,memo,temperature_source,weather_location_id,weather_issued_at,weather_overridden,submission_token,created_at',
+          )
+          .eq('workspace_id', this.workspaceId)
+          .order('worn_on', { ascending: false })
+          .order('id')
+          .range(from, to)
+
+        return {
+          data: result.data as WearLogRow[] | null,
+          error: result.error,
+        }
+      },
+    )
 
     const [
       itemsResult,
@@ -76,13 +94,7 @@ export class SupabaseSnapshotRepository {
         .eq('workspace_id', this.workspaceId)
         .order('created_at'),
       outfitItemsPromise,
-      this.client
-        .from('closet_wear_logs')
-        .select(
-          'id,outfit_id,worn_on,temp_out,temp_back,temp_back_inferred,feeling_out,feeling_back,rain_condition,long_walk_condition,place_id,transport_mode_id,memo,temperature_source,weather_location_id,weather_issued_at,weather_overridden,submission_token,created_at',
-        )
-        .eq('workspace_id', this.workspaceId)
-        .order('worn_on', { ascending: false }),
+      wearLogsPromise,
       this.client
         .from('closet_places')
         .select('id,name')

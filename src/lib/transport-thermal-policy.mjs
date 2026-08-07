@@ -87,7 +87,12 @@ function decision(policy, evidence, input) {
       return {
         policy,
         status,
-        confidence: currentCount >= 2 ? 'transport-strong' : 'transport-weak',
+        confidence:
+          exactCount >= 2
+            ? 'exact-strong'
+            : currentCount >= 2
+              ? 'transport-strong'
+              : 'transport-weak',
         rankAdjustment,
         affected: true,
       }

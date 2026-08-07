@@ -9,6 +9,7 @@ interface ImportMetaEnv {
   readonly VITE_APP_VERSION?: string
   readonly VITE_DATA_VERSION?: string
   readonly VITE_P5A_CONTEXT_RANKING?: string
+  readonly VITE_P5A_TRANSPORT_POLICY_B?: string
 }
 
 interface ImportMeta {

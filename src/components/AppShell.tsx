@@ -32,6 +32,7 @@ export function AppShell({
   hideNavigation = false,
   hideTitle = false,
   fillViewport = false,
+  wide = false,
 }: PropsWithChildren<{
   title: string
   eyebrow?: string
@@ -41,12 +42,21 @@ export function AppShell({
   hideNavigation?: boolean
   hideTitle?: boolean
   fillViewport?: boolean
+  wide?: boolean
 }>) {
   const navigate = useNavigate()
   const location = useLocation()
 
   return (
-    <div className={`app-frame${fillViewport ? ' app-frame--fill-viewport' : ''}`}>
+    <div
+      className={[
+        'app-frame',
+        fillViewport ? 'app-frame--fill-viewport' : '',
+        wide ? 'app-frame--wide' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <header className="topbar">
         <div className="topbar__lead">
           {back && (

@@ -1,7 +1,7 @@
 # Closet Index Phase 5 Recommendation Intelligence Initial Plan
 
 - 작성일: 2026-08-02
-- 상태: P5-0A·P5-0B 완료, P5A-1 disabled 정책 비교 완료, HOME 통합 결정 전
+- 상태: P5-0A·P5-0B 완료, P5A-1 Policy B disabled HOME 통합 완료, production 활성화 전
 - 선행 단계: Phase 4 Statistics & Replacement Lineage
 - 목적: Phase 4 논의 중 나온 추천 알고리즘의 제품 원칙과 구현 가설을 보존하고, Phase 5 착수 시 재검증할 출발점으로 사용
 - 관련 문서: [Roadmap](./roadmap.md), [Phase 4 Plan](./phase-4-maintenance-insights-plan.md), [Phase 2 Weather Plan](./phase-2-weather-plan.md), [Product Plan](./product-plan.md)
@@ -93,7 +93,28 @@ P5-0B에서 Transport가 단순한 familiarity 차원이 아니라 thermal evide
 - current Place가 null이면 `currentPlace`와 `exactContext`를, current Transport가 null이면 `currentTransport`와 `exactContext`를 만들지 않는다.
 - `longWalkCondition`을 Transport thermal evidence로 대체 사용하지 않는다.
 - HOME 통합 전에 최소 evidence threshold와 warning·deprioritize·exclude behavior를 별도 결정한다.
-- 세 behavior는 모두 미확정이지만 현재 감사는 hard exclusion을 지지하지 않으며 cold/hot·rain·long-walk 기존 warning을 약화하지 않는다.
+- 아래 disabled 통합 결정은 deprioritize만 채택하며 hard exclusion을 사용하지 않고 cold/hot·rain·long-walk 기존 warning을 약화하지 않는다.
+
+#### 2026-08-07 Policy B disabled 통합 결정
+
+- current Transport distinct Wear Log 0건은 unknown, 1건은 weak, 2건 이상은 strong evidence로 본다.
+- overall range만 target을 지원하고 current Transport range는 지원하지 않을 때만 같은 기존 recommendation level 안에서 후순위로 보낸다.
+- 지원 후보는 승격하지 않고 Outfit을 제외하지 않는다.
+- 기존 warning, reason, group, comparator fallback은 보존한다.
+- exact Place + Transport evidence는 cross-Place Transport evidence보다 높은 confidence지만 지원 후보 승격에는 사용하지 않는다.
+- current Transport가 null이면 적용하지 않는다.
+- development 전용 flag는 기본 `false`이며 production에서는 강제로 비활성이다.
+- read-only production 9-input matrix에서 5개 입력이 변하고 deep-list churn이 커서 production 활성화 준비는 되지 않았다.
+- authenticated local HOME manual QA에서 33°C Walk 개선과 Car·Transport null 무변경을 확인했지만, 최근 구매 group tie와 Place null pagination까지 영향을 주는 경계가 발견됐다.
+
+#### 2026-08-07 Transport taxonomy validation
+
+- 역사적 Walk는 일반적인 모든 도보 이동이 아니라 약 20~30분 이상의 지속적이거나 빠른 걷기를 뜻했다.
+- `walk_short`(약 5~10분, 짧은 노출)와 `walk_sustained`(약 20~30분 이상, 지속적·빠른 걷기)를 candidate taxonomy로 분리한다.
+- 정확한 UI label과 10~20분 경계, 역사적 Walk 207건의 수동 재분류 여부는 unresolved다.
+- CGV + Walk 33°C는 synthetic stress fixture이며 실제 acceptance는 가까운 목적지의 short Walk, CGV + Car, sustained summer Walk, current Transport null이다.
+- 분리 fixture는 증거 오염을 막았지만 confirmed `walk_short` production evidence는 0건이므로 split만으로 원하는 순위를 만들지 못했다.
+- Policy B는 계속 disabled다. Place HVAC는 Transport taxonomy와 별개인 후속 신호로 유지한다.
 
 ### P5A-2. Context Familiarity Ranking
 
@@ -137,7 +158,7 @@ P5-0B에서 Transport가 단순한 familiarity 차원이 아니라 thermal evide
 
 #### HOME 설명 예시
 
-- `CGV용산 · 지하철에서 5번 입음`
+- `Place A · Transport A에서 5번 입음`
 - `이 장소에서 7번 입음`
 - `비슷한 온도에서 OK 3회`
 - `장소 기록은 있지만 교통수단 일치 기록 없음`
@@ -352,10 +373,12 @@ schema 후보는 다음 책임을 분리한다.
 - [x] HOME에 연결되지 않은 순수 deterministic evidence calculator
 - [x] currentPlace·exactContext·nullTransport scope와 provenance 확장
 - [x] Policy A·B·C·D disabled 비교 및 production read-only 영향 집계
-- [ ] 최소 current-Transport evidence threshold 결정
-- [ ] overall fallback과 warning·deprioritize·exclude behavior 결정
+- [x] 최소 current-Transport evidence threshold 결정: 0 unknown, 1 weak, 2+ strong
+- [x] Policy B disabled 후보의 overall fallback과 deprioritize-only behavior 결정
 - [x] hard exclusion은 현재 audit 근거로 지지되지 않음
-- [ ] 결정 후에만 HOME eligibility·warning 연결 범위 검토
+- [x] 기존 eligibility·warning을 바꾸지 않는 disabled HOME ordering 통합
+- [ ] 최근 구매 partition 전후의 Policy B 적용 위치 결정
+- [ ] weak evidence 이동 폭·Place null·inferred endpoint 제한 검토
 
 ### P5A-2. Context Familiarity Ranking
 
@@ -418,7 +441,7 @@ schema 후보는 다음 책임을 분리한다.
 - Item 체감 입력의 최소 단위와 영향 수준
 - ±2°C 관측 유사성의 endpoint 비교 방식
 - derived evidence를 저장할지 요청 시 계산할지
-- P5A-1에서 Policy B·C·D 중 어느 deprioritize 정책을 disabled integration 대상으로 채택할지
+- Policy B weak evidence의 최대 이동 폭, Place null 적용 범위, 최근 구매 partition 적용 위치
 - same-Place와 exactContext를 어느 threshold부터 ranking 근거로 사용할지
 - P5A-2 verified·mixed·issue tier의 comparator 위치
 

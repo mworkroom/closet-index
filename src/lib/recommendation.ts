@@ -18,6 +18,8 @@ import {
   DEFAULT_CONTEXT_EVIDENCE_THRESHOLD,
   type RecommendationContextEvidence,
 } from './context-evidence'
+import { calculateTransportThermalEvidence } from './transport-thermal-evidence.mjs'
+import { simulateTransportThermalPolicy } from './transport-thermal-policy.mjs'
 
 interface Observation {
   temp: number
@@ -45,6 +47,7 @@ const contextTierRank: Record<RecommendationContextEvidence['activeTier'], numbe
 
 export interface RecommendationOptions {
   enableContextRanking?: boolean
+  enableTransportThermalPolicyB?: boolean
   contextEvidenceThreshold?: number
 }
 
@@ -585,7 +588,7 @@ export function recommendOutfits(
     return items.length > 0 && items.every((item) => !item.retired)
   })
 
-  return available
+  const baselineResults = available
     .map((outfit) => {
       const items = outfit.itemIds
         .map((id) => data.items.find((item) => item.id === id))
@@ -648,4 +651,40 @@ export function recommendOutfits(
 
       return a.outfit.id.localeCompare(b.outfit.id)
     })
+
+  if (!options.enableTransportThermalPolicyB) return baselineResults
+
+  const resultByOutfitId = new Map(
+    baselineResults.map((result) => [result.outfit.id, result]),
+  )
+  const ranked = simulateTransportThermalPolicy(
+    'weak-1-strong-2',
+    baselineResults.map((result, baselineOrder) => ({
+      id: result.outfit.id,
+      level: result.level,
+      baselineOrder,
+      evidence: calculateTransportThermalEvidence(
+        data.wearLogs.filter((log) => log.outfitId === result.outfit.id),
+        {
+          outfitId: result.outfit.id,
+          tempOut: input.tempOut,
+          tempBack: input.tempBack,
+          placeId: input.placeId,
+          transportModeId: input.transportModeId,
+          longWalkCondition: input.longWalkCondition,
+        },
+      ),
+      warnings: result.warnings,
+    })),
+    {
+      outfitId: '',
+      tempOut: input.tempOut,
+      tempBack: input.tempBack,
+      placeId: input.placeId,
+      transportModeId: input.transportModeId,
+      longWalkCondition: input.longWalkCondition,
+    },
+  )
+
+  return ranked.map((candidate) => resultByOutfitId.get(candidate.id)!)
 }

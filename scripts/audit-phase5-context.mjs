@@ -4,6 +4,7 @@ import { resolve } from 'node:path'
 import { createClient } from '@supabase/supabase-js'
 import { analyzePhase5ContextEvidence } from './phase5-context-audit-core.mjs'
 import { analyzeTransportThermalPolicyReview } from './phase5-transport-policy-review.mjs'
+import { analyzeTransportTaxonomyCoverage } from './phase5-transport-taxonomy-audit.mjs'
 
 const EXPECTED_PROJECT_REF = 'ddlwainwollvpaeccpty'
 
@@ -70,7 +71,7 @@ const [
   ),
   collectAll('closet_outfits', 'id,display_name,rating'),
   collectAll('closet_places', 'id,name'),
-  collectAll('closet_transport_modes', 'id,name'),
+  collectAll('closet_transport_modes', 'id,name,active'),
   collectAll('closet_outfit_items', 'outfit_id,item_id,sort_order'),
   collectAll('closet_items', 'id,name'),
 ])
@@ -122,6 +123,13 @@ const policyReview = analyzeTransportThermalPolicyReview(
   normalizedWearLogs,
   labels,
 )
+const taxonomyAudit = analyzeTransportTaxonomyCoverage(
+  normalizedWearLogs,
+  outfitRows,
+  placeRows,
+  transportRows,
+  labels,
+)
 
 const report = {
   auditedAt: new Date().toISOString(),
@@ -142,14 +150,40 @@ const report = {
   },
   ...audit,
   transportThermalPolicyReview: policyReview.publicReport,
+  transportTaxonomyValidation: taxonomyAudit.publicReport,
 }
 
 const outputPath = argument('--output')
 if (outputPath) {
   await writeFile(resolve(outputPath), `${JSON.stringify(report, null, 2)}\n`)
 }
-const consolePayload = process.argv.includes('--private-review-only')
-  ? policyReview.privateReview
+const consolePayload = process.argv.includes('--transport-taxonomy-private-only')
+  ? taxonomyAudit.privateReview
+  : process.argv.includes('--walk-classification-review-only')
+    ? {
+        candidatePlaces: taxonomyAudit.privateReview.nearbyStarbucksByPlace.map(
+          ({ exactGroups: _exactGroups, ...entry }) => entry,
+        ),
+        rows:
+          taxonomyAudit.privateReview.nearbyHotWeatherWalkClassificationRows,
+      }
+  : process.argv.includes('--transport-taxonomy-private-summary-only')
+    ? {
+        activeTransportModes: taxonomyAudit.privateReview.activeTransportModes,
+        plausibleStarbucksLabels:
+          taxonomyAudit.privateReview.plausibleStarbucksLabels,
+        plausibleCgvLabels: taxonomyAudit.privateReview.plausibleCgvLabels,
+        walkByPlace: taxonomyAudit.privateReview.walkByPlace,
+        nearbyStarbucksByPlace:
+          taxonomyAudit.privateReview.nearbyStarbucksByPlace.map(
+            ({ exactGroups: _exactGroups, ...entry }) => entry,
+          ),
+        cgvSummerByPlace: taxonomyAudit.privateReview.cgvSummerByPlace,
+      }
+    : process.argv.includes('--transport-taxonomy-public-only')
+      ? taxonomyAudit.publicReport
+  : process.argv.includes('--private-review-only')
+    ? policyReview.privateReview
   : process.argv.includes('--policy-review-only')
     ? policyReview.publicReport
     : report
