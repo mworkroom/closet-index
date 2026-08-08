@@ -14,7 +14,7 @@
   --warning-soft: #fff6e8;
   --danger: #a23732;
   --danger-soft: #fff1ef;
-  --success: #2c6843;
+  --success: #551c84;
   --nav-height: 72px;
 }
 
@@ -759,6 +759,8 @@ button:disabled {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 13px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
 }
 
 .section-heading .eyebrow {
@@ -1967,8 +1969,7 @@ div.replenishment-feedback--error {
 }
 
 .replenishment-history {
-  margin-top: 22px;
-  padding-top: 18px;
+  margin-top: 12px; 
 }
 
 .replenishment-history--compact {
