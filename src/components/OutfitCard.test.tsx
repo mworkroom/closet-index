@@ -6,6 +6,7 @@ import { formatMonthDayYear } from '../lib/date'
 import { recommendOutfits } from '../lib/recommendation'
 import type { RecommendationInput } from '../lib/types'
 import { outfitLabel } from '../lib/outfits'
+import type { HomeNormalRecommendationContextEvidence } from '../lib/normal-recommendation-context-home'
 import { OutfitCard } from './OutfitCard'
 
 const input: RecommendationInput = {
@@ -90,5 +91,45 @@ describe('OutfitCard home layout', () => {
           : '최근 기록 없음',
       ),
     ).toBeInTheDocument()
+  })
+
+  it('renders the structured normal-context evidence label only when supplied', () => {
+    const recommendation = recommendOutfits(demoData, input).find(
+      (result) => result.outfit.id === 'outfit-favorite',
+    )
+    if (!recommendation) throw new Error('recommendation fixture missing')
+
+    const label = '직접 근거 · 20°C에서 OK 1회'
+    const normalContextEvidence = {
+      outfitId: recommendation.outfit.id,
+      label,
+    } as HomeNormalRecommendationContextEvidence
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <OutfitCard
+          outfit={recommendation.outfit}
+          data={demoData}
+          recommendation={recommendation}
+          normalContextEvidence={normalContextEvidence}
+          layout="home"
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText(label)).toBeInTheDocument()
+
+    rerender(
+      <MemoryRouter>
+        <OutfitCard
+          outfit={recommendation.outfit}
+          data={demoData}
+          recommendation={recommendation}
+          layout="home"
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.queryByText(label)).not.toBeInTheDocument()
   })
 })

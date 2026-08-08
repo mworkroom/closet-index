@@ -25,6 +25,8 @@ import {
   type MissingContextRecencyBehavior,
   type RecencyWindowModel,
 } from '../src/lib/recent-purchase-recency-window'
+import { simulateNormalRecommendationContextModels } from '../src/lib/normal-recommendation-context-eligibility'
+import { rankHomeNormalRecommendationsWithSafetyFirstN2 } from '../src/lib/normal-recommendation-context-home'
 import {
   applyRecentPurchaseW2Home,
   currentKstCalendarDate,
@@ -265,6 +267,12 @@ describe.runIf(RUN_PRODUCTION_AUDIT)(
       const carTransport = invariant(
         transportModes.find((transport) => /car|차/iu.test(transport.name)),
         'Car Transport missing',
+      )
+      const sustainedTransport = invariant(
+        transportModes.find((transport) =>
+          /sustain|지속/iu.test(transport.name),
+        ),
+        'sustained-walk Transport missing',
       )
       const nearbyPlace = invariant(
         places
@@ -645,6 +653,8 @@ describe.runIf(RUN_PRODUCTION_AUDIT)(
           ),
           candidates,
           results,
+          recommendationInput: scenarioInput,
+          w2NormalRecommendations: w2FeatureOn.groups.recommendations,
           simulations,
           report: simulations.map(simulationRow),
           integrationReport,
@@ -694,6 +704,34 @@ describe.runIf(RUN_PRODUCTION_AUDIT)(
         '33C-cinema-car',
         input(33, cinemaPlace.id, carTransport.id),
       )
+      const sustainedPlace = invariant(
+        places
+          .map((place) => ({
+            place,
+            count: wearLogs.filter(
+              (log) =>
+                log.placeId === place.id &&
+                log.transportModeId === sustainedTransport.id,
+            ).length,
+          }))
+          .filter((entry) => entry.count > 0)
+          .sort(
+            (left, right) => {
+              const leftIsCafe = /starbucks|스타벅스/iu.test(left.place.name)
+              const rightIsCafe = /starbucks|스타벅스/iu.test(right.place.name)
+              return (
+                Number(rightIsCafe) - Number(leftIsCafe) ||
+                right.count - left.count ||
+                left.place.id.localeCompare(right.place.id)
+              )
+            },
+          )[0]?.place,
+        'sustained-walk Place missing',
+      )
+      const sustained30 = runScenario(
+        '30C-sustained-place-sustained-walk',
+        input(30, sustainedPlace.id, sustainedTransport.id),
+      )
       const placeNull = runScenario(
         '33C-place-null-short',
         input(33, null, shortTransport.id),
@@ -706,10 +744,389 @@ describe.runIf(RUN_PRODUCTION_AUDIT)(
       )
       const allScenarios = [
         ...nearbyScenarios,
+        sustained30,
         cinema33,
         placeNull,
         transportNull,
       ]
+
+      function normalContextComparison(
+        scenario: (typeof allScenarios)[number],
+      ) {
+        const models = simulateNormalRecommendationContextModels({
+          data,
+          input: scenario.recommendationInput,
+          baselineRecommendations: scenario.w2NormalRecommendations,
+        })
+        const modelByName = new Map(models.map((model) => [model.model, model]))
+        const n0 = invariant(modelByName.get('N0'), 'normal N0 missing')
+        const n1 = invariant(modelByName.get('N1'), 'normal N1 missing')
+        const n2 = invariant(modelByName.get('N2'), 'normal N2 missing')
+        const emptyRecent: RecommendationResult[] = []
+        const emptyTrial: RecommendationResult[] = []
+        const homeN2 = rankHomeNormalRecommendationsWithSafetyFirstN2({
+          data,
+          input: scenario.recommendationInput,
+          baselineGroups: {
+            recentPurchases: emptyRecent,
+            recommendations: scenario.w2NormalRecommendations,
+            trialRecommendations: emptyTrial,
+          },
+          enabled: true,
+        })
+        expect(n0.ordered).toEqual(scenario.w2NormalRecommendations)
+        expect(
+          n0.ordered.every(
+            (result, index) => result === scenario.w2NormalRecommendations[index],
+          ),
+        ).toBe(true)
+        expect(homeN2.groups.recommendations).toEqual(n2.ordered)
+        expect(homeN2.groups.recentPurchases).toBe(emptyRecent)
+        expect(homeN2.groups.trialRecommendations).toBe(emptyTrial)
+        const decisionByOutfitId = new Map(
+          n2.decisions.map((decision) => [decision.result.outfit.id, decision]),
+        )
+        const topSixIds = [
+          ...new Set(
+            models.flatMap((model) =>
+              model.ordered.slice(0, 6).map((result) => result.outfit.id),
+            ),
+          ),
+        ]
+        const rankIn = (
+          model: (typeof models)[number],
+          outfitId: string,
+        ) => {
+          const rank = model.ordered.findIndex(
+            (result) => result.outfit.id === outfitId,
+          )
+          return rank >= 0 ? rank + 1 : 'excluded'
+        }
+        const endpointSources = (
+          decision: (typeof n2.decisions)[number],
+        ) => {
+          const range = decision.result.okRange
+          if (!range) return []
+          const rawMin = range.min + 2
+          const rawMax = range.max - 2
+          return decision.context.overall.auditObservations
+            .filter(
+              (observation) =>
+                observation.feeling === 'ok' &&
+                (observation.historicalTemperature === rawMin ||
+                  observation.historicalTemperature === rawMax),
+            )
+            .map((observation) => ({
+              boundary:
+                observation.historicalTemperature === rawMin &&
+                observation.historicalTemperature === rawMax
+                  ? 'min=max'
+                  : observation.historicalTemperature === rawMin
+                    ? 'min'
+                    : 'max',
+              temperature: observation.historicalTemperature,
+              wearLogId: observation.wearLogId,
+              endpoint: observation.endpoint,
+              inferredReturn: observation.inferredReturn,
+              place: observation.placeId
+                ? (placeById.get(observation.placeId) ?? observation.placeId)
+                : null,
+              transport: observation.transportModeId
+                ? (transportById.get(observation.transportModeId) ??
+                  observation.transportModeId)
+                : null,
+            }))
+        }
+        const supportOrigin = (
+          decision: (typeof n2.decisions)[number],
+        ) => {
+          const support = decision.context.overall.relevantObservations.filter(
+            (observation) => observation.feeling === 'ok',
+          )
+          return {
+            onlyCar:
+              support.length > 0 &&
+              support.every(
+                (observation) =>
+                  observation.transportModeId === carTransport.id,
+              ),
+            onlySustainedWalk:
+              support.length > 0 &&
+              support.every(
+                (observation) =>
+                  observation.transportModeId === sustainedTransport.id,
+              ),
+            onlyAnotherPlace:
+              support.length > 0 &&
+              support.every(
+                (observation) =>
+                  observation.placeId !== scenario.recommendationInput.placeId,
+              ),
+            contexts: [
+              ...new Set(
+                support.map(
+                  (observation) =>
+                    `${observation.placeId ? (placeById.get(observation.placeId) ?? observation.placeId) : 'null'} · ${observation.transportModeId ? (transportById.get(observation.transportModeId) ?? observation.transportModeId) : 'null'}`,
+                ),
+              ),
+            ],
+          }
+        }
+        const crossContextOrigins = n2.decisions
+          .filter((decision) => decision.tier === 'cross_context_only')
+          .map((decision) => ({
+            decision,
+            origin: supportOrigin(decision),
+          }))
+        const firstOriginExample = (
+          predicate: (origin: ReturnType<typeof supportOrigin>) => boolean,
+        ) => {
+          const match = crossContextOrigins.find(({ origin }) =>
+            predicate(origin),
+          )
+          if (!match) return null
+          return {
+            outfit: outfitLabel(match.decision.result.outfit),
+            baselineRank: match.decision.baselineRank + 1,
+            n2Rank: rankIn(n2, match.decision.result.outfit.id),
+            contexts: match.origin.contexts,
+          }
+        }
+        const longWalkReplay = simulateNormalRecommendationContextModels({
+          data,
+          input: {
+            ...scenario.recommendationInput,
+            longWalkCondition:
+              scenario.recommendationInput.longWalkCondition === 'yes'
+                ? 'no'
+                : 'yes',
+          },
+          baselineRecommendations: scenario.w2NormalRecommendations,
+        })
+        const withoutInferredReturns = simulateNormalRecommendationContextModels({
+          data: {
+            wearLogs: data.wearLogs.map((log) =>
+              log.tempBackInferred
+                ? {
+                    ...log,
+                    tempBack: null,
+                    feelingBack: null,
+                  }
+                : log,
+            ),
+          },
+          input: scenario.recommendationInput,
+          baselineRecommendations: scenario.w2NormalRecommendations,
+        })
+        const withoutInferredN2 = invariant(
+          withoutInferredReturns.find((model) => model.model === 'N2'),
+          'normal N2 without inferred returns missing',
+        )
+        const n2Ids = n2.ordered.map((result) => result.outfit.id)
+        const withoutInferredN2Ids = withoutInferredN2.ordered.map(
+          (result) => result.outfit.id,
+        )
+        expect(withoutInferredN2Ids).toEqual(n2Ids)
+        expect(
+          longWalkReplay.map((model) =>
+            model.decisions.map((decision) => ({
+              id: decision.result.outfit.id,
+              state: decision.context.state,
+              tier: decision.tier,
+            })),
+          ),
+        ).toEqual(
+          models.map((model) =>
+            model.decisions.map((decision) => ({
+              id: decision.result.outfit.id,
+              state: decision.context.state,
+              tier: decision.tier,
+            })),
+          ),
+        )
+        const baselineRankById = new Map(
+          n0.ordered.map((result, index) => [result.outfit.id, index + 1]),
+        )
+        const n2RankById = new Map(
+          n2.ordered.map((result, index) => [result.outfit.id, index + 1]),
+        )
+        const moved = n2.ordered.filter(
+          (result) =>
+            baselineRankById.get(result.outfit.id) !==
+            n2RankById.get(result.outfit.id),
+        )
+        const allHighAndPossibleRanks = n2.ordered
+          .map((result, index) => ({ result, rank: index + 1 }))
+          .filter(({ result }) => result.level !== 'caution')
+          .map(({ rank }) => rank)
+        const cautionExactRanks = n2.decisions
+          .filter(
+            (decision) =>
+              decision.result.level === 'caution' &&
+              decision.tier === 'exact_support',
+          )
+          .map((decision) => n2RankById.get(decision.result.outfit.id) ?? 0)
+        const contextStateCounts = Object.fromEntries(
+          STATES.map((state) => [
+            state,
+            n2.decisions.filter((decision) => decision.context.state === state)
+              .length,
+          ]),
+        )
+        const summaryCard = (result: RecommendationResult, rank: number) => {
+          const decision = invariant(
+            decisionByOutfitId.get(result.outfit.id),
+            'normal context summary decision missing',
+          )
+          const evidence = homeN2.evidenceByOutfitId.get(result.outfit.id)
+          return {
+            rank,
+            outfit: outfitLabel(result.outfit),
+            baselineRank: decision.baselineRank + 1,
+            level: result.level,
+            contextState: decision.context.state,
+            contextTier: decision.tier,
+            contextLabel: evidence?.label ?? null,
+            exactMatchedWearLogCount:
+              decision.context.exactContext.distinctWearLogCount,
+            currentTransportMatchedWearLogCount:
+              decision.context.currentTransport.distinctWearLogCount,
+            fallbackSourceTransports:
+              evidence?.fallbackSourceTransportNames ?? [],
+            favorite: result.outfit.rating === 'favorite',
+            wearCount: result.wearCount,
+            warnings: result.warnings,
+          }
+        }
+        return {
+          name: scenario.name,
+          input: scenario.input,
+          homeOutputUnchanged: true,
+          homeNormalCandidateCount: scenario.w2NormalRecommendations.length,
+          n1VerifiedCount: n1.verified.length,
+          n2FallbackAvailableCount: n2.fallback.length,
+          n2TopSixFallbackCount: n2.ordered
+            .slice(0, 6)
+            .filter((result) =>
+              n2.fallback.some(
+                (fallback) => fallback.outfit.id === result.outfit.id,
+              ),
+            ).length,
+          contextStateCounts,
+          featureOffTopSix: n0.ordered
+            .slice(0, 6)
+            .map((result, index) => summaryCard(result, index + 1)),
+          featureOnTopSix: n2.ordered
+            .slice(0, 6)
+            .map((result, index) => summaryCard(result, index + 1)),
+          exactHighRankOne:
+            n2.ordered[0]?.level === 'high' &&
+            decisionByOutfitId.get(n2.ordered[0]?.outfit.id)?.tier ===
+              'exact_support',
+          cautionExactBelowEveryHighAndPossible:
+            cautionExactRanks.length === 0 ||
+            cautionExactRanks.every(
+              (rank) =>
+                rank > Math.max(0, ...allHighAndPossibleRanks),
+            ),
+          issueVisibleCount: n2.decisions.filter(
+            (decision) => decision.tier === 'exact_issue' && decision.included,
+          ).length,
+          mixedVisibleCount: n2.decisions.filter(
+            (decision) => decision.tier === 'exact_mixed' && decision.included,
+          ).length,
+          movedCandidateCount: moved.length,
+          totalAbsoluteRankMovement: moved.reduce(
+            (sum, result) =>
+              sum +
+              Math.abs(
+                invariant(
+                  baselineRankById.get(result.outfit.id),
+                  'baseline rank missing',
+                ) -
+                  invariant(
+                    n2RankById.get(result.outfit.id),
+                    'N2 rank missing',
+                  ),
+              ),
+            0,
+          ),
+          candidateLossCount:
+            n0.ordered.filter(
+              (result) => !n2RankById.has(result.outfit.id),
+            ).length,
+          w2DifferenceCount: 0,
+          inferredReturnRankingEffect:
+            JSON.stringify(n2Ids) !== JSON.stringify(withoutInferredN2Ids),
+          crossContextOnlySupport: {
+            onlyCarCount: crossContextOrigins.filter(
+              ({ origin }) => origin.onlyCar,
+            ).length,
+            onlySustainedWalkCount: crossContextOrigins.filter(
+              ({ origin }) => origin.onlySustainedWalk,
+            ).length,
+            onlyAnotherPlaceCount: crossContextOrigins.filter(
+              ({ origin }) => origin.onlyAnotherPlace,
+            ).length,
+            highestBaselineOnlyCar: firstOriginExample(
+              (origin) => origin.onlyCar,
+            ),
+            highestBaselineOnlySustainedWalk: firstOriginExample(
+              (origin) => origin.onlySustainedWalk,
+            ),
+          },
+          topSix: topSixIds.map((outfitId) => {
+            const decision = invariant(
+              decisionByOutfitId.get(outfitId),
+              'normal context decision missing',
+            )
+            return {
+              outfit: outfitLabel(decision.result.outfit),
+              baselineRank: decision.baselineRank + 1,
+              contextState: decision.context.state,
+              exactMatchedWearLogIds:
+                decision.context.exactContext.matchedWearLogIds,
+              currentTransportMatchedWearLogIds:
+                decision.context.currentTransport.matchedWearLogIds,
+              overallRange: decision.result.okRange,
+              overallRangeEndpointSources: endpointSources(decision),
+              supportOrigin: supportOrigin(decision),
+              ranks: {
+                N0: rankIn(n0, outfitId),
+                N1: rankIn(n1, outfitId),
+                N2: rankIn(n2, outfitId),
+              },
+              N2Tier: decision.tier,
+              level: decision.result.level,
+              warnings: decision.result.warnings,
+              temperatureDistance: decision.temperatureDistance,
+            }
+          }),
+          longWalkConditionIndependent: true,
+        }
+      }
+
+      const normalContextScenarioFilter =
+        process.env.PHASE5_NORMAL_CONTEXT_SCENARIO
+      const normalContextReports = [
+        invariant(
+          nearbyScenarios.find((scenario) => scenario.input.temperature === 30),
+          'nearby 30C missing',
+        ),
+        nearby33,
+        invariant(
+          nearbyScenarios.find((scenario) => scenario.input.temperature === 28),
+          'nearby 28C missing',
+        ),
+        sustained30,
+        cinema33,
+      ]
+        .filter(
+          (scenario) =>
+            !normalContextScenarioFilter ||
+            scenario.name === normalContextScenarioFilter,
+        )
+        .map(normalContextComparison)
 
       const asOfDate = auditAsOfDate
 
@@ -1170,8 +1587,44 @@ describe.runIf(RUN_PRODUCTION_AUDIT)(
           disabledFallback: scenario.disabledFallback,
         })),
       }
+      const normalContextSummaryOutput = {
+        readOnly: true,
+        homeOutputUnchanged: true,
+        w2BehaviorUnchanged: true,
+        longWalkConditionUnchanged: true,
+        reports: normalContextReports.map((report) => ({
+          name: report.name,
+          input: report.input,
+          homeNormalCandidateCount: report.homeNormalCandidateCount,
+          contextStateCounts: report.contextStateCounts,
+          featureOffTopSix: report.featureOffTopSix,
+          featureOnTopSix: report.featureOnTopSix,
+          exactHighRankOne: report.exactHighRankOne,
+          cautionExactBelowEveryHighAndPossible:
+            report.cautionExactBelowEveryHighAndPossible,
+          issueVisibleCount: report.issueVisibleCount,
+          mixedVisibleCount: report.mixedVisibleCount,
+          movedCandidateCount: report.movedCandidateCount,
+          totalAbsoluteRankMovement: report.totalAbsoluteRankMovement,
+          candidateLossCount: report.candidateLossCount,
+          w2DifferenceCount: report.w2DifferenceCount,
+          inferredReturnRankingEffect: report.inferredReturnRankingEffect,
+          longWalkConditionIndependent:
+            report.longWalkConditionIndependent,
+        })),
+      }
       const reportOutput =
-        process.env.PHASE5_W2_HOME_ONLY === 'true'
+        process.env.PHASE5_NORMAL_CONTEXT_SUMMARY_ONLY === 'true'
+          ? normalContextSummaryOutput
+          : process.env.PHASE5_NORMAL_CONTEXT_ONLY === 'true'
+          ? {
+              readOnly: true,
+              homeOutputUnchanged: true,
+              w2BehaviorUnchanged: true,
+              longWalkConditionUnchanged: true,
+              reports: normalContextReports,
+            }
+          : process.env.PHASE5_W2_HOME_ONLY === 'true'
           ? {
               readOnly: true,
               homeOutputUnchanged: true,

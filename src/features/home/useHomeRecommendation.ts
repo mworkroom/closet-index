@@ -8,6 +8,10 @@ import {
   applyRecentPurchaseW2Home,
   LOCAL_P5A_RECENT_PURCHASE_W2_ENABLED,
 } from '../../lib/recent-purchase-w2-home'
+import {
+  LOCAL_P5A_NORMAL_CONTEXT_N2_ENABLED,
+  rankHomeNormalRecommendationsWithSafetyFirstN2,
+} from '../../lib/normal-recommendation-context-home'
 import type { WeatherRecommendationProvenance } from '../../lib/navigation'
 import {
   partitionRecommendations,
@@ -388,7 +392,12 @@ export function useHomeRecommendation({
     weatherBaseline,
   ])
 
-  const { recentPurchases, recommendations, trialRecommendations } = useMemo(
+  const {
+    recentPurchases,
+    recommendations,
+    trialRecommendations,
+    normalContextEvidenceByOutfitId,
+  } = useMemo(
     () => {
       const scopedData = data
         ? {
@@ -407,7 +416,12 @@ export function useHomeRecommendation({
             })
           : []
       const baselineGroups = partitionRecommendations(results)
-      if (!scopedData || !submitted) return baselineGroups
+      if (!scopedData || !submitted) {
+        return {
+          ...baselineGroups,
+          normalContextEvidenceByOutfitId: new Map(),
+        }
+      }
       const recencyBoundedGroups = applyRecentPurchaseW2Home({
         data: scopedData,
         input: submitted,
@@ -415,12 +429,24 @@ export function useHomeRecommendation({
         baselineGroups,
         enabled: LOCAL_P5A_RECENT_PURCHASE_W2_ENABLED,
       }).groups
-      return rankHomeRecommendationsWithDirectEvidenceE2(
+      const directEvidenceGroups = rankHomeRecommendationsWithDirectEvidenceE2(
         scopedData,
         submitted,
         recencyBoundedGroups,
         LOCAL_P5A_DIRECT_EVIDENCE_E2_ENABLED,
       ).groups
+      const normalContextResult =
+        rankHomeNormalRecommendationsWithSafetyFirstN2({
+          data: scopedData,
+          input: submitted,
+          baselineGroups: directEvidenceGroups,
+          enabled: LOCAL_P5A_NORMAL_CONTEXT_N2_ENABLED,
+        })
+      return {
+        ...normalContextResult.groups,
+        normalContextEvidenceByOutfitId:
+          normalContextResult.evidenceByOutfitId,
+      }
     },
     [activeSeasons, data, submitted],
   )
@@ -592,6 +618,7 @@ export function useHomeRecommendation({
     visibleForecast,
     recentPurchases,
     recommendations,
+    normalContextEvidenceByOutfitId,
     trialRecommendations,
     visibleRecommendationCount,
     setVisibleRecommendationCount,

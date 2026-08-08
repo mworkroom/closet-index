@@ -66,6 +66,7 @@ export function HomePage() {
     visibleForecast,
     recentPurchases,
     recommendations,
+    normalContextEvidenceByOutfitId,
     trialRecommendations,
     visibleRecommendationCount,
     setVisibleRecommendationCount,
@@ -447,6 +448,9 @@ export function HomePage() {
                       outfit={recommendation.outfit}
                       data={data}
                       recommendation={recommendation}
+                      normalContextEvidence={normalContextEvidenceByOutfitId.get(
+                        recommendation.outfit.id,
+                      )}
                       layout="home"
                       state={{
                         recommendation,

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import type { AppData, Outfit, RecommendationResult } from '../lib/types'
 import { formatMonthDayYear } from '../lib/date'
 import { sortItemsForOutfitDisplay } from '../lib/item-categories'
+import type { HomeNormalRecommendationContextEvidence } from '../lib/normal-recommendation-context-home'
 import { getOutfitStats, outfitLabel } from '../lib/outfits'
 import { ratingLabels, recommendationLabels } from '../lib/types'
 import { OutfitVisual } from './OutfitVisual'
@@ -11,6 +12,7 @@ export function OutfitCard({
   outfit,
   data,
   recommendation,
+  normalContextEvidence,
   purchaseHighlight = false,
   state,
   layout = 'list',
@@ -18,6 +20,7 @@ export function OutfitCard({
   outfit: Outfit
   data: AppData
   recommendation?: RecommendationResult
+  normalContextEvidence?: HomeNormalRecommendationContextEvidence
   purchaseHighlight?: boolean
   state?: unknown
   layout?: 'list' | 'grid' | 'home'
@@ -109,6 +112,11 @@ export function OutfitCard({
                     }`
                   : 'OK 기록 없음'}
               </span>
+              {normalContextEvidence && (
+                <span className="outfit-card__home-context-evidence">
+                  {normalContextEvidence.label}
+                </span>
+              )}
             </div>
           )}
         </div>

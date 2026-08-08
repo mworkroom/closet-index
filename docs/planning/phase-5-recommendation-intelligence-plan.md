@@ -650,3 +650,47 @@ schema 후보는 다음 책임을 분리한다.
 - W1 180일은 audit comparison만 유지한다.
 - 오래됐지만 적게 입은 Item은 Recent Purchase가 아니라 별도 future under-tested concern이다.
 - HOME wording, Supabase, migration, Item·Purchase Event·Wear Log 데이터는 변경하지 않는다.
+
+## 22. P5-0H Normal-recommendation context eligibility comparison
+
+- [x] W2가 Recent Purchase만 재구성하고 제외된 Outfit을 baseline normal 순서로 복귀시키는 현재 경계를 재확인했다.
+- [x] N0 overall baseline, N1 strict verified, N2 verified + explicit fallback을 HOME과 분리된 순수 projection으로 구현했다.
+- [x] N0의 membership·order·RecommendationResult identity가 baseline과 같음을 fixture로 고정했다.
+- [x] exact → current Transport → cross-context → unknown tier와 tier 내부 level·temperature distance·baseline fallback 순서를 검증했다.
+- [x] exact issue/mixed exclusion, longWalkCondition 독립성, duplicate Wear Log 결정성과 authoritative baseline order를 포함한 10개 fixture를 추가했다.
+- [x] 28·30·33°C nearby short, 30°C sustained place + sustained walk, 33°C cinema + Car를 production SELECT-only로 비교했다.
+- [x] nearby 28·30·33°C에서 Car-only cross-context 후보가 26·21·8개이고 sustained-only cross-context 후보는 모두 0개임을 확인했다.
+- [x] N2가 nearby exact-support를 Car-only baseline 상위보다 앞에 두고 cinema에서는 exact Place + Transport를 borrowed same-Transport보다 앞에 두는 것을 확인했다.
+- [x] N1은 nearby 30/33°C에서 1장, sustained input에서 0장이라 일반 추천을 대체하기에는 지나치게 희소함을 확인했다.
+- [x] HOME, W2, UI, flag, Supabase data/schema, migration, longWalkCondition은 변경하지 않았다.
+
+### Normal-recommendation 결정 경계
+
+- 다음 단일 disabled 비교 경계는 N2다. verified와 fallback을 명시적으로 분리하고 fallback을 검증 근거처럼 표시하지 않는다.
+- N2는 아직 HOME integration 후보가 아니다. 28°C에서 exact-support caution 카드가 high fallback보다 앞서는 사례를 먼저 해결해야 한다.
+- exact issue/mixed 카드를 향후 HOME에서 제거할지, 기존 caution/warning 영역에 남길지 별도 계약이 필요하다.
+- recommendation level 안전 경계와 candidate membership 계약이 확정되기 전까지 N2는 순수 simulator로만 유지한다.
+- W2 Recent Purchase와 longWalkCondition은 이 비교의 영향을 받지 않는다.
+
+## 23. P5A Safety-first N2 disabled HOME integration
+
+- [x] normal recommendation에서 recommendation level을 context tier보다 먼저 적용하는 safety-first N2 comparator를 확정했다.
+- [x] 같은 level 안에서 exact support → current Transport support → cross-context-only → unknown → exact mixed → exact issue 순서를 적용했다.
+- [x] 같은 level과 tier 안에서는 temperature distance, Rating, wear count, recency, ID를 포함한 기존 baseline order를 권위 있는 fallback으로 보존했다.
+- [x] exact issue/mixed를 제거하지 않고 기존 level·warning을 유지한 채 낮은 context tier에 남겼다.
+- [x] W2가 끝난 final normal 배열에만 N2를 적용하고 Recent Purchase·trial·candidate membership·Outfit 객체를 보존했다.
+- [x] Place 또는 Transport null이면 N2와 evidence label을 모두 생략하고 baseline 배열 identity를 유지했다.
+- [x] ranking과 카드 라벨이 동일한 structured evidence 객체를 소비하도록 연결했다.
+- [x] `VITE_P5A_NORMAL_CONTEXT_N2`를 W2·C1·E2·Policy B와 독립된 development-only, default-false, production-forced-false flag로 추가했다.
+- [x] 안전 경계, tier, Favorite fallback, issue/mixed visibility, W2/trial 보존, null context, inferred return, long-walk, feature-off, production flag와 결정성을 21개 fixture로 고정했다.
+- [x] production SELECT-only 5-input matrix와 인증 desktop/mobile HOME에서 N2 off/on을 비교했다.
+
+### Safety-first N2 결정 경계
+
+- Safety-first N2는 selected disabled normal-recommendation candidate다. N1은 지나치게 희소한 rejected control이다.
+- Policy B는 rejected 상태이며 E2는 historical comparison으로만 보존한다.
+- W2 N3+365일은 selected Recent Purchase candidate이며 N2가 membership, source Item, order 또는 365일 경계를 바꾸지 않는다.
+- Context evidence는 같은 recommendation level 안에서만 순위를 바꾼다. caution은 possible/high를, possible은 high를 넘지 않는다.
+- Exact issue와 mixed는 normal recommendation에 계속 보이지만 positive promotion을 받지 않는다.
+- Production activation은 별도 승인 전까지 금지한다. repository와 production 기본 flag는 false다.
+- HVAC와 Place Profile은 N2에 섞지 않고 별도 future improvement로 유지한다.

@@ -891,6 +891,11 @@ button:disabled {
   border-top: 1px solid var(--line);
 }
 
+.outfit-card__home-context-evidence {
+  color: var(--ink);
+  font-weight: 650;
+}
+
 .outfit-card__home-rating,
 .outfit-card__home-level {
   display: inline-flex;

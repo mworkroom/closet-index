@@ -11,6 +11,7 @@ interface ImportMetaEnv {
   readonly VITE_P5A_TRANSPORT_POLICY_B?: string
   readonly VITE_P5A_DIRECT_EVIDENCE_E2?: string
   readonly VITE_P5A_RECENT_PURCHASE_W2?: string
+  readonly VITE_P5A_NORMAL_CONTEXT_N2?: string
 }
 
 interface ImportMeta {
