@@ -179,16 +179,66 @@ describe.runIf(RUN_PRODUCTION_COMPARISON)(
         places,
         transportModes,
       }
-      const placeId = (name: string) =>
-        invariant(
-          places.find((place) => place.name === name)?.id,
-          `Place ${name}을 찾을 수 없습니다.`,
-        )
       const transportId = (name: string) =>
         invariant(
           transportModes.find((transport) => transport.name === name)?.id,
           `Transport ${name}을 찾을 수 없습니다.`,
         )
+      const walkShortId = transportId('도보 · 근거리')
+      const walkSustainedId = transportId('도보 · 지속')
+      const carId = transportId('차')
+      const busId = transportId('버스')
+      const placesByTransportEvidence = (transportModeId: string) =>
+        places
+          .map((place) => ({
+            place,
+            count: wearLogs.filter(
+              (log) =>
+                log.placeId === place.id &&
+                log.transportModeId === transportModeId,
+            ).length,
+          }))
+          .filter((entry) => entry.count > 0)
+          .sort(
+            (left, right) =>
+              right.count - left.count ||
+              left.place.id.localeCompare(right.place.id),
+          )
+      const shortPlaces = placesByTransportEvidence(walkShortId)
+      const sustainedPlaces = placesByTransportEvidence(walkSustainedId)
+      const primaryShortPlace = invariant(
+        shortPlaces[0]?.place,
+        '근거리 도보 근거가 있는 Place가 필요합니다.',
+      )
+      const secondaryShortPlace = invariant(
+        shortPlaces[1]?.place,
+        '두 번째 근거리 도보 Place가 필요합니다.',
+      )
+      const primarySustainedPlace = invariant(
+        sustainedPlaces.find((entry) =>
+          /(starbucks|스타벅스)/iu.test(entry.place.name),
+        )?.place,
+        '지속 도보 근거가 있는 cafe Place가 필요합니다.',
+      )
+      const primaryCinemaPlace = invariant(
+        places
+          .filter((place) => /cgv/iu.test(place.name))
+          .map((place) => ({
+            place,
+            summerCarCount: wearLogs.filter(
+              (log) =>
+                log.placeId === place.id &&
+                log.transportModeId === carId &&
+                [6, 7, 8].includes(Number(log.wornOn.slice(5, 7))),
+            ).length,
+          }))
+          .sort(
+            (left, right) =>
+              right.summerCarCount - left.summerCarCount ||
+              left.place.id.localeCompare(right.place.id),
+          )[0]?.place,
+        'Car 근거 비교에 사용할 cinema Place가 필요합니다.',
+      )
       const labelForOutfit = (outfit: Outfit) =>
         outfit.displayName?.trim() ||
         outfit.itemIds.map((id) => itemNameById.get(id)).filter(Boolean).join(' + ') ||
@@ -204,23 +254,63 @@ describe.runIf(RUN_PRODUCTION_COMPARISON)(
         input: RecommendationInput
       }> = [
         {
-          key: 'hot-walk-33',
-          purpose: '33°C Walk fixture analogue',
+          key: 'primary-short-walk-33',
+          purpose: '33°C primary short-Walk Place',
           input: {
             ...baseInput,
             tempOut: 33,
-            placeId: placeId('CGV방학'),
-            transportModeId: transportId('도보'),
+            placeId: primaryShortPlace.id,
+            transportModeId: walkShortId,
           },
         },
         {
-          key: 'hot-car-33',
-          purpose: 'same input changed to Car',
+          key: 'secondary-short-walk-33',
+          purpose: '33°C secondary short-Walk Place',
           input: {
             ...baseInput,
             tempOut: 33,
-            placeId: placeId('CGV방학'),
-            transportModeId: transportId('차'),
+            placeId: secondaryShortPlace.id,
+            transportModeId: walkShortId,
+          },
+        },
+        {
+          key: 'primary-short-car-33',
+          purpose: 'same primary short-Walk Place changed to Car',
+          input: {
+            ...baseInput,
+            tempOut: 33,
+            placeId: primaryShortPlace.id,
+            transportModeId: carId,
+          },
+        },
+        {
+          key: 'primary-short-walk-30',
+          purpose: '30°C primary short-Walk Place',
+          input: {
+            ...baseInput,
+            tempOut: 30,
+            placeId: primaryShortPlace.id,
+            transportModeId: walkShortId,
+          },
+        },
+        {
+          key: 'primary-short-walk-28',
+          purpose: '28°C primary short-Walk Place',
+          input: {
+            ...baseInput,
+            tempOut: 28,
+            placeId: primaryShortPlace.id,
+            transportModeId: walkShortId,
+          },
+        },
+        {
+          key: 'primary-sustained-walk-30',
+          purpose: '30°C primary sustained-Walk Place',
+          input: {
+            ...baseInput,
+            tempOut: 30,
+            placeId: primarySustainedPlace.id,
+            transportModeId: walkSustainedId,
           },
         },
         {
@@ -229,38 +319,8 @@ describe.runIf(RUN_PRODUCTION_COMPARISON)(
           input: {
             ...baseInput,
             tempOut: 26,
-            placeId: placeId('CGV방학'),
-            transportModeId: transportId('버스'),
-          },
-        },
-        {
-          key: 'transport-one-28',
-          purpose: 'current Transport evidence 1 candidates',
-          input: {
-            ...baseInput,
-            tempOut: 28,
-            placeId: placeId('기타'),
-            transportModeId: transportId('차'),
-          },
-        },
-        {
-          key: 'transport-two-28',
-          purpose: 'current Transport evidence 2+ borrowed candidates',
-          input: {
-            ...baseInput,
-            tempOut: 28,
-            placeId: placeId('기타'),
-            transportModeId: transportId('도보'),
-          },
-        },
-        {
-          key: 'exact-support-23',
-          purpose: 'exactContext 2+ support',
-          input: {
-            ...baseInput,
-            tempOut: 23,
-            placeId: placeId('기타'),
-            transportModeId: transportId('도보'),
+            placeId: primaryCinemaPlace.id,
+            transportModeId: busId,
           },
         },
         {
@@ -269,18 +329,18 @@ describe.runIf(RUN_PRODUCTION_COMPARISON)(
           input: {
             ...baseInput,
             tempOut: -8,
-            placeId: placeId('기타'),
-            transportModeId: transportId('차'),
+            placeId: primaryCinemaPlace.id,
+            transportModeId: carId,
           },
         },
         {
-          key: 'place-null-26',
-          purpose: 'current Place null',
+          key: 'place-null-short-26',
+          purpose: 'current Place null with short Walk',
           input: {
             ...baseInput,
             tempOut: 26,
             placeId: null,
-            transportModeId: transportId('도보'),
+            transportModeId: walkShortId,
           },
         },
         {
@@ -289,8 +349,18 @@ describe.runIf(RUN_PRODUCTION_COMPARISON)(
           input: {
             ...baseInput,
             tempOut: 26,
-            placeId: placeId('CGV방학'),
+            placeId: primaryCinemaPlace.id,
             transportModeId: null,
+          },
+        },
+        {
+          key: 'primary-cinema-car-33',
+          purpose: '33°C primary cinema with Car',
+          input: {
+            ...baseInput,
+            tempOut: 33,
+            placeId: primaryCinemaPlace.id,
+            transportModeId: carId,
           },
         },
       ]

@@ -37,7 +37,6 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_CLOSET_WORKSPACE_ID: ${{ vars.VITE_CLOSET_WORKSPACE_ID }}
-          VITE_APP_VERSION: ${{ vars.VITE_APP_VERSION }}
           VITE_DATA_VERSION: ${{ vars.VITE_DATA_VERSION }}
         run: npm run build
 

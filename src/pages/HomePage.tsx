@@ -23,6 +23,7 @@ import {
   temperatureLabel,
   useHomeRecommendation,
 } from '../features/home/useHomeRecommendation'
+import { RecentPurchaseSection } from '../features/home/RecentPurchaseSection'
 import { sortPlacesForSelection } from '../lib/place-options'
 import { conditionLabels } from '../lib/types'
 
@@ -410,46 +411,12 @@ export function HomePage() {
 
       {data && submitted && (
         <>
-          {recentPurchases.length > 0 && (
-            <section className="section recent-purchase-section">
-              <div className="section-heading">
-                <div>
-                  <p className="eyebrow">RECENT PURCHASES</p>
-                  <h2>최근 구매 착장</h2>
-                </div>
-                <span className="count">{recentPurchases.length}개 후보</span>
-              </div>
-
-              <div className="recommendation-intro">
-                <strong>
-                  오늘 온도에 맞고 직접 입어본 후보 중 최근 구매 아이템을
-                  먼저 골랐어요.
-                </strong>
-                <p>
-                  직접 착용한 OK 온도 범위와 맞는 Outfit만 구매일 최신순으로
-                  보여줍니다. 미착용 조합은 새 착장 시험해보기에 남습니다.
-                </p>
-              </div>
-
-              <div className="card-list">
-                {recentPurchases.map((recommendation) => (
-                  <OutfitCard
-                    key={recommendation.outfit.id}
-                    outfit={recommendation.outfit}
-                    data={data}
-                    recommendation={recommendation}
-                    purchaseHighlight
-                    layout="home"
-                    state={{
-                      recommendation,
-                      input: submitted,
-                      weather: submittedWeather ?? undefined,
-                    }}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
+          <RecentPurchaseSection
+            data={data}
+            input={submitted}
+            weather={submittedWeather ?? undefined}
+            recommendations={recentPurchases}
+          />
 
           <section className="section">
             <div className="section-heading">

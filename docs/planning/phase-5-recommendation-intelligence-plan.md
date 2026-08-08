@@ -1,7 +1,7 @@
 # Closet Index Phase 5 Recommendation Intelligence Initial Plan
 
 - 작성일: 2026-08-02
-- 상태: P5-0A·P5-0B 완료, P5A-1 Policy B disabled HOME 통합 완료, production 활성화 전
+- 상태: P5-0A·P5-0B 완료, E2 cap 1 disabled HOME integration 및 local QA 완료, production 활성화 전
 - 선행 단계: Phase 4 Statistics & Replacement Lineage
 - 목적: Phase 4 논의 중 나온 추천 알고리즘의 제품 원칙과 구현 가설을 보존하고, Phase 5 착수 시 재검증할 출발점으로 사용
 - 관련 문서: [Roadmap](./roadmap.md), [Phase 4 Plan](./phase-4-maintenance-insights-plan.md), [Phase 2 Weather Plan](./phase-2-weather-plan.md), [Product Plan](./product-plan.md)
@@ -112,12 +112,44 @@ P5-0B에서 Transport가 단순한 familiarity 차원이 아니라 thermal evide
 - 역사적 Walk는 일반적인 모든 도보 이동이 아니라 약 20~30분 이상의 지속적이거나 빠른 걷기를 뜻했다.
 - 새 데이터는 `walk_short`(`도보 · 근거리`) 또는 `walk_sustained`(`도보 · 지속`)를 사용한다.
 - 10~20분 경계는 시간만으로 정하지 않는다. 열감 증가가 거의 없으면 short, 땀·빠른 지속 보행처럼 체열이 뚜렷하게 오르면 sustained를 선택한다.
-- production 전환 전 기존 Walk는 audit에서 legacy/unclassified로 유지한다. 승인된 수동 전환은 기존 row ID를 유지한 채 `도보 · 지속`으로 rename하고 `도보 · 근거리` row를 정확히 1개만 추가한다.
-- 초기 수동 backfill 후보는 J가 확인한 16건뿐이다. 15건은 short로 editor에서 재지정하고, sustained 1건은 기존 ID가 유지되므로 별도 DB update가 필요하지 않다.
+- production 전환 전 기존 Walk는 audit에서 legacy/unclassified로 유지했다. 승인된 수동 전환은 기존 row ID를 유지한 채 `도보 · 지속`으로 rename하고 `도보 · 근거리` row를 정확히 1개만 추가했다.
+- J가 확인한 16건은 첫 test-only replay 표본이었다. 이 중 15건은 short, 1건은 sustained였지만, 15건은 production 분류의 상한이나 완전한 backfill 목록이 아니다.
 - CGV + Walk 33°C는 synthetic stress fixture이며 실제 acceptance는 가까운 목적지의 short Walk, CGV + Car, sustained summer Walk, current Transport null이다.
 - human-reviewed replay에서 short/sustained 분리는 원하는 33°C nearby 결과를 복구했지만 weak 1건의 하락 폭은 여전히 과했다.
 - Policy B는 계속 disabled다. 다음 recommendation 실험에서는 current-Transport 1건을 informational evidence로만 표시하고, ranking 영향은 2건 이상에서만 허용한다.
 - HVAC와 Place Profile은 Transport taxonomy와 분리된 후속 작업으로 유지한다.
+
+#### 2026-08-08 production taxonomy와 actual-data replay
+
+- 기존 Walk 207건은 J의 실제 이동 판단에 따라 `도보 · 근거리` 88건, `도보 · 지속` 119건으로 분류됐으며 합계와 Wear Log ID는 보존됐다.
+- 근거리 88건의 Place별 분포는 익명 기준 51건, 25건, 12건이다. 첫 두 Place는 J가 전체 기록을 근거리로 확인한 장소이고, 나머지 12건은 별도 판단한 기타 기록이다.
+- actual taxonomy를 사용하는 11-input read-only matrix에서 6개 입력의 순위가 바뀌고 총 800개 position이 달라졌다.
+- 33°C 두 short-Walk Place에서는 baseline 상위 2개가 보존됐지만 weak 1건 후보가 3위에서 10위로 하락했다.
+- 30°C short-Walk에서는 weak 후보가 4위에서 23위로, 28°C short-Walk에서는 strong 2건 후보가 5위에서 37위로 내려갔다.
+- Place null short-Walk에서도 43개 position이 달라졌다. 같은 Place를 Car로 바꾼 입력, evidence 0, Transport null, 겨울 cold, cinema + Car는 변하지 않았다.
+- taxonomy 분리는 성공했지만 Policy B의 이동 폭 문제는 해결되지 않았다. production flag는 계속 비활성으로 유지한다.
+
+#### 2026-08-08 Policy E direct-evidence simulation 결정
+
+- production Transport taxonomy는 accepted 상태로 본다.
+- Policy B는 threshold 조정 대상으로 보지 않고 rejected disabled ranking experiment로 보존한다.
+- borrowed-only는 provenance일 뿐 감점 근거가 아니며, evidence absence는 neutral이다.
+- 같은 Place·Transport에서 현재 endpoint와 ±2°C인 직접 관측 1건은 의미 있는 evidence이고, 반복 관측은 방향이 아니라 confidence를 높인다.
+- `currentTransport`의 다른 Place 관측과 inferred return은 첫 Policy E simulation에서 report-only다.
+- E0 report-only, E1 issue-down, E2 support-up/issue-down을 group 내부 최대 1·3·5 position으로 비교했다.
+- Policy E는 disabled simulation-only이며 HOME과 production flag에는 연결하지 않는다.
+- 다음 별도 audit은 Item-level derived evidence이고, direct Item observation schema는 P5C로 남겨 이번 단계에서 구현하지 않는다.
+
+#### 2026-08-08 E2 cap 1 disabled HOME integration 결정
+
+- E1은 churn이 가장 작지만 직접 성공 관측을 승격하지 않으므로 제품 후보에서 제외하고 comparison control로 유지한다.
+- selected candidate는 E2 + cap 1이다. direct support는 최대 한 칸 위, direct issue는 최대 한 칸 아래로만 이동한다.
+- 기존 추천을 먼저 partition하고 recent, normal, trial group 및 기존 recommendation level 안에서만 적용한다.
+- `VITE_P5A_DIRECT_EVIDENCE_E2`는 development 전용이며 기본 false, production에서는 강제 false다.
+- feature-off는 기존 partition 객체와 배열을 그대로 반환하고, feature-on도 RecommendationResult 객체·reasons·warnings를 변경하지 않는다.
+- current production replay에서 11개 Outfit과 22개 position이 달라졌고 최대 이동 1, group membership 변화 0이었다.
+- nearby A 28°C의 검토된 support 후보는 2→1로 이동했다. nearby A 33°C는 live baseline이 이미 검토 후보를 1위에 두어 무변경이었다.
+- cinema + Car 33°C support promotion은 기술 계약에는 맞지만 제품 타당성이 미확정이므로 production 활성화 전 재검토한다.
 
 ### P5A-2. Context Familiarity Ranking
 
@@ -380,8 +412,17 @@ schema 후보는 다음 책임을 분리한다.
 - [x] Policy B disabled 후보의 overall fallback과 deprioritize-only behavior 결정
 - [x] hard exclusion은 현재 audit 근거로 지지되지 않음
 - [x] 기존 eligibility·warning을 바꾸지 않는 disabled HOME ordering 통합
-- [ ] 최근 구매 partition 전후의 Policy B 적용 위치 결정
-- [ ] weak evidence 이동 폭·Place null·inferred endpoint 제한 검토
+- [x] 실제 short/sustained production taxonomy를 사용한 read-only ranking replay
+- [x] Policy B를 rejected disabled ranking experiment로 기록
+- [x] borrowed-only와 evidence absence를 neutral로 재정의
+- [x] exact-context direct evidence와 provenance를 계산하는 순수 Policy E engine
+- [x] recent/normal/trial partition 내부 E0·E1·E2 및 cap 1·3·5 simulation
+- [x] Place null·Transport null·inferred endpoint 제한 검증
+- [x] E2 cap 1을 selected disabled HOME integration candidate로 결정
+- [x] feature-off deep equality 및 development-only production forced-false flag
+- [x] authenticated local HOME 10-case coverage와 moved-pair comparator report
+- [ ] cinema + Car direct-support promotion 제품 검토
+- [ ] Item-level derived evidence 별도 audit
 
 ### P5A-2. Context Familiarity Ranking
 
@@ -444,7 +485,8 @@ schema 후보는 다음 책임을 분리한다.
 - Item 체감 입력의 최소 단위와 영향 수준
 - ±2°C 관측 유사성의 endpoint 비교 방식
 - derived evidence를 저장할지 요청 시 계산할지
-- Policy B weak evidence의 최대 이동 폭, Place null 적용 범위, 최근 구매 partition 적용 위치
+- E2 cap 1의 cinema + Car direct-support promotion을 production에서 허용할지
+- Item-level derived evidence가 Outfit exact-context evidence와 구별되는 정보인지
 - same-Place와 exactContext를 어느 threshold부터 ranking 근거로 사용할지
 - P5A-2 verified·mixed·issue tier의 comparator 위치
 
@@ -460,3 +502,151 @@ schema 후보는 다음 책임을 분리한다.
 - [ ] 보완 Item 때문에 기존 Outfit과 과거 Wear Log가 변경되지 않는다.
 - [ ] 추천 이유를 펼쳐 실제 원본 Wear Log와 계산 기준을 이해할 수 있다.
 - [ ] 기존 HOME 수동 입력, 날씨 자동화, Outfit 선택, Wear Log 저장 흐름에 회귀가 없다.
+
+## 15. P5-0C Recent Purchase 의미 감사
+
+- [x] HOME Recent Purchase가 Outfit별 최신 eligible Item `acquired_on`을 사용하고, Item 중복을 제거하지 않은 채 3개로 자르는 현재 경로를 추적했다.
+- [x] Item 생성·수정과 Notion import는 `acquired_on`을 쓸 수 있지만 Purchase Event 생성·수정·삭제와 Replenishment 수량 변경은 `acquired_on`을 갱신하지 않음을 확인했다.
+- [x] HOME snapshot이 Purchase Event를 읽지 않아 최초 구매와 재구매 provenance를 구별할 수 없음을 확인했다.
+- [x] 데이터 수정 전 snapshot에서 `acquired_on`보다 이른 Wear Log를 확인했다. 이후 J 확인으로 legacy Notion 입력이 재구매 때 날짜를 덮어쓴 것이었으며 앱의 분리 저장 경로 문제는 아니었음을 정정했다.
+- [x] R0 현재 동작, R1 보정 날짜·Outfit 우선, R2 고유 genuine Item 우선, R3 direct evidence 변형을 순수 시뮬레이터와 fixture로 비교했다.
+- [x] 26°C·28°C·33°C 실제 입력에서 후보 수, source Item 중복, genuine/repurchase source 분포를 읽기 전용으로 비교했다.
+- [x] 위 33°C repurchase/reset 결과는 데이터 수정 전 snapshot임을 보존했다. 수정 후 live 결과는 세 개의 genuine source Item을 사용하지만 한 장이 `Top-T-shirts-innerwear`에 anchor된다.
+- [x] C1 exact-context eligibility + N3 Item-first를 별도의 disabled HOME 후보로 선택했다. production 활성화는 하지 않았다.
+
+### P5-0C 결정 경계
+
+- Purchase Event를 최초 구매일로 재해석하지 않는다.
+- human-confirmed 최초 구매일이 있으면 Wear Log heuristic보다 우선한다.
+- 불완전한 history에는 날짜를 만들어 넣지 않는다.
+- 새 schema 없이 보수적인 중복 제거·provenance 보정은 가능하지만, 누락된 정확한 최초 구매일 복원은 불가능하다.
+- E2, HOME UI, 추천 문구, feature flag, production data는 이번 감사에서 변경하지 않는다.
+
+## 16. P5-0D Recent Purchase novelty-source eligibility 검증
+
+- [x] 최초 구매일이 novelty를 만들고 Purchase Event의 재구매일은 novelty를 reset하지 않는다는 제품 의미를 확정했다.
+- [x] 익명 Item A의 최초 구매일과 재구매일을 human-confirmed test-only overlay로 분리했다.
+- [x] known-old Item은 최초 날짜를 만들지 않고 new-Item source에서 제외하는 동작을 검증했다.
+- [x] 현재 exact-match 목록이 `Top-T-shirts-innerwear`를 source로 허용하는 bug를 확인했다.
+- [x] N3에서는 정확히 `Top-T-shirts-innerwear`만 source-ineligible로 추가하고 Outfit membership·Wear Log·온도 근거는 유지했다.
+- [x] N0/N1/N2/N3를 26°C·28°C·33°C production SELECT-only 입력으로 비교했다.
+- [x] 세 온도 모두 최종 Outfit 카드와 순서는 같았고, 33°C 한 장의 source만 base layer에서 human-confirmed genuine Item으로 바뀌었다.
+- [x] 33°C에는 genuine non-innerwear source-capable Item이 29개 있어 여름 후보 부족이 아님을 확인했다.
+- [x] distinct Item-first는 candidate 방향으로 유지하고, 유효 source가 부족하면 3장 미만을 허용한다.
+- [x] N3는 C1 exact-context eligibility 뒤의 disabled HOME integration으로 연결했다. production에서는 비활성이다.
+
+### P5-0D 결정 경계
+
+- `Top-T-shirts-innerwear`는 Recent Purchase novelty source가 아니지만 Outfit 안에는 그대로 남는다.
+- 같은 Outfit의 다른 genuine Item은 그 Outfit의 novelty source가 될 수 있다.
+- 기존 exact excluded category는 모두 유지하며 `contains("innerwear")` 같은 broad rule은 사용하지 않는다.
+- unknown initial date에는 날짜를 발명하지 않는다.
+- 다음 단일 구현 후보는 Recent Purchase partition 안에서만 동작하는 disabled N3 integration이다.
+
+## 17. P5-0E Sparse-Outfit / Item-derived eligibility audit
+
+- [x] 현재 Recent Purchase의 observed 요구, direct Outfit ±2°C range, target containment, possible 거절, warning 비회원성, 0→1 Wear Log evidence 전환을 추적했다.
+- [x] target Outfit Wear Log를 제외하고 exactContext, exclusive currentTransport, overall, nullContext를 분리하는 pure Item-derived evidence calculator를 추가했다.
+- [x] distinct Wear Log·endpoint dedup, source Outfit·Wear Log·Place·Transport provenance, inferred-return report-only 경계를 고정했다.
+- [x] accessory가 thermal support를 만들지 못하고 `Top-T-shirts-innerwear` 단독 support가 eligibility를 만들지 못하도록 fixture로 고정했다.
+- [x] S0 direct-only, S1 one-log exact fallback, S2 0–1 exact/Transport fallback, S3 overall upper bound를 all-core·2개 이상·weighted-majority로 비교했다.
+- [x] 26°C·28°C·30°C·33°C 실제 input을 SELECT-only로 replay하고 HOME production partition이 변하지 않음을 확인했다.
+- [x] 33°C에서 S1/S2 recovery가 0이고 S3만 20–31개를 overall evidence로 회복해 context contamination이 큼을 확인했다.
+- [x] 365일·730일 source age와 Item wear-count bucket을 진단 전용으로 비교했다.
+- [x] sparse eligibility는 HOME에 연결하지 않았다. N3는 이후 별도 C1 exact-context 계약 안에서만 disabled로 연결했다.
+
+### P5-0E 결정 경계
+
+- 한 개의 direct Wear Log가 생기면 similar/Item partial evidence가 사라지는 현재 0→1 discontinuity는 실제로 존재한다.
+- 그러나 현재 33°C short-walk 데이터에서는 exact-context 또는 current-Transport Item evidence가 논쟁 대상 카드를 회복하지 못한다.
+- overall Item fallback은 Car·cinema·다른 Place의 넓은 범위를 섞어 과도한 후보를 회복하므로 production 후보로 선택하지 않는다.
+- 다음 disabled 경계는 S2 all-core, exact-first, exact 부재 시 current-Transport, 0–1 direct logs, direct issue 우선으로 제한한다.
+- 이 경계도 실제로 plausible한 33°C recovery가 나타나기 전까지 simulator/feature-off 비교로만 유지한다.
+- P5C direct Item observation schema, HOME UI, wording, Supabase data/schema는 이번 단계에서 변경하지 않는다.
+
+## 18. P5-0F Context-conditioned Recent Purchase eligibility audit
+
+- [x] 현재 Recent Purchase membership이 전체 Outfit 온도 범위만 사용하고 Place·Transport를 사용하지 않는 경로를 재확인했다.
+- [x] exact support, exact issue, exact mixed, current-Transport support, cross-context-only, untried, unknown을 분리하는 순수 Outfit 계산기를 추가했다.
+- [x] distinct Wear Log와 endpoint 중복 제거, Place·Transport·온도·체감·wornOn·추론 귀가 provenance, 전체·exact·Transport 범위를 보존했다.
+- [x] N3 source contract를 공통 base로 적용해 C0, C1, C2, C3 두 변형, C4를 비교했다.
+- [x] 14개 fixture로 exact/issue/mixed, Transport tier, cross-context 차단, untried 탐색, 3장 미만, null fallback, inferred return, 결정성을 고정했다.
+- [x] 26°C·28°C·30°C·33°C 근거리 문맥, 33°C cinema + Car, Place null, Transport null을 production SELECT-only로 비교했다.
+- [x] 논쟁 대상 outerwear가 근거리에서는 cross-context-only이고 cinema + Car에서는 exact-support임을 확인했다.
+- [x] normal recommendation에는 같은 계산기를 진단 전용으로만 적용하고 제거·재정렬하지 않았다.
+- [x] C1 + N3를 독립 development-only flag 뒤의 selected disabled HOME candidate로 연결했다. 다른 C 모델과 production 정책은 활성화하지 않았다.
+
+### P5-0F 결정 경계
+
+- C1/C2는 30°C와 33°C 근거리 문맥에서 한 장만 반환하며, 이는 근거가 부족할 때 3장을 강제로 채우지 않는 계약과 일치한다.
+- C3는 unknown 탐색 후보가 199–235개로 급증하므로 “genuinely new”에 필요한 별도 recency/exploration 계약 없이 통합하지 않는다.
+- C4는 cross-context-only를 다시 허용하므로 진단 전용이며 제품 후보가 아니다.
+- 다음 단일 disabled integration 경계는 Place와 Transport가 모두 있을 때만 동작하는 Recent Purchase 전용 C1 exact-support + N3 source contract다.
+- 이번 disabled integration은 Place 또는 Transport가 없을 때 exact current C0 partition을 유지한다. 영구 missing-input 제품 정책은 별도 결정으로 남긴다.
+- HOME UI·문구·normal recommendation·Supabase data/schema·migration·feature flag는 이번 감사에서 변경하지 않는다.
+
+## 19. P5A Recent Purchase C1 + N3 disabled HOME integration
+
+- [x] 기존 recommendation과 partition을 먼저 계산하고 C1 + N3를 얇은 adapter로 연결했다.
+- [x] `VITE_P5A_RECENT_PURCHASE_C1_N3`를 default false, development-only, production forced-false로 고정했다.
+- [x] feature-off partition object와 recent/normal/trial 배열의 deep equality와 identity를 보존했다.
+- [x] Place·Transport가 모두 있을 때 `exact_support`만 Recent Purchase에 허용했다.
+- [x] Recent Purchase를 distinct source Item·Outfit 기준 0–3장으로 만들고 빈 자리를 채우지 않았다.
+- [x] 제외된 observed Outfit을 원래 baseline 순서의 normal recommendations로 복귀시켰다.
+- [x] trial recommendations의 membership·order·array identity를 유지했다.
+- [x] Place 또는 Transport null에서 exact current C0 fallback을 유지했다.
+- [x] 24개 integration fixture와 0·1·2·3장 rendering test를 추가했다.
+- [x] 26·28·30·33°C nearby short, cinema + Car, Place null, Transport null production matrix를 SELECT-only로 재생했다.
+- [x] 같은 인증 origin에서 feature off/on을 1440×1000 desktop과 390×844 mobile로 검증했다.
+- [x] HOME wording·control·CSS, Supabase data/schema, migration, production flag는 변경하지 않았다.
+
+### P5A Recent Purchase 결정 경계
+
+- C1 + N3는 selected disabled candidate이며 local default와 production에는 아직 활성화하지 않는다.
+- 30°C와 33°C에서 한 장만 반환하는 것은 strict contract에 맞으며 unknown·cross-context로 채우지 않는다.
+- nearby 33°C의 audited outer Outfit은 Recent Purchase에서 빠져 normal로 돌아가고, cinema + Car에서는 exact support로 남는다.
+- missing-input C0 fallback의 영구 채택과 source/evidence 설명 wording은 후속 제품 결정이다.
+- P5A-2, Place Profile, HVAC, Item observation, schema와 UI 구현은 진행하지 않는다.
+
+## 20. P5-0G Recent Purchase recency-window exploration audit
+
+- [x] Strict C1이 26°C·28°C에서 실제로 더 최근인 cross-context 카드를 모두 제거하고 오래된 exact-support 카드로 교체한 원인을 확인했다.
+- [x] 현재 observed + overall-temperature membership를 시작점으로 하는 W1 N3+180일, W2 N3+365일, W3 strict C1+365일 순수 모델을 추가했다.
+- [x] exact → current Transport → cross-context → unknown tier, novelty date → baseline rank → ID 결정 순서를 fixture로 고정했다.
+- [x] source/Outfit distinct, 최대 3장, 0–3장 허용, expired source 미충원, normal membership 보존 계약을 고정했다.
+- [x] 15개 fixture와 production SELECT-only 7-input matrix를 실행했다.
+- [x] 26°C에서는 W1/W2가 36·47·50일 카드 3장을, 28°C에서는 50·67일 카드 2장을 복원했다.
+- [x] 30°C·33°C·cinema+Car에서는 365일 이내 유효 source가 없어 W1/W2/W3 모두 0장을 반환했다.
+- [x] 180일과 365일은 현재 production matrix에서 같은 결과였고, 250일 fixture에서만 의도한 차이가 확인됐다.
+
+### P5-0G 결정 경계
+
+- C1 + N3는 더 이상 선택된 제품 정책으로 진행하지 않고 strict comparison/control로 유지한다.
+- 다음 disabled 검토 후보는 W1 N3+180일 + M-A이지만 production cutoff로 확정하지 않는다.
+- W2는 다음 계절까지 저착용 Item을 보존할 수 있는 seasonal control로 유지한다.
+- missing-input M-A/M-B는 production 정책으로 확정하지 않는다.
+- HOME integration, UI·wording, Supabase data/schema, migration, production flag 활성화는 진행하지 않는다.
+
+## 21. P5A Recent Purchase W2 disabled HOME integration
+
+- [x] W2 N3+365일을 selected disabled Recent Purchase candidate로 확정했다.
+- [x] 한 번의 계절 순환을 보장하는 365일 calendar window와 KST 날짜 경계를 적용했다.
+- [x] 365일은 포함하고 366일은 만료되는 계약을 fixture로 고정했다.
+- [x] exact → current Transport → cross-context → unknown exploration tier를 HOME Recent Purchase에만 적용했다.
+- [x] Place 또는 Transport 누락 시 overall thermal + N3 + 365일을 사용하는 M-A를 적용했다.
+- [x] `VITE_P5A_RECENT_PURCHASE_W2`를 development-only, default false, production forced-false로 연결했다.
+- [x] C1 flag를 selected HOME QA path에서 제거하고 C1 계산기·테스트·감사 문서는 historical control로 보존했다.
+- [x] feature-off partition object·array identity와 deep equality를 보존했다.
+- [x] feature-on에서 expired Outfit을 baseline 순서의 normal recommendations로 복귀시키고 candidate loss 0을 확인했다.
+- [x] 22개 W2 integration fixture와 production SELECT-only 7-input matrix를 통과했다.
+- [x] 인증된 1280×720 desktop에서 feature off/on 7-input matrix와 console/overlay를 검증했다.
+- [x] 인증된 390×844 mobile에서 7-input matrix, responsive width, console/overlay를 검증했다.
+
+### W2 결정 경계
+
+- W2 365일은 local QA용 selected disabled candidate이며 production에는 활성화하지 않는다.
+- W2는 명시적인 local opt-in QA를 시작할 준비가 되었지만 repository default는 false로 유지한다.
+- C1은 Recent Purchase 목적에 맞지 않는 strict rejected/control model이다.
+- W1 180일은 audit comparison만 유지한다.
+- 오래됐지만 적게 입은 Item은 Recent Purchase가 아니라 별도 future under-tested concern이다.
+- HOME wording, Supabase, migration, Item·Purchase Event·Wear Log 데이터는 변경하지 않는다.

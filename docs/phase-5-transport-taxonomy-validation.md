@@ -150,3 +150,33 @@ J의 검토로 익명 Place A와 B는 `walk_short`, Place C는 `walk_sustained`�
 nearby Place에는 historical Car evidence가 없어 두 Car 시나리오는 실행하지 않았다. primary cinema + Car는 Model 0/1/2 전체 순서가 같았다. 각 nearby scenario에서 27개 후보의 range가 inferred return에 민감했지만, top 6와 위의 직접 이동 판단에는 inferred return이 영향을 주지 않았다.
 
 결론적으로 taxonomy split은 원하는 33°C 결과를 복구했지만 weak 1건 감점의 하락 폭이 여전히 과하다. Policy B와 production HOME 통합 flag는 계속 비활성으로 유지한다.
+
+## 8. Production 분류 후 actual-taxonomy replay
+
+2026-08-08 승인된 두 Transport row를 production 수집값으로 전환한 뒤, J가 실제 이동 기준으로 역사 기록을 분류했다. 첫 replay의 15건 short는 검증 표본이었으며 production 분류 상한이 아니다.
+
+| Transport | distinct Wear Logs | distinct Outfits |
+|---|---:|---:|
+| `도보 · 근거리` | 88 | 71 |
+| `도보 · 지속` | 119 | 97 |
+| 합계 | 207 | - |
+
+근거리 기록의 Place별 분포는 개인 Place 이름을 제외한 익명 기준 51건, 25건, 12건이다. taxonomy 전환 전후 Walk 합계 207건과 workspace 전체 Wear Log 783건은 보존됐다.
+
+실제 `transport_mode_id`를 그대로 사용하는 11-input read-only Policy B matrix 결과는 다음과 같다.
+
+| 익명 scenario | ranking 변경 position | 직접 감점 핵심 |
+|---|---:|---|
+| 33°C · short Place A | 237 | weak 1건 후보 3→10 |
+| 33°C · short Place B | 237 | weak 1건 후보 3→10 |
+| 33°C · Place A · Car | 0 | 없음 |
+| 30°C · short Place A | 227 | weak 1건 후보 4→23 |
+| 28°C · short Place A | 33 | strong 2건 후보 5→37 |
+| 30°C · sustained Place | 23 | weak 1건 후보 2→24 |
+| 26°C · evidence 0 | 0 | 없음 |
+| -8°C · Car | 0 | 없음 |
+| 26°C · Place null · short | 43 | strong 2건 후보 7→49 |
+| 26°C · Transport null | 0 | 없음 |
+| 33°C · cinema · Car | 0 | 없음 |
+
+11개 입력 중 6개가 바뀌었고 총 800개 position이 달라졌다. 33°C short의 baseline 상위 2개 보존, Car·evidence 0·Transport null·겨울·cinema 무변경은 의도와 맞는다. 그러나 weak뿐 아니라 strong 2건에서도 하락 폭이 크고, Place null 영향도 계속 남는다. 따라서 taxonomy는 실제 수집에 사용할 수 있지만 Policy B는 production 활성화 준비가 되지 않았다.

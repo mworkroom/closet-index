@@ -146,7 +146,7 @@ $$;
 - `도보 · 지속` reference 수가 적용 전 기존 Walk reference 수와 같다.
 - `도보 · 근거리` reference 수는 editor QA 전 0건이다.
 - workspace의 전체 Wear Log 수가 적용 전과 같다.
-- 15건의 short 재지정 후 read-only taxonomy audit의 예상 분포는 `도보 · 근거리` 15건, `도보 · 지속` 192건이며 합계 207건이다.
+- 15건은 첫 test-only replay 표본이었으며 production 분류 상한이 아니다. 2026-08-08 J의 실제 이동 판단을 반영한 분포는 `도보 · 근거리` 88건, `도보 · 지속` 119건이며 합계 207건이다.
 
 그 다음 앱 snapshot을 새로고침하고 Transport 선택 순서가 다음인지 확인한다.
 
@@ -212,7 +212,7 @@ Rollback 후 1단계 SELECT를 다시 실행해 기존 Walk ID와 reference 수�
 ## 5. 이번 production 적용에서 하지 않은 일
 
 - migration 생성 또는 수정
-- 15건 short 기록의 자동 reassignment
+- 역사 Wear Log의 자동 reassignment
 - 1건 sustained 기록의 불필요한 update
 - `walk_unclassified` production option 생성
 - Policy B 활성화

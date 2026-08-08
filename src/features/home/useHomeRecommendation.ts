@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ClosetRepository } from '../../data/repository'
+import {
+  LOCAL_P5A_DIRECT_EVIDENCE_E2_ENABLED,
+  rankHomeRecommendationsWithDirectEvidenceE2,
+} from '../../lib/direct-evidence-home-ranking'
+import {
+  applyRecentPurchaseW2Home,
+  LOCAL_P5A_RECENT_PURCHASE_W2_ENABLED,
+} from '../../lib/recent-purchase-w2-home'
 import type { WeatherRecommendationProvenance } from '../../lib/navigation'
 import {
   partitionRecommendations,
@@ -398,7 +406,21 @@ export function useHomeRecommendation({
                 LOCAL_P5A_TRANSPORT_POLICY_B_ENABLED,
             })
           : []
-      return partitionRecommendations(results)
+      const baselineGroups = partitionRecommendations(results)
+      if (!scopedData || !submitted) return baselineGroups
+      const recencyBoundedGroups = applyRecentPurchaseW2Home({
+        data: scopedData,
+        input: submitted,
+        results,
+        baselineGroups,
+        enabled: LOCAL_P5A_RECENT_PURCHASE_W2_ENABLED,
+      }).groups
+      return rankHomeRecommendationsWithDirectEvidenceE2(
+        scopedData,
+        submitted,
+        recencyBoundedGroups,
+        LOCAL_P5A_DIRECT_EVIDENCE_E2_ENABLED,
+      ).groups
     },
     [activeSeasons, data, submitted],
   )

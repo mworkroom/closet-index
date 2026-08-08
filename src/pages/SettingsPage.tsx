@@ -9,6 +9,7 @@ import {
   SEASONS,
   seasonLabels,
 } from '../lib/seasons'
+import packageMetadata from '../../package.json'
 
 interface LocationFormState {
   label: string
@@ -43,7 +44,7 @@ export function SettingsPage() {
     useState<LocationFormState>(emptyLocationForm)
   const [savingLocation, setSavingLocation] = useState(false)
   const [locationMessage, setLocationMessage] = useState<string | null>(null)
-  const appVersion = import.meta.env.VITE_APP_VERSION ?? '0.1.0'
+  const appVersion = packageMetadata.version
   const dataVersion =
     import.meta.env.VITE_DATA_VERSION ?? (mode === 'demo' ? 'demo-v1' : 'not-set')
 
@@ -281,7 +282,7 @@ export function SettingsPage() {
         </div>
         <div>
           <span>앱 버전</span>
-          <strong>{appVersion} · Phase 2 W2</strong>
+          <strong>{appVersion} · Phase 5 W2</strong>
         </div>
         <div>
           <span>데이터 버전</span>

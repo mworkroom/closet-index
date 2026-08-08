@@ -123,3 +123,24 @@ Manual QA 뒤에도 Policy B는 disabled를 유지한다. 다음 구현 전에 �
 
 1. Policy B를 `최근 구매 착장` partition 전에 적용할지, 일반 추천 group 내부에만 적용할지
 2. Place null과 weak 1건 evidence가 첫 pagination에서 큰 하락을 만들 수 있도록 허용할지
+
+## 8. Actual Transport taxonomy production replay
+
+2026-08-08 production Transport가 `도보 · 근거리` 88건과 `도보 · 지속` 119건으로 분리된 뒤, test-only remap이 아니라 실제 `transport_mode_id`를 사용하는 matrix를 다시 실행했다. 개인 Place·Outfit 이름은 private console report에만 남기고 이 문서에는 익명 결과만 기록한다.
+
+- 11개 입력 중 ranking이 바뀐 입력: 6개
+- 순번이 달라진 Outfit position 합계: 800개
+- 33°C short Place A/B: 상위 2개 보존, weak 후보 3→10
+- 같은 Place + Car, evidence 0, Transport null, 겨울 cold, cinema + Car: 무변경
+- 30°C short: weak 후보 4→23
+- 28°C short: strong 2건 후보 5→37
+- 30°C sustained: weak 후보 2→24
+- Place null short: strong 2건 후보 7→49, 총 43개 position 변경
+
+실제 taxonomy는 short/sustained evidence 오염을 제거하고 33°C nearby 상위 결과를 보존했다. 그러나 감점된 후보를 같은 level의 모든 무감점 후보 뒤로 보내는 현재 comparator 때문에 weak와 strong 모두 큰 하락이 가능하다. Policy B는 계속 disabled로 유지하며, 다음 실험은 1건을 informational-only로 만들고 2건 이상에서도 최대 이동 폭을 제한하는 정책을 먼저 비교한다.
+
+## 9. 최종 disposition
+
+후속 Policy E 검증에서 Policy B의 문제는 weak/strong threshold가 아니라 borrowed-only를 부정 근거로 해석한 데 있음이 확인됐다. `overall range supports`와 `current-Transport range does not support`의 조합은 현재 맥락의 직접 관측이 없다는 뜻이지 Outfit이 부적합하다는 뜻이 아니다.
+
+Policy B 구현과 이 보고서는 rejected disabled experiment로 보존한다. HOME에는 연결하지 않으며, borrowed-only는 이후 정책에서도 provenance로만 유지한다. absence of evidence는 neutral이다.
