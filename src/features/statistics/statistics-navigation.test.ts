@@ -10,6 +10,7 @@ describe('statistics item-list navigation', () => {
       period: { kind: 'year', year: 2025 },
       seasons: ['Winter', 'Spring'],
       categories: ['top', 'made'],
+      excludeRetired: true,
     })
     const parsed = readStatisticsItemListSearchParams(
       new URL(url, 'https://closet.test').searchParams,
@@ -21,6 +22,7 @@ describe('statistics item-list navigation', () => {
         period: { kind: 'year', year: 2025 },
         seasons: ['Winter', 'Spring'],
         categories: ['top', 'made'],
+        excludeRetired: true,
       },
     })
   })
@@ -38,6 +40,7 @@ describe('statistics item-list navigation', () => {
         period: { kind: 'lifetime' },
         seasons: ['Winter'],
         categories: ['top'],
+        excludeRetired: false,
       },
     })
   })

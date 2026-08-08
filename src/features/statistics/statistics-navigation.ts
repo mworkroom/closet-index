@@ -23,6 +23,7 @@ export function createStatisticsItemListUrl(
   for (const category of filters.categories) {
     params.append('category', category)
   }
+  if (filters.excludeRetired) params.set('excludeRetired', 'true')
   return `/statistics/items?${params.toString()}`
 }
 
@@ -61,6 +62,7 @@ export function readStatisticsItemListSearchParams(
       period,
       seasons: [...new Set(seasons)],
       categories: [...new Set(categories)],
+      excludeRetired: params.get('excludeRetired') === 'true',
     },
   }
 }

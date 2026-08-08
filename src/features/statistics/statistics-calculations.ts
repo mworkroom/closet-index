@@ -32,6 +32,7 @@ export interface StatisticsFilters {
   period: StatisticsPeriod
   seasons: Season[]
   categories: StatisticsCategoryId[]
+  excludeRetired: boolean
 }
 
 export interface StatisticsItemRow {
@@ -74,6 +75,7 @@ export const DEFAULT_STATISTICS_FILTERS: StatisticsFilters = {
   period: { kind: 'lifetime' },
   seasons: [],
   categories: [],
+  excludeRetired: false,
 }
 
 export function isStatisticsCategoryId(
@@ -238,7 +240,8 @@ export function calculateStatistics(
   const scopedItems = snapshot.items.filter(
     (item) =>
       itemMatchesCategories(item, filters.categories) &&
-      itemMatchesSeasons(item, filters.seasons),
+      itemMatchesSeasons(item, filters.seasons) &&
+      (!filters.excludeRetired || !item.retired),
   )
   const selectedLogsByItem = new Map<string, WearLog[]>()
   const rowsByItem = new Map<string, StatisticsItemRow>()

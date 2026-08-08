@@ -99,7 +99,12 @@ describe('Phase 4 statistics calculations', () => {
 
     const result = calculateStatistics(
       data,
-      { period: { kind: 'year', year: 2025 }, seasons: [], categories: [] },
+      {
+        period: { kind: 'year', year: 2025 },
+        seasons: [],
+        categories: [],
+        excludeRetired: false,
+      },
       '2026-08-03',
     )
 
@@ -136,6 +141,7 @@ describe('Phase 4 statistics calculations', () => {
         period: { kind: 'year', year: 2025 },
         seasons: ['Spring', 'Fall'],
         categories: ['bag', 'made'],
+        excludeRetired: false,
       },
       '2026-08-03',
     )
@@ -175,6 +181,33 @@ describe('Phase 4 statistics calculations', () => {
     expect(result.itemRows.map((row) => row.item.id)).not.toContain(
       'unknown-innerwear',
     )
+  })
+
+  it('Retired 제외 필터는 착용 통계와 전체 Item 목록에서 Retired Item을 제외한다', () => {
+    const data = snapshot(
+      [
+        item('active-top'),
+        item('retired-top', { retired: true }),
+      ],
+      [outfit('outfit', ['active-top', 'retired-top'])],
+      [log('wear-log', 'outfit', '2026-05-05')],
+    )
+
+    const result = calculateStatistics(
+      data,
+      {
+        period: { kind: 'lifetime' },
+        seasons: [],
+        categories: [],
+        excludeRetired: true,
+      },
+      '2026-08-03',
+    )
+
+    expect(result.mostWornRows.map((row) => row.item.id)).toEqual([
+      'active-top',
+    ])
+    expect(result.itemRows.map((row) => row.item.id)).toEqual(['active-top'])
   })
 
   it('counts every Wear Log once per item and groups lifetime wear into all 12 calendar months', () => {

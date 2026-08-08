@@ -37,7 +37,8 @@ function filterSummary(
         )
           .map((option) => option.label)
           .join(' · ')
-  return `${period} · ${seasons} · ${categories}`
+  const retired = filters.excludeRetired ? 'Retired 제외' : null
+  return [period, seasons, categories, retired].filter(Boolean).join(' · ')
 }
 
 function StatisticsFullList({

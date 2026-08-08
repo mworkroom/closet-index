@@ -16,6 +16,7 @@ import {
 } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { DataProvider } from '../context/DataContext'
+import { demoData } from '../data/demo-data'
 import { DemoRepository } from '../data/demo-repository'
 import { StatisticsPage } from './StatisticsPage'
 import { StatisticsItemListPage } from './StatisticsItemListPage'
@@ -101,6 +102,71 @@ describe('StatisticsPage Phase 4 item usage', () => {
         name: '네이비 티셔츠 Item 상세 보기',
       }),
     ).toBeInTheDocument()
+  })
+
+  it('Retired 제외 선택을 전체 Item 보기까지 전달하고 Retired Item을 숨긴다', async () => {
+    const user = userEvent.setup()
+    const retiredOutfit = demoData.outfits.find(
+      (outfit) => outfit.id === 'outfit-error',
+    )
+    if (!retiredOutfit) throw new Error('retired outfit fixture missing')
+    window.localStorage.setItem(
+      'closet-index-demo-data-v3',
+      JSON.stringify({
+        ...demoData,
+        outfits: demoData.outfits.map((outfit) =>
+          outfit.id === retiredOutfit.id
+            ? { ...outfit, itemIds: ['item-loafers'] }
+            : outfit,
+        ),
+        wearLogs: [
+          ...demoData.wearLogs,
+          {
+            ...demoData.wearLogs[0],
+            id: 'log-retired-item',
+            outfitId: retiredOutfit.id,
+            wornOn: '2026-07-20',
+            submissionToken: 'demo-retired-item',
+          },
+        ],
+      }),
+    )
+    renderPage()
+
+    await screen.findByRole('heading', {
+      name: '현재 보유 옷의 전체 기간 활용률',
+    })
+    const retiredFilter = screen.getByRole('checkbox', {
+      name: 'Retired 제외',
+    })
+    expect(retiredFilter).not.toBeChecked()
+
+    const mostWorn = screen.getByRole('heading', { name: 'Most Worn' })
+      .closest('section')!
+    expect(within(mostWorn).getByText('7개')).toBeInTheDocument()
+
+    await user.click(retiredFilter)
+
+    expect(retiredFilter).toBeChecked()
+    expect(within(mostWorn).getByText('6개')).toBeInTheDocument()
+    const fullListLink = within(mostWorn).getByRole('link', {
+      name: 'Closet에서 전체 보기',
+    })
+    expect(fullListLink).toHaveAttribute(
+      'href',
+      '/statistics/items?result=most-worn&period=lifetime&excludeRetired=true',
+    )
+
+    await user.click(fullListLink)
+
+    expect(
+      screen.getByRole('region', { name: '적용된 통계 조건' }),
+    ).toHaveTextContent('Lifetime · 모든 계절 · 모든 카테고리 · Retired 제외')
+    expect(
+      screen.queryByRole('link', {
+        name: '브라운 로퍼 Item 상세 보기',
+      }),
+    ).not.toBeInTheDocument()
   })
 
   it('applies season and category filters independently to the statistics view', async () => {

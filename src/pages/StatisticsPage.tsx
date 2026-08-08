@@ -47,6 +47,7 @@ function readStoredFilters(): StatisticsFilters {
               typeof value === 'string' && isSeason(value),
           )
         : [],
+      excludeRetired: parsed.excludeRetired === true,
       categories: Array.isArray(parsed.categories)
         ? parsed.categories.filter(
             (value): value is StatisticsCategoryId =>
@@ -267,6 +268,19 @@ export function StatisticsPage() {
                 {option.label}
               </label>
             ))}
+            <label className="check-row">
+              <input
+                type="checkbox"
+                checked={filters.excludeRetired}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    excludeRetired: event.target.checked,
+                  }))
+                }
+              />
+              Retired 제외
+            </label>
           </div>
         </div>
       </section>
