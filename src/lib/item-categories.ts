@@ -50,22 +50,26 @@ const groupOrder = new Map(
 )
 
 const outfitDisplayOrder: Record<ItemCategoryGroupId, number> = {
-  outer: 0,
-  top: 1,
-  bottom: 3,
-  shoes: 4,
-  bag: 5,
-  dress: 6,
-  acc: 7,
-  innerwear: 8,
-  other: 9,
+  outer: 1,
+  top: 2,
+  bottom: 4,
+  shoes: 6,
+  bag: 7,
+  dress: 8,
+  acc: 9,
+  innerwear: 10,
+  other: 11,
 }
 
 function getOutfitDisplayOrder(category: string) {
   const normalized = category.trim().toLocaleLowerCase('en')
-  if (normalized.startsWith('top') && normalized.includes('innerwear')) {
-    return 2
+  if (normalized === 'acc-neck' || normalized === 'acc-neck-made') {
+    return 0
   }
+  if (normalized.startsWith('top') && normalized.includes('innerwear')) {
+    return 3
+  }
+  if (normalized.startsWith('sock')) return 5
   return outfitDisplayOrder[getItemCategoryGroupId(category)]
 }
 

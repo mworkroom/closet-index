@@ -135,18 +135,24 @@ describe('item category groups', () => {
   it('Lookbook 구성 아이템을 상위 카테고리 순서로 고정한다', () => {
     const items = [
       { id: 'bag', category: 'Bags' },
+      { id: 'neck-made', category: 'Acc-Neck-made' },
       { id: 'top-innerwear', category: 'Top-T-shirts-innerwear' },
       { id: 'shoes', category: 'Shoes' },
+      { id: 'socks', category: 'Socks' },
       { id: 'bottom', category: 'Bottom-Skirts' },
       { id: 'top', category: 'Top-Knitwear' },
       { id: 'outer', category: 'Outer-Jacket' },
+      { id: 'neck', category: 'Acc-Neck' },
     ]
 
     expect(sortItemsForOutfitDisplay(items).map((item) => item.id)).toEqual([
+      'neck-made',
+      'neck',
       'outer',
       'top',
       'top-innerwear',
       'bottom',
+      'socks',
       'shoes',
       'bag',
     ])
