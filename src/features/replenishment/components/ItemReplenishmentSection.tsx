@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import { useClosetData } from '../../../context/DataContext'
-import { formatKoreanDate } from '../../../lib/date'
+import { formatMonthDayYear } from '../../../lib/date'
 import type { Item, PurchaseEvent } from '../../../lib/types'
 import type { PurchaseCycleStatus } from '../purchase-replenishment'
 
@@ -261,7 +261,7 @@ export function ItemReplenishmentSection({
             <span>현재 주기 기준일</span>
             <strong>
               {cycle?.basisDate ? (
-                <time dateTime={cycle.basisDate}>{formatKoreanDate(cycle.basisDate)}</time>
+                <time dateTime={cycle.basisDate}>{formatMonthDayYear(cycle.basisDate)}</time>
               ) : (
                 '기록 없음'
               )}
@@ -441,9 +441,10 @@ export function ItemReplenishmentSection({
                   </form>
                 ) : (
                   <>
-                    <div>
-                      <strong>{formatKoreanDate(purchaseEvent.purchasedOn)}</strong>
-                      <span>{purchaseEvent.quantity}개 구매</span>
+                    <div className="replenishment-history__entry">
+                      <strong>
+                        {formatMonthDayYear(purchaseEvent.purchasedOn)} {purchaseEvent.quantity}개 구매
+                      </strong>
                     </div>
                     {!isReadOnlyHistory ? (
                       <div className="replenishment-history__actions">

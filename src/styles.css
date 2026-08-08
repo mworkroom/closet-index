@@ -2002,13 +2002,36 @@ div.replenishment-feedback--error {
 }
 
 .replenishment-history li > div:first-child {
-  display: grid;
-  gap: 4px;
+  min-width: 0;
+}
+
+.replenishment-history__entry {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.replenishment-history__entry strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .replenishment-history li span {
   color: var(--muted);
   font-size: 0.76rem;
+}
+
+.replenishment-history li > .replenishment-history__actions {
+  flex-wrap: nowrap;
+  flex: 0 0 auto;
+}
+
+.replenishment-history li > .replenishment-history__actions .button {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding-inline: 10px;
 }
 
 .replenishment-history li form,
@@ -2200,15 +2223,7 @@ div.replenishment-feedback--error {
   }
 
   .replenishment-history li {
-    grid-template-columns: 1fr;
-  }
-
-  .replenishment-history__actions {
-    justify-content: stretch;
-  }
-
-  .replenishment-history__actions .button {
-    flex: 1;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .item-inspection-reason {

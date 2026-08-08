@@ -1,9 +1,8 @@
 import { type FormEvent, useState } from 'react'
 import { useClosetData } from '../../../context/DataContext'
-import { formatKoreanDate } from '../../../lib/date'
+import { formatMonthDayYear } from '../../../lib/date'
 import type { CareEvent, CareMethod, Item } from '../../../lib/types'
 import {
-  careMethodLabel,
   type CareCycleStatus,
   type CareRule,
 } from '../care-cycle'
@@ -130,25 +129,6 @@ export function ItemCareSection({
         </div>
       ) : null}
 
-      {rule ? (
-        <div className="replenishment-summary">
-          <div>
-            <span>현재 관리 방식</span>
-            <strong>{rule.label}</strong>
-          </div>
-          <div>
-            <span>최근 관리일</span>
-            <strong>
-              {cycle?.basisDate ? (
-                <time dateTime={cycle.basisDate}>{formatKoreanDate(cycle.basisDate)}</time>
-              ) : (
-                '기록 없음'
-              )}
-            </strong>
-          </div>
-        </div>
-      ) : null}
-
       {!item.retired && cycle ? (
         <div className="replenishment-progress">
           <div>
@@ -200,7 +180,7 @@ export function ItemCareSection({
 
       <div className="replenishment-history">
         <div className="section-heading">
-          <h3>전체 관리 이력</h3>
+          <h3>세탁 이력</h3>
           <span className="count">{events.length}건</span>
         </div>
         {loading ? <p className="muted">관리 이력을 불러오는 중…</p> : null}
@@ -229,9 +209,8 @@ export function ItemCareSection({
                   </form>
                 ) : (
                   <>
-                    <div>
-                      <strong>{formatKoreanDate(careEvent.caredOn)}</strong>
-                      <span>{careMethodLabel(careEvent.method)}</span>
+                    <div className="replenishment-history__entry">
+                      <strong>{formatMonthDayYear(careEvent.caredOn)}</strong>
                     </div>
                     <div className="replenishment-history__actions">
                       <button className="button button--secondary" type="button" onClick={() => beginEdit(careEvent)}>수정</button>

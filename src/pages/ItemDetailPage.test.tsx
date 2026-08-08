@@ -185,6 +185,8 @@ describe('ItemDetailPage replenishment', () => {
     await user.click(
       within(section).getByRole('button', { name: '재구매 기록' }),
     )
+    await user.clear(within(section).getByLabelText('재구매 날짜'))
+    await user.type(within(section).getByLabelText('재구매 날짜'), '2026-07-24')
     await user.clear(within(section).getByLabelText('구매 수량'))
     await user.type(within(section).getByLabelText('구매 수량'), '2')
     await user.clear(within(section).getByLabelText('저장 후 현재 수량'))
@@ -194,7 +196,7 @@ describe('ItemDetailPage replenishment', () => {
     )
 
     expect(await within(section).findByText('4개')).toBeInTheDocument()
-    expect(await within(section).findByText('2개 구매')).toBeInTheDocument()
+    expect(await within(section).findByText('7/24/26 2개 구매')).toBeInTheDocument()
     await expect(repository.purchases.load(item.id)).resolves.toHaveLength(1)
   })
 
@@ -211,7 +213,7 @@ describe('ItemDetailPage replenishment', () => {
     renderItemDetail(repository, 'item-cardigan')
 
     const section = await screen.findByRole('region', { name: '재구매 이력' })
-    expect(within(section).getByText('2개 구매')).toBeInTheDocument()
+    expect(within(section).getByText('7/20/26 2개 구매')).toBeInTheDocument()
     expect(within(section).queryByRole('button', { name: '재구매 기록' })).not.toBeInTheDocument()
     expect(within(section).queryByRole('button', { name: '수정' })).not.toBeInTheDocument()
     expect(within(section).queryByRole('button', { name: '삭제' })).not.toBeInTheDocument()
@@ -247,7 +249,7 @@ describe('ItemDetailPage replenishment', () => {
     })
     expect(within(section).queryByRole('button', { name: '재구매 기록' })).not.toBeInTheDocument()
     expect(within(section).queryByRole('button', { name: '수량 저장' })).not.toBeInTheDocument()
-    expect(within(section).getByText('2개 구매')).toBeInTheDocument()
+    expect(within(section).getByText('7/20/26 2개 구매')).toBeInTheDocument()
 
     await user.click(within(section).getByRole('button', { name: '수정' }))
     await user.clear(within(section).getByLabelText('구매 수량'))
@@ -255,7 +257,7 @@ describe('ItemDetailPage replenishment', () => {
     await user.click(
       within(section).getByRole('button', { name: '변경 저장' }),
     )
-    expect(await within(section).findByText('5개 구매')).toBeInTheDocument()
+    expect(await within(section).findByText('7/20/26 5개 구매')).toBeInTheDocument()
 
     await user.click(within(section).getByRole('button', { name: '삭제' }))
     expect(
@@ -291,8 +293,9 @@ describe('ItemDetailPage care history', () => {
     const section = await screen.findByRole('region', {
       name: '손세탁·드라이클리닝',
     })
-    expect(within(section).getByText('현재 관리 방식')).toBeInTheDocument()
-    expect(within(section).getByText('드라이클리닝')).toBeInTheDocument()
+    expect(within(section).queryByText('현재 관리 방식')).not.toBeInTheDocument()
+    expect(within(section).queryByText('최근 관리일')).not.toBeInTheDocument()
+    expect(within(section).getByText('세탁 이력')).toBeInTheDocument()
 
     await user.click(
       within(section).getByRole('button', { name: '드라이클리닝 완료' }),
@@ -304,7 +307,7 @@ describe('ItemDetailPage care history', () => {
     )
 
     expect(
-      (await within(section).findAllByText(/2026년 8월 1일/)).length,
+      (await within(section).findAllByText('8/1/26')).length,
     ).toBeGreaterThan(0)
     expect(await repository.care.load('item-knit')).toHaveLength(1)
 
@@ -332,6 +335,46 @@ describe('ItemDetailPage care history', () => {
     ).toBeInTheDocument()
   })
 
+  it('세탁 이력은 짧은 날짜와 수정·삭제 버튼을 한 행에 표시한다', async () => {
+    const repository = new DemoRepository()
+    await repository.care.create({
+      id: 'care-recent',
+      itemId: 'item-knit',
+      caredOn: '2026-05-14',
+      method: 'dry_cleaning',
+    })
+    await repository.care.create({
+      id: 'care-old',
+      itemId: 'item-knit',
+      caredOn: '2022-08-07',
+      method: 'dry_cleaning',
+    })
+
+    renderItemDetail(repository, 'item-knit')
+
+    const section = await screen.findByRole('region', {
+      name: '손세탁·드라이클리닝',
+    })
+    const history = section.querySelector('.replenishment-history')
+    expect(history).not.toBeNull()
+    expect(within(history as HTMLElement).getByRole('heading', { name: '세탁 이력' })).toBeInTheDocument()
+
+    const rows = Array.from(history?.querySelectorAll('ul > li') ?? []) as HTMLElement[]
+    expect(rows).toHaveLength(2)
+    for (const [date, row] of [
+      ['5/14/26', rows.find((candidate) => candidate.textContent?.includes('5/14/26'))],
+      ['8/7/22', rows.find((candidate) => candidate.textContent?.includes('8/7/22'))],
+    ] as const) {
+      expect(row).toBeDefined()
+      expect(within(row as HTMLElement).getByText(date)).toBeInTheDocument()
+      expect(within(row as HTMLElement).getByRole('button', { name: '수정' })).toBeInTheDocument()
+      expect(within(row as HTMLElement).getByRole('button', { name: '삭제' })).toBeInTheDocument()
+      expect(row?.textContent).not.toContain('드라이클리닝')
+      expect(row?.querySelector('.replenishment-history__entry')).not.toBeNull()
+      expect(row?.querySelector('.replenishment-history__actions')).not.toBeNull()
+    }
+  })
+
   it('Retired Item은 관리 이력을 보이되 새 기록과 진행 상태를 숨긴다', async () => {
     const repository = new DemoRepository()
     await repository.care.create({
@@ -346,7 +389,7 @@ describe('ItemDetailPage care history', () => {
     const section = await screen.findByRole('region', {
       name: '손세탁·드라이클리닝',
     })
-    expect(within(section).getByText('전체 관리 이력')).toBeInTheDocument()
+    expect(within(section).getByText('세탁 이력')).toBeInTheDocument()
     expect(within(section).getByRole('button', { name: '수정' })).toBeInTheDocument()
     expect(
       within(section).queryByRole('button', { name: '드라이클리닝 완료' }),

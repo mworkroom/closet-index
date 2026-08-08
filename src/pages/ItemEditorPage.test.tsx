@@ -158,7 +158,7 @@ describe('Item editor', () => {
     await user.type(within(section).getByLabelText('구매 수량'), '2')
     await user.click(within(section).getByRole('button', { name: '재구매 저장' }))
 
-    expect(await within(section).findByText('2개 구매')).toBeInTheDocument()
+    expect(await within(section).findByText(/\d+\/\d+\/\d+ 2개 구매/)).toBeInTheDocument()
     await expect(repository.purchases.load('item-cardigan')).resolves.toHaveLength(1)
     expect(
       (await repository.load()).items.find((item) => item.id === 'item-cardigan')
