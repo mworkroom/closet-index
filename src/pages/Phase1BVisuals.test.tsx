@@ -182,7 +182,12 @@ describe('Phase 1B screen visuals', () => {
     const testItemLink = within(grid!).getByRole('link', {
       name: '미착용 테스트 Item 아이템 상세 보기, 관리 상태 점검',
     })
-    expect(within(testItemLink).getByText('점검')).toBeInTheDocument()
+    const itemVisual = testItemLink.querySelector('.item-card__visual')
+    const badge = within(testItemLink).getByText('점검')
+    expect(itemVisual).toBeInTheDocument()
+    expect(itemVisual).toContainElement(badge)
+    expect(within(testItemLink).getByText('착용 0회')).toBeInTheDocument()
+    expect(within(testItemLink).getByText('최근 기록 없음')).toBeInTheDocument()
     links.forEach((link) => {
       const itemId = link.getAttribute('href')?.replace('/closet/', '')
       expect(

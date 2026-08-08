@@ -1279,9 +1279,22 @@ button:disabled {
   background: var(--surface);
 }
 
+.item-card__visual {
+  position: relative;
+  min-width: 0;
+}
+
+.item-card__badge {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 1;
+  box-shadow: 0 2px 8px rgba(37, 37, 37, 0.08);
+  white-space: nowrap;
+}
+
 .item-card__summary {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
   min-height: 50px;
   align-items: center;
   gap: 6px;
@@ -1301,10 +1314,6 @@ button:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.item-card__summary .badge {
-  padding-inline: 7px;
 }
 
 .item-visual {

@@ -345,7 +345,16 @@ export function ClosetPage() {
                       key={item.id}
                       aria-label={`${item.name} 아이템 상세 보기${badge ? `, 관리 상태 ${badge}` : ''}`}
                     >
-                      <ItemVisual item={item} className="item-visual--grid" />
+                      <div className="item-card__visual">
+                        <ItemVisual item={item} className="item-visual--grid" />
+                        {badge ? (
+                          <span
+                            className={`item-card__badge badge badge--${getManagementBadgeClass(badge)}`}
+                          >
+                            {badge}
+                          </span>
+                        ) : null}
+                      </div>
                       <span className="item-card__summary" aria-hidden="true">
                         <span className="item-card__stats">
                           <span>착용 {stats.wearCount}회</span>
@@ -355,11 +364,6 @@ export function ClosetPage() {
                               : '최근 기록 없음'}
                           </span>
                         </span>
-                        {badge ? (
-                          <span className={`badge badge--${getManagementBadgeClass(badge)}`}>
-                            {badge}
-                          </span>
-                        ) : null}
                       </span>
                     </Link>
                   )
