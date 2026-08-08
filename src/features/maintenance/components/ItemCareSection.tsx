@@ -113,9 +113,8 @@ export function ItemCareSection({
   return (
     <section className="section care-section" aria-labelledby="care-heading">
       <div className="section-heading">
-        <div>
-          <p className="eyebrow">SPECIAL CARE</p>
-          <h2 id="care-heading">손세탁·드라이클리닝</h2>
+        <div> 
+          <h2 id="care-heading">Special Care</h2>
         </div>
         {cycle?.due ? <span className={`badge badge--${cycle.method}`}>{cycle.label}</span> : null}
       </div>

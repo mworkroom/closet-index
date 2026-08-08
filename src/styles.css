@@ -1969,7 +1969,6 @@ div.replenishment-feedback--error {
 .replenishment-history {
   margin-top: 22px;
   padding-top: 18px;
-  border-top: 1px solid var(--line);
 }
 
 .replenishment-history--compact {
@@ -2016,6 +2015,8 @@ div.replenishment-feedback--error {
 .replenishment-history__entry strong {
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--muted);
+  font-size: 0.86rem;
 }
 
 .replenishment-history li span {
@@ -2030,8 +2031,8 @@ div.replenishment-feedback--error {
 
 .replenishment-history li > .replenishment-history__actions .button {
   flex: 0 0 auto;
-  min-height: 44px;
-  padding-inline: 10px;
+  min-height: 34px;
+  padding-inline: 8px;
 }
 
 .replenishment-history li form,
@@ -2203,7 +2204,7 @@ div.replenishment-feedback--error {
 @media (max-width: 480px) {
   .replenishment-section,
   .care-section {
-    padding: 16px;
+    padding: 0px;
   }
 
   .replenishment-summary,

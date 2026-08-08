@@ -216,7 +216,7 @@ export function ItemReplenishmentSection({
     >
       <div className="section-heading">
         <div>
-          <p className="eyebrow">REPLENISHMENT</p>
+ 
           <h2 id={headingId}>
             {isManagedDetail
               ? '재구매와 현재 수량'
