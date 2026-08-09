@@ -40,6 +40,9 @@ function wearLog(id: string, outfitId: string, wornOn: string): WearLog {
     longWalkCondition: 'unknown',
     placeId: null,
     transportModeId: null,
+    observedHvacMode: 'off',
+    observedHvacIntensity: null,
+    observedHvacMemo: null,
     memo: null,
     temperatureSource: 'manual',
     weatherLocationId: null,
@@ -87,6 +90,7 @@ const maintenanceData: AppData = {
     ),
   ],
   places: [],
+  placeHvacProfiles: [],
   transportModes: [],
 }
 

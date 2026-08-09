@@ -20,6 +20,9 @@ const baseLog: WearLog = {
   longWalkCondition: 'unknown',
   placeId: 'place-1',
   transportModeId: 'transport-walk',
+  observedHvacMode: 'off',
+  observedHvacIntensity: null,
+  observedHvacMemo: null,
   memo: 'nearby',
   temperatureSource: 'manual',
   weatherLocationId: null,
@@ -66,6 +69,46 @@ describe('Wear Log Editor helpers', () => {
     ).toEqual(['log-2', 'log-1'])
   })
 
+  it('filters rain and long-walk conditions independently', () => {
+    const rows = [
+      {
+        log: {
+          ...baseLog,
+          id: 'log-rain',
+          rainCondition: 'yes' as const,
+          longWalkCondition: 'no' as const,
+        },
+        outfitName: 'Rain outfit',
+        placeName: 'Cafe',
+        transportName: 'Car',
+      },
+      {
+        log: {
+          ...baseLog,
+          id: 'log-walk',
+          rainCondition: 'no' as const,
+          longWalkCondition: 'yes' as const,
+        },
+        outfitName: 'Walk outfit',
+        placeName: 'Park',
+        transportName: 'Walk',
+      },
+    ]
+
+    expect(
+      filterAndSortWearLogRows(rows, {
+        ...DEFAULT_WEAR_LOG_EDITOR_FILTERS,
+        rainCondition: 'yes',
+      }).map((row) => row.log.id),
+    ).toEqual(['log-rain'])
+    expect(
+      filterAndSortWearLogRows(rows, {
+        ...DEFAULT_WEAR_LOG_EDITOR_FILTERS,
+        longWalkCondition: 'yes',
+      }).map((row) => row.log.id),
+    ).toEqual(['log-walk'])
+  })
+
   it('removes a pending field when the edited value returns to the source value', () => {
     const withChange = mergeWearLogPatch(baseLog, {}, 'transportModeId', null)
     expect(withChange).toEqual({ transportModeId: null })
@@ -78,5 +121,20 @@ describe('Wear Log Editor helpers', () => {
       tempBackInferred: true,
     })
   })
-})
 
+  it('defaults cooling intensity to normal and clears it again for off', () => {
+    const cooling = mergeWearLogPatch(
+      baseLog,
+      {},
+      'observedHvacMode',
+      'cooling',
+    )
+    expect(cooling).toEqual({
+      observedHvacMode: 'cooling',
+      observedHvacIntensity: 'normal',
+    })
+    expect(
+      mergeWearLogPatch(baseLog, cooling, 'observedHvacMode', 'off'),
+    ).toEqual({})
+  })
+})

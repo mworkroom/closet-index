@@ -8,6 +8,7 @@ import type {
   OutfitCreateInput,
   OutfitUpdateInput,
   OutfitItemPlacementInput,
+  PlaceHvacProfileInput,
   WeatherForecastRequest,
   WeatherLocationInput,
   WearLogPatch,
@@ -26,6 +27,7 @@ import { SupabaseWearLogRepository } from './supabase/wear-logs'
 import { SupabaseReplacementLineRepository } from './supabase/replacement-lines'
 import { SupabasePurchaseRepository } from './supabase/purchases'
 import { SupabaseCareRepository } from './supabase/care'
+import { SupabasePlaceHvacProfileRepository } from './supabase/place-hvac-profiles'
 
 export { collectAllPages, WeatherForecastRequestError }
 
@@ -35,6 +37,7 @@ export class SupabaseRepository implements ClosetRepository {
   private readonly outfits: SupabaseOutfitRepository
   private readonly weather: SupabaseWeatherRepository
   private readonly wearLogs: SupabaseWearLogRepository
+  private readonly placeHvacProfiles: SupabasePlaceHvacProfileRepository
   readonly replacementLines: SupabaseReplacementLineRepository
   readonly purchases: SupabasePurchaseRepository
   readonly care: SupabaseCareRepository
@@ -45,6 +48,10 @@ export class SupabaseRepository implements ClosetRepository {
     this.outfits = new SupabaseOutfitRepository(client, workspaceId)
     this.weather = new SupabaseWeatherRepository(client, workspaceId)
     this.wearLogs = new SupabaseWearLogRepository(client, workspaceId)
+    this.placeHvacProfiles = new SupabasePlaceHvacProfileRepository(
+      client,
+      workspaceId,
+    )
     this.replacementLines = new SupabaseReplacementLineRepository(
       client,
       workspaceId,
@@ -119,6 +126,10 @@ export class SupabaseRepository implements ClosetRepository {
 
   fetchWeatherForecast(input: WeatherForecastRequest) {
     return this.weather.fetchForecast(input)
+  }
+
+  savePlaceHvacProfile(input: PlaceHvacProfileInput) {
+    return this.placeHvacProfiles.save(input)
   }
 
   createWearLog(input: WearLogInput) {

@@ -8,7 +8,7 @@ import {
 } from './shared'
 
 const WEAR_LOG_SELECTION =
-  'id,outfit_id,worn_on,temp_out,temp_back,temp_back_inferred,feeling_out,feeling_back,rain_condition,long_walk_condition,place_id,transport_mode_id,memo,temperature_source,weather_location_id,weather_issued_at,weather_overridden,submission_token,created_at'
+  'id,outfit_id,worn_on,temp_out,temp_back,temp_back_inferred,feeling_out,feeling_back,rain_condition,long_walk_condition,place_id,transport_mode_id,observed_hvac_mode,observed_hvac_intensity,observed_hvac_memo,memo,temperature_source,weather_location_id,weather_issued_at,weather_overridden,submission_token,created_at'
 
 export class SupabaseWearLogRepository {
   constructor(

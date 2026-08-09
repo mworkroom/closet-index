@@ -317,3 +317,63 @@ describe('WearLogPage Transport taxonomy', () => {
     )
   })
 })
+
+describe('WearLogPage HVAC observation', () => {
+  afterEach(() => {
+    cleanup()
+    window.localStorage.clear()
+  })
+
+  it('starts at off with no intensity and saves that explicit observation', async () => {
+    const user = userEvent.setup()
+    const repository = new DemoRepository()
+    const createWearLog = vi.spyOn(repository, 'createWearLog')
+    renderWearLogRoute(repository, '/wear/outfit-favorite', {
+      input: recommendationInput,
+    })
+
+    const mode = await screen.findByRole('combobox', { name: '냉난방' })
+    const intensity = screen.getByRole('combobox', { name: '강도' })
+    expect(mode).toHaveValue('off')
+    expect(intensity).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: '착용 기록 저장' }))
+
+    expect(createWearLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        observedHvacMode: 'off',
+        observedHvacIntensity: null,
+        observedHvacMemo: null,
+      }),
+    )
+  })
+
+  it('defaults cooling to normal and saves a manually selected strong observation', async () => {
+    const user = userEvent.setup()
+    const repository = new DemoRepository()
+    const createWearLog = vi.spyOn(repository, 'createWearLog')
+    renderWearLogRoute(repository, '/wear/outfit-favorite', {
+      input: recommendationInput,
+    })
+
+    await user.selectOptions(
+      await screen.findByRole('combobox', { name: '냉난방' }),
+      'cooling',
+    )
+    const intensity = screen.getByRole('combobox', { name: '강도' })
+    expect(intensity).toHaveValue('normal')
+    await user.selectOptions(intensity, 'strong')
+    await user.type(
+      screen.getByRole('textbox', { name: 'HVAC 메모' }),
+      '바람이 강함',
+    )
+    await user.click(screen.getByRole('button', { name: '착용 기록 저장' }))
+
+    expect(createWearLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        observedHvacMode: 'cooling',
+        observedHvacIntensity: 'strong',
+        observedHvacMemo: '바람이 강함',
+      }),
+    )
+  })
+})

@@ -9,6 +9,8 @@ import type {
   OutfitCreateInput,
   OutfitUpdateInput,
   OutfitItemPlacementInput,
+  PlaceHvacProfile,
+  PlaceHvacProfileInput,
   PurchaseEvent,
   PurchaseEventCreateInput,
   PurchaseEventDeleteInput,
@@ -78,14 +80,22 @@ function readData() {
   try {
     const data = JSON.parse(stored) as typeof demoData
     data.weatherLocations ??= structuredClone(demoData.weatherLocations)
+    data.placeHvacProfiles ??= []
     for (const item of data.items) item.currentQuantity ??= null
     for (const outfit of data.outfits) outfit.archivedAt ??= null
+    data.places = data.places.map((place) => ({
+      ...place,
+      kind: place.name === '기타' ? 'generic_category' : 'specific_venue',
+    }))
     data.wearLogs = data.wearLogs.map((log) => {
       const normalized = { ...log }
       normalized.temperatureSource ??= 'notion'
       normalized.weatherLocationId ??= null
       normalized.weatherIssuedAt ??= null
       normalized.weatherOverridden ??= false
+      normalized.observedHvacMode ??= 'off'
+      normalized.observedHvacIntensity ??= null
+      normalized.observedHvacMemo ??= null
       return normalized
     })
     return data
@@ -732,6 +742,25 @@ export class DemoRepository implements ClosetRepository {
     data.wearLogs[index] = log
     writeData(data)
     return log
+  }
+
+  async savePlaceHvacProfile(input: PlaceHvacProfileInput) {
+    const data = readData()
+    const existingIndex = data.placeHvacProfiles.findIndex(
+      (profile) =>
+        profile.placeId === input.placeId && profile.season === input.season,
+    )
+    const existing = existingIndex >= 0 ? data.placeHvacProfiles[existingIndex] : null
+    const profile: PlaceHvacProfile = {
+      ...input,
+      workspaceId: 'demo-workspace',
+      createdAt: existing?.createdAt ?? new Date().toISOString(),
+    }
+
+    if (existingIndex >= 0) data.placeHvacProfiles[existingIndex] = profile
+    else data.placeHvacProfiles.push(profile)
+    writeData(data)
+    return profile
   }
 
   async updateWearLogFields(id: string, patch: WearLogPatch) {

@@ -9,6 +9,8 @@ import type {
   OutfitCloneInput,
   OutfitCreateInput,
   OutfitUpdateInput,
+  PlaceHvacProfile,
+  PlaceHvacProfileInput,
   OutfitItemPlacementInput,
   WeatherForecastRequest,
   WeatherForecastResponse,
@@ -53,6 +55,7 @@ export interface ClosetRepository {
   fetchWeatherForecast(
     input: WeatherForecastRequest,
   ): Promise<WeatherForecastResponse>
+  savePlaceHvacProfile(input: PlaceHvacProfileInput): Promise<PlaceHvacProfile>
   createWearLog(input: WearLogInput): Promise<WearLog>
   updateWearLog(id: string, input: WearLogInput): Promise<WearLog>
   updateWearLogFields(id: string, patch: WearLogPatch): Promise<WearLog>

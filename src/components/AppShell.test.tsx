@@ -53,6 +53,10 @@ describe('Phase 3.5 navigation', () => {
       ],
       ['Maintenance장기 미착용 점검과 교체 관리', '/maintenance'],
       ['Laundry손세탁과 드라이클리닝 관리', '/laundry'],
+      [
+        'Place Profile & HVAC고유 장소의 계절별 예상 냉난방 관리',
+        '/tools/place-hvac',
+      ],
       ['Settings계정과 데이터 원본 상태', '/settings'],
     ])
     expect(within(menu!).queryByText('Calendar')).not.toBeInTheDocument()

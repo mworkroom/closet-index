@@ -69,6 +69,19 @@ describe('WearLogEditorPage', () => {
     )
   })
 
+  it('filters the visible rows by long-walk condition', async () => {
+    const user = userEvent.setup()
+    renderEditor()
+
+    expect(await screen.findByRole('heading', { name: 'Wear Logs' })).toBeVisible()
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: '장거리 걷기 필터' }),
+      'yes',
+    )
+
+    expect(screen.getByText('2 / 4건')).toBeVisible()
+  })
+
   it('bulk edits selected rows and saves only the changed records', async () => {
     const user = userEvent.setup()
     const repository = new DemoRepository()

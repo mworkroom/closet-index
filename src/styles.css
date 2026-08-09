@@ -14,7 +14,7 @@
   --warning-soft: #fff6e8;
   --danger: #a23732;
   --danger-soft: #fff1ef;
-  --success: #551c84;
+  --success: #2c6843;
   --nav-height: 72px;
 }
 
@@ -3007,7 +3007,7 @@ a.item-detail-lineage__item:focus-visible {
 
 .wear-log-editor__filters {
   display: grid;
-  grid-template-columns: 1.5fr repeat(6, minmax(110px, 1fr));
+  grid-template-columns: 1.5fr repeat(8, minmax(110px, 1fr));
   gap: 10px;
   margin-top: 16px;
 }
@@ -6168,5 +6168,103 @@ a.item-detail-lineage__item:focus-visible {
     bottom: 16px;
     border: 1px solid var(--line);
     border-radius: 0 0 22px 22px;
+  }
+}
+.wear-form__hvac {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.wear-form__hvac legend {
+  padding: 0 6px;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.place-hvac-layout {
+  display: grid;
+  gap: 18px;
+}
+
+.place-hvac-form,
+.place-hvac-list {
+  display: grid;
+  gap: 18px;
+}
+
+.place-hvac-form__heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.place-hvac-form__heading h2,
+.place-hvac-list h2 {
+  margin: 0;
+}
+
+.place-hvac-form__heading p,
+.place-hvac-list .muted {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.place-hvac-form__feedback {
+  margin: 0;
+  color: var(--success);
+  font-weight: 700;
+}
+
+.place-hvac-list ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.place-hvac-list li button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.place-hvac-list li button:hover,
+.place-hvac-list li button:focus-visible {
+  border-color: var(--ink);
+}
+
+.place-hvac-list li span:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.place-hvac-list li small {
+  color: var(--muted);
+}
+
+.place-hvac-list__value {
+  flex: none;
+  color: var(--success);
+  font-weight: 700;
+}
+
+@media (min-width: 860px) {
+  .place-hvac-layout {
+    grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+    align-items: start;
   }
 }

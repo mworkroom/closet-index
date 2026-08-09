@@ -27,6 +27,12 @@ import {
 } from '../features/wear-log-editor'
 import { outfitLabel } from '../lib/outfits'
 import {
+  HVAC_INTENSITIES,
+  HVAC_MODES,
+  hvacIntensityLabels,
+  hvacModeLabels,
+} from '../lib/hvac'
+import {
   transportDisplayName,
   transportOptionsForSelection,
 } from '../lib/transport-options'
@@ -87,6 +93,18 @@ function getEditorOptions(
       { value: '', label: '미지정' },
       ...data.places.map((place) => ({ value: place.id, label: place.name })),
     ]
+  }
+  if (column.optionGroup === 'hvacMode') {
+    return HVAC_MODES.map((mode) => ({
+      value: mode,
+      label: hvacModeLabels[mode],
+    }))
+  }
+  if (column.optionGroup === 'hvacIntensity') {
+    return HVAC_INTENSITIES.map((intensity) => ({
+      value: intensity,
+      label: hvacIntensityLabels[intensity],
+    }))
   }
   return [
     { value: '', label: '미지정' },
@@ -252,7 +270,7 @@ export function WearLogEditorPage() {
       key === 'transportModeId'
     ) {
       value = rawValue || null
-    } else if (key === 'memo') {
+    } else if (key === 'memo' || key === 'observedHvacMemo') {
       value = rawValue.trim() ? rawValue : null
     }
 
@@ -384,12 +402,17 @@ export function WearLogEditorPage() {
     }
 
     if (column.input === 'select') {
+      const effectiveMode = row.log.observedHvacMode
       return (
         <select
           {...commonProps}
           value={(value ?? '') as string}
+          disabled={key === 'observedHvacIntensity' && effectiveMode === 'off'}
           onChange={(event) => handleCellChange(row, key, event.target.value)}
         >
+          {key === 'observedHvacIntensity' && effectiveMode === 'off' && (
+            <option value="">해당 없음</option>
+          )}
           {data && getEditorOptions(
             column,
             data,
@@ -581,6 +604,42 @@ export function WearLogEditorPage() {
                 <option value="all">전체</option>
                 <option value="walk">Walk / 도보</option>
                 <option value="missing">Transport 미지정</option>
+              </select>
+            </label>
+            <label>
+              <span>비</span>
+              <select
+                aria-label="비 필터"
+                value={filters.rainCondition}
+                onChange={(event) =>
+                  updateFilter(
+                    'rainCondition',
+                    event.target.value as WearLogEditorFilters['rainCondition'],
+                  )
+                }
+              >
+                <option value="">전체</option>
+                <option value="yes">{conditionLabels.yes}</option>
+                <option value="no">{conditionLabels.no}</option>
+                <option value="unknown">{conditionLabels.unknown}</option>
+              </select>
+            </label>
+            <label>
+              <span>장거리 걷기</span>
+              <select
+                aria-label="장거리 걷기 필터"
+                value={filters.longWalkCondition}
+                onChange={(event) =>
+                  updateFilter(
+                    'longWalkCondition',
+                    event.target.value as WearLogEditorFilters['longWalkCondition'],
+                  )
+                }
+              >
+                <option value="">전체</option>
+                <option value="yes">{conditionLabels.yes}</option>
+                <option value="no">{conditionLabels.no}</option>
+                <option value="unknown">{conditionLabels.unknown}</option>
               </select>
             </label>
             <label>

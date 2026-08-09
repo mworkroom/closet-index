@@ -19,6 +19,7 @@ import type {
   OutfitCreateInput,
   OutfitUpdateInput,
   OutfitItemPlacementInput,
+  PlaceHvacProfileInput,
   WeatherForecastRequest,
   WeatherForecastResponse,
   WeatherLocationInput,
@@ -62,6 +63,7 @@ interface DataState {
   fetchWeatherForecast: (
     input: WeatherForecastRequest,
   ) => Promise<WeatherForecastResponse>
+  savePlaceHvacProfile: (input: PlaceHvacProfileInput) => Promise<void>
   createWearLog: (input: WearLogInput) => Promise<void>
   updateWearLog: (id: string, input: WearLogInput) => Promise<void>
   updateWearLogFields: (id: string, patch: WearLogPatch) => Promise<void>
@@ -381,6 +383,8 @@ export function DataProvider({
       saveDefaultWeatherLocation: (input) =>
         mutate(() => repository.saveDefaultWeatherLocation(input)),
       fetchWeatherForecast: (input) => repository.fetchWeatherForecast(input),
+      savePlaceHvacProfile: (input) =>
+        mutate(() => repository.savePlaceHvacProfile(input)),
       createWearLog: (input) => mutate(() => repository.createWearLog(input)),
       updateWearLog: (id, input) => mutate(() => repository.updateWearLog(id, input)),
       updateWearLogFields,

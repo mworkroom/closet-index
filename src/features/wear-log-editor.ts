@@ -1,9 +1,11 @@
 import type {
+  ConditionChoice,
   WearLog,
   WearLogEditableField,
   WearLogInput,
   WearLogPatch,
 } from '../lib/types'
+import { normalizedHvacIntensity } from '../lib/hvac'
 
 export type WearLogEditorColumnKey =
   | WearLogEditableField
@@ -24,6 +26,8 @@ export type WearLogEditorOptionGroup =
   | 'feeling'
   | 'place'
   | 'transport'
+  | 'hvacMode'
+  | 'hvacIntensity'
 
 export interface WearLogEditorColumn {
   key: WearLogEditorColumnKey
@@ -49,6 +53,26 @@ export const WEAR_LOG_EDITOR_COLUMNS: readonly WearLogEditorColumn[] = [
     editable: true,
     input: 'select',
     optionGroup: 'transport',
+  },
+  {
+    key: 'observedHvacMode',
+    label: '실제 HVAC',
+    editable: true,
+    input: 'select',
+    optionGroup: 'hvacMode',
+  },
+  {
+    key: 'observedHvacIntensity',
+    label: 'HVAC 강도',
+    editable: true,
+    input: 'select',
+    optionGroup: 'hvacIntensity',
+  },
+  {
+    key: 'observedHvacMemo',
+    label: 'HVAC 메모',
+    editable: true,
+    input: 'text',
   },
   { key: 'tempOut', label: '출발 °C', editable: true, input: 'number' },
   { key: 'tempBack', label: '귀가 °C', editable: true, input: 'number' },
@@ -111,6 +135,8 @@ export interface WearLogEditorFilters {
   transportModeId: string
   placeId: string
   walkFilter: WearLogWalkFilter
+  rainCondition: ConditionChoice | ''
+  longWalkCondition: ConditionChoice | ''
   sort: WearLogSort
 }
 
@@ -121,6 +147,8 @@ export const DEFAULT_WEAR_LOG_EDITOR_FILTERS: WearLogEditorFilters = {
   transportModeId: '',
   placeId: '',
   walkFilter: 'all',
+  rainCondition: '',
+  longWalkCondition: '',
   sort: 'newest',
 }
 
@@ -148,6 +176,15 @@ export function filterAndSortWearLogRows(
         return false
       }
       if (filters.placeId && log.placeId !== filters.placeId) return false
+      if (filters.rainCondition && log.rainCondition !== filters.rainCondition) {
+        return false
+      }
+      if (
+        filters.longWalkCondition &&
+        log.longWalkCondition !== filters.longWalkCondition
+      ) {
+        return false
+      }
       if (filters.walkFilter === 'walk' && !isWalkTransportName(row.transportName)) {
         return false
       }
@@ -162,6 +199,7 @@ export function filterAndSortWearLogRows(
         row.outfitName,
         row.placeName,
         row.transportName,
+        log.observedHvacMemo,
         log.memo,
       ].some((value) => searchable(value).includes(query))
     })
@@ -185,6 +223,15 @@ export function mergeWearLogPatch<K extends WearLogEditableField>(
   value: WearLogInput[K],
 ) {
   const next = { ...current, [field]: value } as WearLogPatch
+  if (field === 'observedHvacMode') {
+    const mode = value as WearLogInput['observedHvacMode']
+    const currentIntensity =
+      next.observedHvacIntensity ?? source.observedHvacIntensity
+    next.observedHvacIntensity = normalizedHvacIntensity(
+      mode,
+      currentIntensity,
+    )
+  }
   if (field === 'tempBack') {
     const effectiveTempOut = next.tempOut ?? source.tempOut
     next.tempBackInferred = value === null && effectiveTempOut !== null

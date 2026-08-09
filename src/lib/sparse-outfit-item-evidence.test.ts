@@ -76,6 +76,9 @@ function log(
     longWalkCondition: 'no',
     placeId: 'nearby',
     transportModeId: 'short-walk',
+    observedHvacMode: 'off',
+    observedHvacIntensity: null,
+    observedHvacMemo: null,
     memo: null,
     temperatureSource: 'manual',
     weatherLocationId: null,
@@ -96,7 +99,11 @@ function data(
     items,
     outfits,
     wearLogs,
-    places: [{ id: 'nearby', name: 'nearby' }, { id: 'cinema', name: 'cinema' }],
+    places: [
+      { id: 'nearby', name: 'nearby', kind: 'specific_venue' },
+      { id: 'cinema', name: 'cinema', kind: 'specific_venue' },
+    ],
+    placeHvacProfiles: [],
     transportModes: [
       { id: 'short-walk', name: 'short walk' },
       { id: 'car', name: 'Car' },

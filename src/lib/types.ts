@@ -4,6 +4,10 @@ export type ThermalFeeling = 'cold' | 'ok' | 'hot' | null
 export type TemperatureSource = 'notion' | 'manual' | 'weather'
 export type RecommendationLevel = 'high' | 'possible' | 'caution'
 export type RecommendationEvidence = 'observed' | 'untried'
+export type HvacMode = 'cooling' | 'heating' | 'off'
+export type HvacIntensity = 'weak' | 'normal' | 'strong'
+export type PlaceKind = 'specific_venue' | 'generic_category'
+export type PlaceHvacProfileSource = 'manual' | 'wear_log_observation'
 
 export interface ImageAsset {
   id: string
@@ -182,6 +186,32 @@ export interface SelectOption {
   name: string
 }
 
+export interface Place extends SelectOption {
+  kind: PlaceKind
+}
+
+export interface PlaceHvacProfile {
+  workspaceId: string
+  placeId: string
+  season: 'Spring' | 'Summer' | 'Fall' | 'Winter'
+  expectedMode: HvacMode
+  expectedIntensity: HvacIntensity | null
+  memo: string | null
+  source: PlaceHvacProfileSource
+  lastConfirmedOn: string
+  createdAt: string
+}
+
+export interface PlaceHvacProfileInput {
+  placeId: string
+  season: PlaceHvacProfile['season']
+  expectedMode: HvacMode
+  expectedIntensity: HvacIntensity | null
+  memo: string | null
+  source: PlaceHvacProfileSource
+  lastConfirmedOn: string
+}
+
 export interface WeatherLocation {
   id: string
   label: string
@@ -278,6 +308,9 @@ export interface WearLog {
   longWalkCondition: ConditionChoice
   placeId: string | null
   transportModeId: string | null
+  observedHvacMode: HvacMode
+  observedHvacIntensity: HvacIntensity | null
+  observedHvacMemo: string | null
   memo: string | null
   temperatureSource: TemperatureSource
   weatherLocationId: string | null
@@ -299,6 +332,9 @@ export interface WearLogInput {
   longWalkCondition: ConditionChoice
   placeId: string | null
   transportModeId: string | null
+  observedHvacMode: HvacMode
+  observedHvacIntensity: HvacIntensity | null
+  observedHvacMemo: string | null
   memo: string | null
   temperatureSource: TemperatureSource
   weatherLocationId: string | null
@@ -317,6 +353,9 @@ export type WearLogEditableField =
   | 'longWalkCondition'
   | 'placeId'
   | 'transportModeId'
+  | 'observedHvacMode'
+  | 'observedHvacIntensity'
+  | 'observedHvacMemo'
   | 'memo'
 
 export type WearLogPatch = Partial<
@@ -327,7 +366,8 @@ export interface AppData {
   items: Item[]
   outfits: Outfit[]
   wearLogs: WearLog[]
-  places: SelectOption[]
+  places: Place[]
+  placeHvacProfiles: PlaceHvacProfile[]
   transportModes: SelectOption[]
   weatherLocations?: WeatherLocation[]
 }

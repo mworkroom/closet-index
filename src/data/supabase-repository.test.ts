@@ -15,6 +15,9 @@ const wearLogInput: WearLogInput = {
   longWalkCondition: 'yes',
   placeId: 'place-1',
   transportModeId: 'transport-walk-short',
+  observedHvacMode: 'off',
+  observedHvacIntensity: null,
+  observedHvacMemo: null,
   memo: null,
   temperatureSource: 'manual',
   weatherLocationId: null,
@@ -83,5 +86,31 @@ describe('Wear Log Transport repository payloads', () => {
     expect(
       toWearLogPatchRow({ transportModeId: 'transport-walk-sustained' }),
     ).toEqual({ transport_mode_id: 'transport-walk-sustained' })
+  })
+})
+
+describe('Wear Log HVAC repository payloads', () => {
+  it('maps actual HVAC fields for full and partial saves', () => {
+    expect(
+      toWearLogMutableRow({
+        ...wearLogInput,
+        observedHvacMode: 'cooling',
+        observedHvacIntensity: 'normal',
+        observedHvacMemo: 'comfortable',
+      }),
+    ).toMatchObject({
+      observed_hvac_mode: 'cooling',
+      observed_hvac_intensity: 'normal',
+      observed_hvac_memo: 'comfortable',
+    })
+    expect(
+      toWearLogPatchRow({
+        observedHvacMode: 'off',
+        observedHvacIntensity: null,
+      }),
+    ).toEqual({
+      observed_hvac_mode: 'off',
+      observed_hvac_intensity: null,
+    })
   })
 })

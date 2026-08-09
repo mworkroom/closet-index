@@ -27,6 +27,7 @@ const appData: AppData = {
   ],
   wearLogs: [],
   places: [],
+  placeHvacProfiles: [],
   transportModes: [],
 }
 
@@ -126,6 +127,7 @@ describe('DataProvider outfit placement updates', () => {
       updateOutfitItemPlacement: vi.fn(async () => undefined),
       saveDefaultWeatherLocation: vi.fn(),
       fetchWeatherForecast: vi.fn(),
+      savePlaceHvacProfile: vi.fn(),
       createWearLog: vi.fn(),
       updateWearLog: vi.fn(),
       updateWearLogFields: vi.fn(),
@@ -187,6 +189,7 @@ describe('DataProvider outfit placement updates', () => {
       updateOutfitItemPlacement: vi.fn(async () => undefined),
       saveDefaultWeatherLocation: vi.fn(),
       fetchWeatherForecast: vi.fn(),
+      savePlaceHvacProfile: vi.fn(),
       createWearLog: vi.fn(),
       updateWearLog: vi.fn(),
       updateWearLogFields: vi.fn(),
@@ -229,6 +232,7 @@ describe('DataProvider outfit placement updates', () => {
       updateOutfitItemPlacement: vi.fn(async () => undefined),
       saveDefaultWeatherLocation: vi.fn(),
       fetchWeatherForecast: vi.fn(),
+      savePlaceHvacProfile: vi.fn(),
       createWearLog: vi.fn(),
       updateWearLog: vi.fn(),
       updateWearLogFields: vi.fn(),

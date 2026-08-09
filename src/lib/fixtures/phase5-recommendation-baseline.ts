@@ -45,6 +45,9 @@ export function phase5BaselineWearLog(
     longWalkCondition: 'no',
     placeId: 'place-a',
     transportModeId: 'transport-a',
+    observedHvacMode: 'off',
+    observedHvacIntensity: null,
+    observedHvacMemo: null,
     memo: null,
     temperatureSource: 'manual',
     weatherLocationId: null,
@@ -110,9 +113,10 @@ export const phase5RecommendationBaselineFixture: AppData = {
     phase5BaselineWearLog('error-1', 'outfit-error', '2026-08-01'),
   ],
   places: [
-    { id: 'place-a', name: '장소 A' },
-    { id: 'place-b', name: '장소 B' },
+    { id: 'place-a', name: '장소 A', kind: 'specific_venue' },
+    { id: 'place-b', name: '장소 B', kind: 'specific_venue' },
   ],
+  placeHvacProfiles: [],
   transportModes: [
     { id: 'transport-a', name: '교통 A' },
     { id: 'transport-b', name: '교통 B' },
@@ -193,4 +197,3 @@ export const phase5BaselineExpectedResults = [
     lastWornOn: '2026-04-15',
   },
 ] as const
-

@@ -2,6 +2,7 @@ import type {
   Item,
   ItemCreateInput,
   OutfitItemWriteInput,
+  PlaceHvacProfile,
   ThermalFeeling,
   WearLog,
   WearLogInput,
@@ -62,12 +63,27 @@ export interface WearLogRow {
   long_walk_condition: WearLog['longWalkCondition']
   place_id: string | null
   transport_mode_id: string | null
+  observed_hvac_mode: WearLog['observedHvacMode']
+  observed_hvac_intensity: WearLog['observedHvacIntensity']
+  observed_hvac_memo: string | null
   memo: string | null
   temperature_source: WearLog['temperatureSource']
   weather_location_id: string | null
   weather_issued_at: string | null
   weather_overridden: boolean
   submission_token: string
+  created_at: string
+}
+
+export interface PlaceHvacProfileRow {
+  workspace_id: string
+  place_id: string
+  season: PlaceHvacProfile['season']
+  expected_hvac_mode: PlaceHvacProfile['expectedMode']
+  expected_hvac_intensity: PlaceHvacProfile['expectedIntensity']
+  memo: string | null
+  source: PlaceHvacProfile['source']
+  last_confirmed_on: string
   created_at: string
 }
 
@@ -173,6 +189,9 @@ export function toWearLog(row: WearLogRow): WearLog {
     longWalkCondition: row.long_walk_condition,
     placeId: row.place_id,
     transportModeId: row.transport_mode_id,
+    observedHvacMode: row.observed_hvac_mode,
+    observedHvacIntensity: row.observed_hvac_intensity,
+    observedHvacMemo: row.observed_hvac_memo,
     memo: row.memo,
     temperatureSource: row.temperature_source,
     weatherLocationId: row.weather_location_id,
@@ -214,11 +233,28 @@ export function toWearLogMutableRow(input: WearLogInput) {
     long_walk_condition: input.longWalkCondition,
     place_id: input.placeId,
     transport_mode_id: input.transportModeId,
+    observed_hvac_mode: input.observedHvacMode,
+    observed_hvac_intensity: input.observedHvacIntensity,
+    observed_hvac_memo: input.observedHvacMemo,
     memo: input.memo,
     temperature_source: input.temperatureSource,
     weather_location_id: input.weatherLocationId,
     weather_issued_at: input.weatherIssuedAt,
     weather_overridden: input.weatherOverridden,
+  }
+}
+
+export function toPlaceHvacProfile(row: PlaceHvacProfileRow): PlaceHvacProfile {
+  return {
+    workspaceId: row.workspace_id,
+    placeId: row.place_id,
+    season: row.season,
+    expectedMode: row.expected_hvac_mode,
+    expectedIntensity: row.expected_hvac_intensity,
+    memo: row.memo,
+    source: row.source,
+    lastConfirmedOn: row.last_confirmed_on,
+    createdAt: row.created_at,
   }
 }
 
@@ -242,6 +278,15 @@ export function toWearLogPatchRow(input: WearLogPatch) {
   if (input.placeId !== undefined) row.place_id = input.placeId
   if (input.transportModeId !== undefined) {
     row.transport_mode_id = input.transportModeId
+  }
+  if (input.observedHvacMode !== undefined) {
+    row.observed_hvac_mode = input.observedHvacMode
+  }
+  if (input.observedHvacIntensity !== undefined) {
+    row.observed_hvac_intensity = input.observedHvacIntensity
+  }
+  if (input.observedHvacMemo !== undefined) {
+    row.observed_hvac_memo = input.observedHvacMemo
   }
   if (input.memo !== undefined) row.memo = input.memo
 

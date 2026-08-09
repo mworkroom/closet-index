@@ -16,6 +16,7 @@ import { AccessDeniedPage, LoginPage } from './pages/LoginPage'
 import { LookbookPage } from './pages/LookbookPage'
 import { LaundryPage, MaintenancePage } from './pages/MaintenancePage'
 import { MorePage } from './pages/MorePage'
+import { PlaceHvacProfilesPage } from './pages/PlaceHvacProfilesPage'
 import { ReplacementLinesPage } from './pages/ReplacementLinesPage'
 import { ReplacementLegacyLinkReviewPage } from './pages/ReplacementLegacyLinkReviewPage'
 import { ReplacementLineageEdgePreviewPage } from './pages/ReplacementLineageEdgePreviewPage'
@@ -68,6 +69,7 @@ function AuthenticatedApp() {
           <Route path="/wear/:outfitId" element={<WearLogPage />} />
           <Route path="/records/:logId/edit" element={<WearLogPage />} />
           <Route path="/tools/wear-log" element={<WearLogEditorPage />} />
+          <Route path="/tools/place-hvac" element={<PlaceHvacProfilesPage />} />
           <Route path="/more" element={<MorePage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/statistics" element={<StatisticsPage />} />

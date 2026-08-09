@@ -12,9 +12,11 @@ import {
   type OutfitItemRow,
   type OutfitRow,
   toItem,
+  toPlaceHvacProfile,
   toWearLog,
   toWeatherLocation,
   type WearLogRow,
+  type PlaceHvacProfileRow,
   type WeatherLocationRow,
 } from './shared'
 
@@ -56,7 +58,7 @@ export class SupabaseSnapshotRepository {
         const result = await this.client
           .from('closet_wear_logs')
           .select(
-            'id,outfit_id,worn_on,temp_out,temp_back,temp_back_inferred,feeling_out,feeling_back,rain_condition,long_walk_condition,place_id,transport_mode_id,memo,temperature_source,weather_location_id,weather_issued_at,weather_overridden,submission_token,created_at',
+            'id,outfit_id,worn_on,temp_out,temp_back,temp_back_inferred,feeling_out,feeling_back,rain_condition,long_walk_condition,place_id,transport_mode_id,observed_hvac_mode,observed_hvac_intensity,observed_hvac_memo,memo,temperature_source,weather_location_id,weather_issued_at,weather_overridden,submission_token,created_at',
           )
           .eq('workspace_id', this.workspaceId)
           .order('worn_on', { ascending: false })
@@ -78,6 +80,7 @@ export class SupabaseSnapshotRepository {
       placesResult,
       transportsResult,
       weatherLocationsResult,
+      placeHvacProfilesResult,
       imageAssets,
     ] = await Promise.all([
       this.client
@@ -97,7 +100,7 @@ export class SupabaseSnapshotRepository {
       wearLogsPromise,
       this.client
         .from('closet_places')
-        .select('id,name')
+        .select('id,name,place_kind')
         .eq('workspace_id', this.workspaceId)
         .eq('active', true)
         .order('name'),
@@ -113,6 +116,14 @@ export class SupabaseSnapshotRepository {
         .eq('workspace_id', this.workspaceId)
         .order('is_default', { ascending: false })
         .order('label'),
+      this.client
+        .from('closet_place_hvac_profiles')
+        .select(
+          'workspace_id,place_id,season,expected_hvac_mode,expected_hvac_intensity,memo,source,last_confirmed_on,created_at',
+        )
+        .eq('workspace_id', this.workspaceId)
+        .order('place_id')
+        .order('season'),
       imageAssetsPromise,
     ])
 
@@ -124,6 +135,7 @@ export class SupabaseSnapshotRepository {
       placesResult,
       transportsResult,
       weatherLocationsResult,
+      placeHvacProfilesResult,
     ].find((result) => result.error)
     if (failure?.error) throw failure.error
 
@@ -168,7 +180,11 @@ export class SupabaseSnapshotRepository {
       places: (placesResult.data ?? []).map((row) => ({
         id: row.id,
         name: row.name,
+        kind: row.place_kind,
       })),
+      placeHvacProfiles: (
+        (placeHvacProfilesResult.data ?? []) as PlaceHvacProfileRow[]
+      ).map(toPlaceHvacProfile),
       transportModes: (transportsResult.data ?? []).map((row) => ({
         id: row.id,
         name: row.name,

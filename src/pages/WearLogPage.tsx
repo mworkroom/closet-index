@@ -9,11 +9,20 @@ import type { RecommendationNavigationState } from '../lib/navigation'
 import { outfitLabel } from '../lib/outfits'
 import { sortPlacesForSelection } from '../lib/place-options'
 import {
+  HVAC_INTENSITIES,
+  HVAC_MODES,
+  hvacIntensityLabels,
+  hvacModeLabels,
+  normalizedHvacIntensity,
+} from '../lib/hvac'
+import {
   isLegacyWalkTransportId,
   transportOptionsForSelection,
 } from '../lib/transport-options'
 import type {
   ConditionChoice,
+  HvacIntensity,
+  HvacMode,
   ThermalFeeling,
   WearLogInput,
 } from '../lib/types'
@@ -61,6 +70,10 @@ export function WearLogPage() {
     useState<ConditionChoice>('unknown')
   const [placeId, setPlaceId] = useState('')
   const [transportModeId, setTransportModeId] = useState('')
+  const [observedHvacMode, setObservedHvacMode] = useState<HvacMode>('off')
+  const [observedHvacIntensity, setObservedHvacIntensity] =
+    useState<HvacIntensity | null>(null)
+  const [observedHvacMemo, setObservedHvacMemo] = useState('')
   const [memo, setMemo] = useState('')
   const [submissionToken] = useState(() => crypto.randomUUID())
   const [saving, setSaving] = useState(false)
@@ -136,6 +149,9 @@ export function WearLogPage() {
       setLongWalkCondition(existing.longWalkCondition)
       setPlaceId(existing.placeId ?? '')
       setTransportModeId(existing.transportModeId ?? '')
+      setObservedHvacMode(existing.observedHvacMode)
+      setObservedHvacIntensity(existing.observedHvacIntensity)
+      setObservedHvacMemo(existing.observedHvacMemo ?? '')
       setMemo(existing.memo ?? '')
     } else if (navigationState.input) {
       setTempOut(String(navigationState.input.tempOut))
@@ -198,6 +214,12 @@ export function WearLogPage() {
       longWalkCondition,
       placeId: placeId || null,
       transportModeId: transportModeId || null,
+      observedHvacMode,
+      observedHvacIntensity: normalizedHvacIntensity(
+        observedHvacMode,
+        observedHvacIntensity,
+      ),
+      observedHvacMemo: observedHvacMemo.trim() || null,
       memo: memo.trim() || null,
       temperatureSource:
         temperatureSource === 'weather' ? 'weather' : 'manual',
@@ -400,6 +422,61 @@ export function WearLogPage() {
             10~20분 이동은 열감이 거의 없으면 근거리, 땀·빠른 지속 보행처럼
             체열이 뚜렷하게 오르면 지속을 선택합니다.
           </p>
+
+          <fieldset className="wear-form__hvac">
+            <legend>그날 실제 HVAC</legend>
+            <div className="field-grid field-grid--two">
+              <label className="field">
+                <span>냉난방</span>
+                <select
+                  value={observedHvacMode}
+                  onChange={(event) => {
+                    const mode = event.target.value as HvacMode
+                    setObservedHvacMode(mode)
+                    setObservedHvacIntensity((current) =>
+                      normalizedHvacIntensity(mode, current),
+                    )
+                  }}
+                >
+                  {HVAC_MODES.map((mode) => (
+                    <option value={mode} key={mode}>
+                      {hvacModeLabels[mode]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>강도</span>
+                <select
+                  value={observedHvacIntensity ?? ''}
+                  disabled={observedHvacMode === 'off'}
+                  onChange={(event) =>
+                    setObservedHvacIntensity(
+                      event.target.value as HvacIntensity,
+                    )
+                  }
+                >
+                  {observedHvacMode === 'off' && (
+                    <option value="">해당 없음</option>
+                  )}
+                  {HVAC_INTENSITIES.map((intensity) => (
+                    <option value={intensity} key={intensity}>
+                      {hvacIntensityLabels[intensity]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <label className="field">
+              <span>HVAC 메모</span>
+              <textarea
+                rows={2}
+                value={observedHvacMemo}
+                placeholder="실제 냉난방에 관해 필요한 경우에만 기록"
+                onChange={(event) => setObservedHvacMemo(event.target.value)}
+              />
+            </label>
+          </fieldset>
 
           <label className="field">
             <span>메모</span>

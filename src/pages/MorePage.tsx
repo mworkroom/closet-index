@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Building2,
   ChevronRight,
   ClipboardCheck,
   GitBranch,
@@ -40,6 +41,12 @@ const links = [
     title: 'Laundry',
     description: '손세탁과 드라이클리닝 관리',
     icon: Shirt,
+  },
+  {
+    to: '/tools/place-hvac',
+    title: 'Place Profile & HVAC',
+    description: '고유 장소의 계절별 예상 냉난방 관리',
+    icon: Building2,
   },
   {
     to: '/settings',

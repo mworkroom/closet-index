@@ -83,6 +83,9 @@ function wear(
     longWalkCondition: 'no',
     placeId: 'nearby',
     transportModeId: 'short',
+    observedHvacMode: 'off',
+    observedHvacIntensity: null,
+    observedHvacMemo: null,
     memo: null,
     temperatureSource: 'manual',
     weatherLocationId: null,
@@ -109,9 +112,10 @@ function dataFor(
     outfits,
     wearLogs,
     places: [
-      { id: 'nearby', name: 'Nearby' },
-      { id: 'other', name: 'Other' },
+      { id: 'nearby', name: 'Nearby', kind: 'specific_venue' },
+      { id: 'other', name: 'Other', kind: 'specific_venue' },
     ],
+    placeHvacProfiles: [],
     transportModes: [
       { id: 'short', name: 'Short' },
       { id: 'car', name: 'Car' },
