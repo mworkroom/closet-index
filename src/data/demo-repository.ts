@@ -95,7 +95,6 @@ function readData() {
       normalized.weatherOverridden ??= false
       normalized.observedHvacMode ??= 'off'
       normalized.observedHvacIntensity ??= null
-      normalized.observedHvacMemo ??= null
       return normalized
     })
     return data

@@ -68,12 +68,6 @@ export const WEAR_LOG_EDITOR_COLUMNS: readonly WearLogEditorColumn[] = [
     input: 'select',
     optionGroup: 'hvacIntensity',
   },
-  {
-    key: 'observedHvacMemo',
-    label: 'HVAC 메모',
-    editable: true,
-    input: 'text',
-  },
   { key: 'tempOut', label: '출발 °C', editable: true, input: 'number' },
   { key: 'tempBack', label: '귀가 °C', editable: true, input: 'number' },
   {
@@ -199,7 +193,6 @@ export function filterAndSortWearLogRows(
         row.outfitName,
         row.placeName,
         row.transportName,
-        log.observedHvacMemo,
         log.memo,
       ].some((value) => searchable(value).includes(query))
     })

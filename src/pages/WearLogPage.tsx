@@ -73,7 +73,6 @@ export function WearLogPage() {
   const [observedHvacMode, setObservedHvacMode] = useState<HvacMode>('off')
   const [observedHvacIntensity, setObservedHvacIntensity] =
     useState<HvacIntensity | null>(null)
-  const [observedHvacMemo, setObservedHvacMemo] = useState('')
   const [memo, setMemo] = useState('')
   const [submissionToken] = useState(() => crypto.randomUUID())
   const [saving, setSaving] = useState(false)
@@ -151,7 +150,6 @@ export function WearLogPage() {
       setTransportModeId(existing.transportModeId ?? '')
       setObservedHvacMode(existing.observedHvacMode)
       setObservedHvacIntensity(existing.observedHvacIntensity)
-      setObservedHvacMemo(existing.observedHvacMemo ?? '')
       setMemo(existing.memo ?? '')
     } else if (navigationState.input) {
       setTempOut(String(navigationState.input.tempOut))
@@ -219,7 +217,6 @@ export function WearLogPage() {
         observedHvacMode,
         observedHvacIntensity,
       ),
-      observedHvacMemo: observedHvacMemo.trim() || null,
       memo: memo.trim() || null,
       temperatureSource:
         temperatureSource === 'weather' ? 'weather' : 'manual',
@@ -467,15 +464,6 @@ export function WearLogPage() {
                 </select>
               </label>
             </div>
-            <label className="field">
-              <span>HVAC 메모</span>
-              <textarea
-                rows={2}
-                value={observedHvacMemo}
-                placeholder="실제 냉난방에 관해 필요한 경우에만 기록"
-                onChange={(event) => setObservedHvacMemo(event.target.value)}
-              />
-            </label>
           </fieldset>
 
           <label className="field">

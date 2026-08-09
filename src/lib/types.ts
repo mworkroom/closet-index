@@ -310,7 +310,6 @@ export interface WearLog {
   transportModeId: string | null
   observedHvacMode: HvacMode
   observedHvacIntensity: HvacIntensity | null
-  observedHvacMemo: string | null
   memo: string | null
   temperatureSource: TemperatureSource
   weatherLocationId: string | null
@@ -334,7 +333,6 @@ export interface WearLogInput {
   transportModeId: string | null
   observedHvacMode: HvacMode
   observedHvacIntensity: HvacIntensity | null
-  observedHvacMemo: string | null
   memo: string | null
   temperatureSource: TemperatureSource
   weatherLocationId: string | null
@@ -355,7 +353,6 @@ export type WearLogEditableField =
   | 'transportModeId'
   | 'observedHvacMode'
   | 'observedHvacIntensity'
-  | 'observedHvacMemo'
   | 'memo'
 
 export type WearLogPatch = Partial<

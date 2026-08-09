@@ -58,7 +58,7 @@ export class SupabaseSnapshotRepository {
         const result = await this.client
           .from('closet_wear_logs')
           .select(
-            'id,outfit_id,worn_on,temp_out,temp_back,temp_back_inferred,feeling_out,feeling_back,rain_condition,long_walk_condition,place_id,transport_mode_id,observed_hvac_mode,observed_hvac_intensity,observed_hvac_memo,memo,temperature_source,weather_location_id,weather_issued_at,weather_overridden,submission_token,created_at',
+            'id,outfit_id,worn_on,temp_out,temp_back,temp_back_inferred,feeling_out,feeling_back,rain_condition,long_walk_condition,place_id,transport_mode_id,observed_hvac_mode,observed_hvac_intensity,memo,temperature_source,weather_location_id,weather_issued_at,weather_overridden,submission_token,created_at',
           )
           .eq('workspace_id', this.workspaceId)
           .order('worn_on', { ascending: false })

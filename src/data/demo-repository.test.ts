@@ -17,7 +17,6 @@ function input(submissionToken: string, placeId = 'place-library'): WearLogInput
     transportModeId: 'transport-subway',
     observedHvacMode: 'off',
     observedHvacIntensity: null,
-    observedHvacMemo: null,
     memo: null,
     temperatureSource: 'manual',
     weatherLocationId: null,

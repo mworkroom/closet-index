@@ -17,7 +17,6 @@ const wearLogInput: WearLogInput = {
   transportModeId: 'transport-walk-short',
   observedHvacMode: 'off',
   observedHvacIntensity: null,
-  observedHvacMemo: null,
   memo: null,
   temperatureSource: 'manual',
   weatherLocationId: null,
@@ -96,12 +95,10 @@ describe('Wear Log HVAC repository payloads', () => {
         ...wearLogInput,
         observedHvacMode: 'cooling',
         observedHvacIntensity: 'normal',
-        observedHvacMemo: 'comfortable',
       }),
     ).toMatchObject({
       observed_hvac_mode: 'cooling',
       observed_hvac_intensity: 'normal',
-      observed_hvac_memo: 'comfortable',
     })
     expect(
       toWearLogPatchRow({

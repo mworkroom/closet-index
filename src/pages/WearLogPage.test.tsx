@@ -336,13 +336,16 @@ describe('WearLogPage HVAC observation', () => {
     const intensity = screen.getByRole('combobox', { name: '강도' })
     expect(mode).toHaveValue('off')
     expect(intensity).toBeDisabled()
+    expect(
+      screen.queryByRole('textbox', { name: 'HVAC 메모' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '메모' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '착용 기록 저장' }))
 
     expect(createWearLog).toHaveBeenCalledWith(
       expect.objectContaining({
         observedHvacMode: 'off',
         observedHvacIntensity: null,
-        observedHvacMemo: null,
       }),
     )
   })
@@ -362,17 +365,12 @@ describe('WearLogPage HVAC observation', () => {
     const intensity = screen.getByRole('combobox', { name: '강도' })
     expect(intensity).toHaveValue('normal')
     await user.selectOptions(intensity, 'strong')
-    await user.type(
-      screen.getByRole('textbox', { name: 'HVAC 메모' }),
-      '바람이 강함',
-    )
     await user.click(screen.getByRole('button', { name: '착용 기록 저장' }))
 
     expect(createWearLog).toHaveBeenCalledWith(
       expect.objectContaining({
         observedHvacMode: 'cooling',
         observedHvacIntensity: 'strong',
-        observedHvacMemo: '바람이 강함',
       }),
     )
   })

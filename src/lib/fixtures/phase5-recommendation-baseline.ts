@@ -47,7 +47,6 @@ export function phase5BaselineWearLog(
     transportModeId: 'transport-a',
     observedHvacMode: 'off',
     observedHvacIntensity: null,
-    observedHvacMemo: null,
     memo: null,
     temperatureSource: 'manual',
     weatherLocationId: null,

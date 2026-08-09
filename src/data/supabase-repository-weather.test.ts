@@ -147,7 +147,6 @@ describe('SupabaseRepository weather Wear Log writes', () => {
       transportModeId: null,
       observedHvacMode: 'off',
       observedHvacIntensity: null,
-      observedHvacMemo: null,
       memo: null,
       temperatureSource: 'weather',
       weatherLocationId: 'location',

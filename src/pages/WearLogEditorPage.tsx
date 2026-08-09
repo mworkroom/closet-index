@@ -270,7 +270,7 @@ export function WearLogEditorPage() {
       key === 'transportModeId'
     ) {
       value = rawValue || null
-    } else if (key === 'memo' || key === 'observedHvacMemo') {
+    } else if (key === 'memo') {
       value = rawValue.trim() ? rawValue : null
     }
 

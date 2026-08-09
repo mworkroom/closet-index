@@ -76,7 +76,6 @@ function wear(
     transportModeId,
     observedHvacMode: 'off',
     observedHvacIntensity: null,
-    observedHvacMemo: null,
     memo: null,
     temperatureSource: 'manual',
     weatherLocationId: null,

@@ -22,7 +22,6 @@ const baseLog: WearLog = {
   transportModeId: 'transport-walk',
   observedHvacMode: 'off',
   observedHvacIntensity: null,
-  observedHvacMemo: null,
   memo: 'nearby',
   temperatureSource: 'manual',
   weatherLocationId: null,

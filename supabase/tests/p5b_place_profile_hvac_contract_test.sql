@@ -9,7 +9,7 @@ select has_column('public', 'closet_wear_logs', 'observed_hvac_mode', 'Wear Log 
 select col_not_null('public', 'closet_wear_logs', 'observed_hvac_mode', 'actual HVAC mode is required');
 select col_default_is('public', 'closet_wear_logs', 'observed_hvac_mode', 'off', 'existing and new Wear Logs default to off');
 select has_column('public', 'closet_wear_logs', 'observed_hvac_intensity', 'Wear Log stores actual HVAC intensity');
-select has_column('public', 'closet_wear_logs', 'observed_hvac_memo', 'Wear Log stores an HVAC-specific memo');
+select hasnt_column('public', 'closet_wear_logs', 'observed_hvac_memo', 'Wear Log reuses the general memo for optional HVAC prose');
 select column_privs_are(
   'public', 'closet_wear_logs', 'observed_hvac_mode', 'authenticated', array['INSERT', 'SELECT', 'UPDATE'],
   'authenticated clients can read and manually maintain actual HVAC mode'

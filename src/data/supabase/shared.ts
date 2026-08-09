@@ -65,7 +65,6 @@ export interface WearLogRow {
   transport_mode_id: string | null
   observed_hvac_mode: WearLog['observedHvacMode']
   observed_hvac_intensity: WearLog['observedHvacIntensity']
-  observed_hvac_memo: string | null
   memo: string | null
   temperature_source: WearLog['temperatureSource']
   weather_location_id: string | null
@@ -191,7 +190,6 @@ export function toWearLog(row: WearLogRow): WearLog {
     transportModeId: row.transport_mode_id,
     observedHvacMode: row.observed_hvac_mode,
     observedHvacIntensity: row.observed_hvac_intensity,
-    observedHvacMemo: row.observed_hvac_memo,
     memo: row.memo,
     temperatureSource: row.temperature_source,
     weatherLocationId: row.weather_location_id,
@@ -235,7 +233,6 @@ export function toWearLogMutableRow(input: WearLogInput) {
     transport_mode_id: input.transportModeId,
     observed_hvac_mode: input.observedHvacMode,
     observed_hvac_intensity: input.observedHvacIntensity,
-    observed_hvac_memo: input.observedHvacMemo,
     memo: input.memo,
     temperature_source: input.temperatureSource,
     weather_location_id: input.weatherLocationId,
@@ -284,9 +281,6 @@ export function toWearLogPatchRow(input: WearLogPatch) {
   }
   if (input.observedHvacIntensity !== undefined) {
     row.observed_hvac_intensity = input.observedHvacIntensity
-  }
-  if (input.observedHvacMemo !== undefined) {
-    row.observed_hvac_memo = input.observedHvacMemo
   }
   if (input.memo !== undefined) row.memo = input.memo
 

@@ -41,7 +41,6 @@ function wear(id: string, wornOn: string): WearLog {
     transportModeId: null,
     observedHvacMode: 'off',
     observedHvacIntensity: null,
-    observedHvacMemo: null,
     memo: null,
     temperatureSource: 'manual',
     weatherLocationId: null,

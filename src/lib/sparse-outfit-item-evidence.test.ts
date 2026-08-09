@@ -78,7 +78,6 @@ function log(
     transportModeId: 'short-walk',
     observedHvacMode: 'off',
     observedHvacIntensity: null,
-    observedHvacMemo: null,
     memo: null,
     temperatureSource: 'manual',
     weatherLocationId: null,
