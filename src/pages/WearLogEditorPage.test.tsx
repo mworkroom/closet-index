@@ -82,6 +82,24 @@ describe('WearLogEditorPage', () => {
     expect(screen.getByText('2 / 4건')).toBeVisible()
   })
 
+  it('filters the visible rows by memo presence', async () => {
+    const user = userEvent.setup()
+    renderEditor()
+
+    expect(await screen.findByRole('heading', { name: 'Wear Logs' })).toBeVisible()
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: '메모 필터' }),
+      'empty',
+    )
+    expect(screen.getByText('3 / 4건')).toBeVisible()
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: '메모 필터' }),
+      'notEmpty',
+    )
+    expect(screen.getByText('1 / 4건')).toBeVisible()
+  })
+
   it('bulk edits selected rows and saves only the changed records', async () => {
     const user = userEvent.setup()
     const repository = new DemoRepository()

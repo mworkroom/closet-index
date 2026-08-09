@@ -30,7 +30,7 @@ import type {
 } from '../../lib/types'
 import { recommendationInputFromWeather } from '../../lib/weather-recommendation'
 
-export type HomeConditionChoice = Exclude<ConditionChoice, 'unknown'>
+export type HomeConditionChoice = ConditionChoice
 type InputSource = 'manual' | 'weather' | 'weather-edited'
 
 interface StoredForecast {

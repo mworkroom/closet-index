@@ -17,7 +17,7 @@ const baseLog: WearLog = {
   feelingOut: 'ok',
   feelingBack: 'ok',
   rainCondition: 'no',
-  longWalkCondition: 'unknown',
+  longWalkCondition: 'no',
   placeId: 'place-1',
   transportModeId: 'transport-walk',
   observedHvacMode: 'off',
@@ -106,6 +106,42 @@ describe('Wear Log Editor helpers', () => {
         longWalkCondition: 'yes',
       }).map((row) => row.log.id),
     ).toEqual(['log-walk'])
+  })
+
+  it('filters empty and non-empty memos', () => {
+    const rows = [
+      {
+        log: { ...baseLog, id: 'log-empty', memo: null },
+        outfitName: 'Empty outfit',
+        placeName: 'Cafe',
+        transportName: 'Car',
+      },
+      {
+        log: { ...baseLog, id: 'log-filled', memo: 'note' },
+        outfitName: 'Filled outfit',
+        placeName: 'Park',
+        transportName: 'Walk',
+      },
+      {
+        log: { ...baseLog, id: 'log-whitespace', memo: '   ' },
+        outfitName: 'Whitespace outfit',
+        placeName: 'Home',
+        transportName: 'Car',
+      },
+    ]
+
+    expect(
+      filterAndSortWearLogRows(rows, {
+        ...DEFAULT_WEAR_LOG_EDITOR_FILTERS,
+        memoFilter: 'empty',
+      }).map((row) => row.log.id),
+    ).toEqual(['log-empty', 'log-whitespace'])
+    expect(
+      filterAndSortWearLogRows(rows, {
+        ...DEFAULT_WEAR_LOG_EDITOR_FILTERS,
+        memoFilter: 'notEmpty',
+      }).map((row) => row.log.id),
+    ).toEqual(['log-filled'])
   })
 
   it('removes a pending field when the edited value returns to the source value', () => {

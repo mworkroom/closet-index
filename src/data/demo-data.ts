@@ -250,7 +250,7 @@ export const demoData: AppData = {
       feelingOut: 'ok',
       feelingBack: 'ok',
       rainCondition: 'no',
-      longWalkCondition: 'unknown',
+      longWalkCondition: 'no',
       placeId: 'place-cgv',
       transportModeId: 'transport-car',
       observedHvacMode: 'heating',

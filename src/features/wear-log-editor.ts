@@ -120,6 +120,7 @@ export interface WearLogEditorRow {
 }
 
 export type WearLogWalkFilter = 'all' | 'walk' | 'missing'
+export type WearLogMemoFilter = 'all' | 'empty' | 'notEmpty'
 export type WearLogSort = 'newest' | 'oldest'
 
 export interface WearLogEditorFilters {
@@ -131,6 +132,7 @@ export interface WearLogEditorFilters {
   walkFilter: WearLogWalkFilter
   rainCondition: ConditionChoice | ''
   longWalkCondition: ConditionChoice | ''
+  memoFilter: WearLogMemoFilter
   sort: WearLogSort
 }
 
@@ -143,6 +145,7 @@ export const DEFAULT_WEAR_LOG_EDITOR_FILTERS: WearLogEditorFilters = {
   walkFilter: 'all',
   rainCondition: '',
   longWalkCondition: '',
+  memoFilter: 'all',
   sort: 'newest',
 }
 
@@ -179,6 +182,9 @@ export function filterAndSortWearLogRows(
       ) {
         return false
       }
+      const memoIsEmpty = searchable(log.memo) === ''
+      if (filters.memoFilter === 'empty' && !memoIsEmpty) return false
+      if (filters.memoFilter === 'notEmpty' && memoIsEmpty) return false
       if (filters.walkFilter === 'walk' && !isWalkTransportName(row.transportName)) {
         return false
       }

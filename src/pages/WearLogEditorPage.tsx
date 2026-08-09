@@ -77,7 +77,6 @@ function getEditorOptions(
     return [
       { value: 'no', label: conditionLabels.no },
       { value: 'yes', label: conditionLabels.yes },
-      { value: 'unknown', label: conditionLabels.unknown },
     ]
   }
   if (column.optionGroup === 'feeling') {
@@ -621,7 +620,6 @@ export function WearLogEditorPage() {
                 <option value="">전체</option>
                 <option value="yes">{conditionLabels.yes}</option>
                 <option value="no">{conditionLabels.no}</option>
-                <option value="unknown">{conditionLabels.unknown}</option>
               </select>
             </label>
             <label>
@@ -639,7 +637,23 @@ export function WearLogEditorPage() {
                 <option value="">전체</option>
                 <option value="yes">{conditionLabels.yes}</option>
                 <option value="no">{conditionLabels.no}</option>
-                <option value="unknown">{conditionLabels.unknown}</option>
+              </select>
+            </label>
+            <label>
+              <span>메모</span>
+              <select
+                aria-label="메모 필터"
+                value={filters.memoFilter}
+                onChange={(event) =>
+                  updateFilter(
+                    'memoFilter',
+                    event.target.value as WearLogEditorFilters['memoFilter'],
+                  )
+                }
+              >
+                <option value="all">전체</option>
+                <option value="empty">is empty</option>
+                <option value="notEmpty">is not empty</option>
               </select>
             </label>
             <label>

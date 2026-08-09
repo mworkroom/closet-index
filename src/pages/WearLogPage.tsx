@@ -65,9 +65,9 @@ export function WearLogPage() {
   const [feelingOut, setFeelingOut] = useState<ThermalFeeling>(null)
   const [feelingBack, setFeelingBack] = useState<ThermalFeeling>(null)
   const [rainCondition, setRainCondition] =
-    useState<ConditionChoice>('unknown')
+    useState<ConditionChoice>('no')
   const [longWalkCondition, setLongWalkCondition] =
-    useState<ConditionChoice>('unknown')
+    useState<ConditionChoice>('no')
   const [placeId, setPlaceId] = useState('')
   const [transportModeId, setTransportModeId] = useState('')
   const [observedHvacMode, setObservedHvacMode] = useState<HvacMode>('off')

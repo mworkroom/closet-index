@@ -1,4 +1,4 @@
-export type ConditionChoice = 'no' | 'yes' | 'unknown'
+export type ConditionChoice = 'no' | 'yes'
 export type OutfitRating = 'favorite' | 'ok' | 'error' | null
 export type ThermalFeeling = 'cold' | 'ok' | 'hot' | null
 export type TemperatureSource = 'notion' | 'manual' | 'weather'
@@ -674,7 +674,6 @@ export const feelingLabels: Record<Exclude<ThermalFeeling, null>, string> = {
 export const conditionLabels: Record<ConditionChoice, string> = {
   no: '해당 없음',
   yes: '해당',
-  unknown: '미지정',
 }
 
 export const recommendationLabels: Record<RecommendationLevel, string> = {

@@ -3007,7 +3007,7 @@ a.item-detail-lineage__item:focus-visible {
 
 .wear-log-editor__filters {
   display: grid;
-  grid-template-columns: 1.5fr repeat(8, minmax(110px, 1fr));
+  grid-template-columns: 1.5fr repeat(9, minmax(110px, 1fr));
   gap: 10px;
   margin-top: 16px;
 }
