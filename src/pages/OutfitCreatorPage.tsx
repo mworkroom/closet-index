@@ -18,6 +18,7 @@ import {
 import {
   getOutfitItemDisplayMode,
   getOutfitItemDisplayPlacement,
+  getOutfitItemDuplicateIndex,
   getOutfitItemPlacementDefaults,
   supportsOutfitItemDisplayMode,
   type OutfitItemDisplayMode,
@@ -72,10 +73,16 @@ function buildDraftOutfit(
     itemPlacements: selectedItems.map((item) => {
       const draft = draftPlacements.get(item.id)
       const displayMode = draft?.displayMode ?? 'auto'
+      const duplicateIndex = getOutfitItemDuplicateIndex(
+        item,
+        itemIds,
+        selectedItems,
+      )
       const defaults = getOutfitItemPlacementDefaults(
         item,
         hasVisibleOuter,
         displayMode,
+        duplicateIndex,
       )
       const displayPlacement = supportsOutfitItemDisplayMode(item)
         ? getOutfitItemDisplayPlacement(item, displayMode)

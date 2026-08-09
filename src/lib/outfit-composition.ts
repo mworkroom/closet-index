@@ -12,6 +12,7 @@ const slotAliases: Record<string, keyof typeof compositionConfig.slots> = {
   dress: 'main-dress',
   shoes: 'main-shoes',
   bag: 'side-bag',
+  'bag-secondary': 'side-bag-secondary',
   socks: 'main-socks',
   accessory: 'main-neck',
   waist: 'main-waist',
@@ -147,6 +148,7 @@ export function getOutfitItemPlacementDefaults(
   item: Item,
   hasOuter: boolean,
   displayMode: OutfitItemDisplayMode = 'auto',
+  duplicateIndex = 0,
 ): OutfitItemPlacementDefaults {
   const rule = resolveRule(
     item,
@@ -156,8 +158,26 @@ export function getOutfitItemPlacementDefaults(
   return {
     positionX: rule?.defaultPositionX ?? 0,
     positionY: rule?.defaultPositionY ?? 0,
-    itemScale: rule?.defaultScale ?? 1,
+    itemScale:
+      item.category.startsWith('Bags') && duplicateIndex > 0
+        ? 0.88
+        : (rule?.defaultScale ?? 1),
   }
+}
+
+export function getOutfitItemDuplicateIndex(
+  item: Pick<Item, 'id' | 'category'>,
+  itemIds: readonly string[],
+  items: readonly Pick<Item, 'id' | 'category'>[],
+) {
+  if (!item.category.startsWith('Bags')) return 0
+  const itemIndex = itemIds.indexOf(item.id)
+  if (itemIndex <= 0) return 0
+  const itemsById = new Map(items.map((entry) => [entry.id, entry]))
+  return itemIds
+    .slice(0, itemIndex)
+    .filter((itemId) => itemsById.get(itemId)?.category.startsWith('Bags'))
+    .length
 }
 
 function placementFor(outfit: Outfit, itemId: string): OutfitItemPlacement | null {
@@ -248,10 +268,18 @@ export function composeOutfitLayers(
   const hasOuter = compositionItems.some((item) =>
     item.category.startsWith('Outer'),
   )
+  const bagIndices = new Map<string, number>()
+  let bagCount = 0
+  for (const item of compositionItems) {
+    if (!item.category.startsWith('Bags')) continue
+    bagIndices.set(item.id, bagCount)
+    bagCount += 1
+  }
 
   const layers = compositionItems
     .map((item) => {
       const placement = placementFor(outfit, item.id)
+      const bagIndex = bagIndices.get(item.id) ?? 0
       const displayMode = getOutfitItemDisplayMode(item, placement)
       const rule = resolveRule(
         item,
@@ -269,9 +297,16 @@ export function composeOutfitLayers(
       const slotName =
         displayMode === 'side'
           ? 'side-top'
-          : (savedSlot ?? rule.slot)
+          : (savedSlot ??
+            (item.category.startsWith('Bags') && bagIndex > 0
+              ? 'side-bag-secondary'
+              : rule.slot))
       const slot = compositionConfig.slots[slotName]
-      const itemScale = placement?.itemScale ?? rule.defaultScale
+      const itemScale =
+        placement?.itemScale ??
+        (item.category.startsWith('Bags') && bagIndex > 0
+          ? 0.88
+          : rule.defaultScale)
       const targetWidth =
         (rule.visualWidth ??
           compositionConfig.itemTemplate.width * rule.visualScale) *
@@ -316,7 +351,11 @@ export function composeOutfitLayers(
         top: position.top,
         width,
         height,
-        zIndex: placement?.zIndex ?? rule.zIndex,
+        zIndex:
+          placement?.zIndex ??
+          (item.category.startsWith('Bags') && bagIndex > 0
+            ? rule.zIndex - 1
+            : rule.zIndex),
         objectPosition: position.objectPosition,
         objectFit: 'contain',
         slotName,

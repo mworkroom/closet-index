@@ -90,6 +90,13 @@
       "width": 230,
       "height": 320,
       "anchor": "center"
+    },
+    "side-bag-secondary": {
+      "x": 610,
+      "y": 565,
+      "width": 210,
+      "height": 285,
+      "anchor": "center"
     }
   },
   "compositionRoles": {

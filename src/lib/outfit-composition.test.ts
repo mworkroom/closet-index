@@ -394,6 +394,60 @@ describe('browser outfit composition v5', () => {
     expect(bagLayer.zIndex).toBe(80)
   })
 
+  it('places a second bag below, beside, and behind the primary bag', () => {
+    const primary = item('primary-bag', 'Bags', 400, 500)
+    const secondary = item('secondary-bag', 'Bags-made', 400, 500)
+    const outfit: Outfit = {
+      id: 'two-bags',
+      displayName: null,
+      rating: null,
+      itemIds: [primary.id, secondary.id],
+    }
+
+    const layers = composeOutfitLayers(outfit, [primary, secondary])
+    const primaryLayer = layers.find((layer) => layer.item.id === primary.id)!
+    const secondaryLayer = layers.find(
+      (layer) => layer.item.id === secondary.id,
+    )!
+
+    expect(secondaryLayer.top).toBeGreaterThan(primaryLayer.top)
+    expect(secondaryLayer.left).toBeGreaterThan(primaryLayer.left)
+    expect(secondaryLayer.width).toBeLessThan(primaryLayer.width)
+    expect(secondaryLayer.zIndex).toBeLessThan(primaryLayer.zIndex)
+    expect(layers.map((layer) => layer.item.id)).toEqual([
+      secondary.id,
+      primary.id,
+    ])
+  })
+
+  it('keeps a saved secondary bag position while retaining its secondary slot', () => {
+    const primary = item('primary-bag', 'Bags')
+    const secondary = item('secondary-bag', 'Bags')
+    const outfit: Outfit = {
+      id: 'adjusted-two-bags',
+      displayName: null,
+      rating: null,
+      itemIds: [primary.id, secondary.id],
+      itemPlacements: [
+        {
+          itemId: secondary.id,
+          slot: 'bag-secondary',
+          positionX: 24,
+          positionY: -12,
+          itemScale: 1.1,
+          zIndex: 72,
+        },
+      ],
+    }
+
+    const secondaryLayer = composeOutfitLayers(outfit, [primary, secondary]).find(
+      (layer) => layer.item.id === secondary.id,
+    )!
+    expect(secondaryLayer.zIndex).toBe(72)
+    expect(secondaryLayer.left).toBeGreaterThan(600)
+    expect(secondaryLayer.top).toBeGreaterThan(500)
+  })
+
   it('keeps the bottom unchanged when only the shoes are resized', () => {
     const skirt = item('skirt', 'Bottom-Skirts', 621, 1219)
     const shoes = item('shoes', 'Shoes')

@@ -16,6 +16,7 @@ import type {
 import {
   getOutfitItemDisplayMode,
   getOutfitItemDisplayPlacement,
+  getOutfitItemDuplicateIndex,
   getOutfitItemPlacementDefaults,
   supportsOutfitItemDisplayMode,
   type OutfitItemDisplayMode,
@@ -50,6 +51,7 @@ function hasVisibleOuter(items: Item[]) {
 function positionFrom(
   outfit: Outfit,
   item: Item,
+  items: Item[],
   hasOuter: boolean,
 ): Position {
   const placement = outfit.itemPlacements?.find(
@@ -60,6 +62,7 @@ function positionFrom(
     item,
     hasOuter,
     displayMode,
+    getOutfitItemDuplicateIndex(item, outfit.itemIds, items),
   )
   return {
     x: placement?.positionX ?? defaults.positionX,
@@ -77,7 +80,7 @@ function positionsFrom(outfit: Outfit, items: Item[]): Map<string, Position> {
       return [
         itemId,
         item
-          ? positionFrom(outfit, item, hasOuter)
+          ? positionFrom(outfit, item, items, hasOuter)
           : { x: 0, y: 0, scale: 1, displayMode: 'auto' as const },
       ] as const
     }),
@@ -139,7 +142,7 @@ export function OutfitPositionEditor({
     selectedItem && supportsOutfitItemDisplayMode(selectedItem),
   )
   const selectedDefaults = selectedItem
-    ? positionFrom(outfit, selectedItem, hasOuter)
+    ? positionFrom(outfit, selectedItem, items, hasOuter)
     : { x: 0, y: 0, scale: 1, displayMode: 'auto' as const }
   const position = positions.get(selectedId) ?? selectedDefaults
   const dirty =
@@ -230,6 +233,7 @@ export function OutfitPositionEditor({
         selectedItem,
         hasOuter,
         position.displayMode,
+        getOutfitItemDuplicateIndex(selectedItem, outfit.itemIds, items),
       )
       next.set(selectedId, {
         x: defaults.positionX,
@@ -249,6 +253,7 @@ export function OutfitPositionEditor({
       selectedItem,
       hasOuter,
       displayMode,
+      getOutfitItemDuplicateIndex(selectedItem, outfit.itemIds, items),
     )
     setPositions((current) => {
       const next = new Map(current)

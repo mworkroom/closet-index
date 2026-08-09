@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   getOutfitItemDisplayMode,
   getOutfitItemDisplayPlacement,
+  getOutfitItemDuplicateIndex,
   getOutfitItemPlacementDefaults,
   supportsOutfitItemDisplayMode,
   type OutfitItemDisplayMode,
@@ -71,6 +72,7 @@ export function OutfitDraftPositionEditor({
     selectedItem,
     hasOuter,
     displayMode,
+    getOutfitItemDuplicateIndex(selectedItem, outfit.itemIds, items),
   )
   const position = {
     x: storedPlacement?.positionX ?? defaults.positionX,
@@ -116,6 +118,7 @@ export function OutfitDraftPositionEditor({
       selectedItem,
       hasOuter,
       nextDisplayMode,
+      getOutfitItemDuplicateIndex(selectedItem, outfit.itemIds, items),
     )
     commit(
       {
