@@ -3164,6 +3164,22 @@ a.item-detail-lineage__item:focus-visible {
   white-space: nowrap;
 }
 
+.wear-log-editor__table th.wear-log-editor__outfit-column,
+.wear-log-editor__table td.wear-log-editor__outfit-column {
+  width: 180px;
+  min-width: 180px;
+  max-width: 180px;
+  overflow: hidden;
+}
+
+.wear-log-editor__outfit-name {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .wear-log-editor__table th:last-child,
 .wear-log-editor__table td:last-child {
   border-right: 0;

@@ -100,6 +100,21 @@ describe('WearLogEditorPage', () => {
     expect(screen.getByText('1 / 4건')).toBeVisible()
   })
 
+  it('keeps the full outfit name available when the display cell is compact', async () => {
+    renderEditor()
+
+    expect(await screen.findByRole('heading', { name: 'Wear Logs' })).toBeVisible()
+    const tableRegion = screen.getByRole('region', {
+      name: 'Wear Log 표 가로 스크롤 영역',
+    })
+    const outfitName = tableRegion.querySelector<HTMLElement>(
+      '.wear-log-editor__outfit-name',
+    )
+
+    expect(outfitName).not.toBeNull()
+    expect(outfitName?.getAttribute('title')).toBeTruthy()
+  })
+
   it('bulk edits selected rows and saves only the changed records', async () => {
     const user = userEvent.setup()
     const repository = new DemoRepository()

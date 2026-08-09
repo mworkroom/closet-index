@@ -474,13 +474,28 @@ export function WearLogEditorPage() {
 
     return (
       <td
-        className={dirty ? 'wear-log-editor__cell--dirty' : undefined}
+        className={[
+          column.key === 'outfit' ? 'wear-log-editor__outfit-column' : null,
+          dirty ? 'wear-log-editor__cell--dirty' : null,
+        ].filter(Boolean).join(' ') || undefined}
         key={column.key}
       >
         {column.editable ? renderEditableCell(row, column) : (
           <span
-            className={column.key === 'recordId' ? 'wear-log-editor__record-id' : undefined}
-            title={column.key === 'recordId' ? row.log.id : undefined}
+            className={
+              column.key === 'outfit'
+                ? 'wear-log-editor__outfit-name'
+                : column.key === 'recordId'
+                  ? 'wear-log-editor__record-id'
+                  : undefined
+            }
+            title={
+              column.key === 'outfit'
+                ? row.outfitName
+                : column.key === 'recordId'
+                  ? row.log.id
+                  : undefined
+            }
           >
             {formatReadOnlyCell(row, column)}
           </span>
@@ -800,7 +815,15 @@ export function WearLogEditorPage() {
                         />
                       </th>
                       {WEAR_LOG_EDITOR_COLUMNS.map((column) => (
-                        <th scope="col" key={column.key}>
+                        <th
+                          scope="col"
+                          key={column.key}
+                          className={
+                            column.key === 'outfit'
+                              ? 'wear-log-editor__outfit-column'
+                              : undefined
+                          }
+                        >
                           {column.label}
                           {column.editable && <span aria-hidden="true">*</span>}
                         </th>
