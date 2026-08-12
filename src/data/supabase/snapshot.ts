@@ -3,7 +3,6 @@ import type { AppData, Item, Outfit } from '../../lib/types'
 import {
   emptyReadyImageAssets,
   loadReadyImageAssets,
-  SignedImageUrlCache,
 } from '../image-assets'
 import {
   collectAllPages,
@@ -21,8 +20,6 @@ import {
 } from './shared'
 
 export class SupabaseSnapshotRepository {
-  private readonly imageUrlCache = new SignedImageUrlCache()
-
   constructor(
     private readonly client: SupabaseClient,
     private readonly workspaceId: string,
@@ -32,7 +29,6 @@ export class SupabaseSnapshotRepository {
     const imageAssetsPromise = loadReadyImageAssets(
       this.client,
       this.workspaceId,
-      this.imageUrlCache,
     ).catch(() => emptyReadyImageAssets())
     const outfitItemsPromise = collectAllPages<OutfitItemRow>(
       async (from, to) => {

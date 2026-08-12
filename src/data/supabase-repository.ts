@@ -16,6 +16,7 @@ import type {
 } from '../lib/types'
 import type { ClosetRepository } from './repository'
 import { SupabaseItemRepository } from './supabase/items'
+import { downloadItemImageBlobs } from './image-assets'
 import { SupabaseOutfitRepository } from './supabase/outfits'
 import { collectAllPages } from './supabase/shared'
 import { SupabaseSnapshotRepository } from './supabase/snapshot'
@@ -42,7 +43,10 @@ export class SupabaseRepository implements ClosetRepository {
   readonly purchases: SupabasePurchaseRepository
   readonly care: SupabaseCareRepository
 
-  constructor(client: SupabaseClient, workspaceId: string) {
+  constructor(
+    private readonly client: SupabaseClient,
+    workspaceId: string,
+  ) {
     this.snapshot = new SupabaseSnapshotRepository(client, workspaceId)
     this.items = new SupabaseItemRepository(client, workspaceId)
     this.outfits = new SupabaseOutfitRepository(client, workspaceId)
@@ -62,6 +66,10 @@ export class SupabaseRepository implements ClosetRepository {
 
   load(): Promise<AppData> {
     return this.snapshot.load()
+  }
+
+  downloadItemImages(storagePaths: string[]) {
+    return downloadItemImageBlobs(this.client, storagePaths)
   }
 
   createItem(input: ItemCreateInput) {

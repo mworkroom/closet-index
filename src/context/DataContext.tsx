@@ -30,7 +30,7 @@ import type { ClosetRepository } from '../data/repository'
 import type { ReplacementLineRepository } from '../data/replacement-line-repository'
 import type { PurchaseRepository } from '../data/purchase-repository'
 import type { CareRepository } from '../data/care-repository'
-import { getImageRefreshDelay } from '../data/image-assets'
+import { ImageAssetsProvider } from './ImageAssetsContext'
 
 interface DataState {
   data: AppData | null
@@ -104,17 +104,6 @@ export function DataProvider({
   useEffect(() => {
     void refresh()
   }, [refresh])
-
-  useEffect(() => {
-    if (!data) return
-    const delay = getImageRefreshDelay(data)
-    if (delay === null) return
-
-    const timeout = window.setTimeout(() => {
-      void refresh()
-    }, delay)
-    return () => window.clearTimeout(timeout)
-  }, [data, refresh])
 
   const mutate = useCallback(
     async (operation: () => Promise<unknown>) => {
@@ -408,7 +397,13 @@ export function DataProvider({
     ],
   )
 
-  return <DataContext.Provider value={value}>{children}</DataContext.Provider>
+  return (
+    <DataContext.Provider value={value}>
+      <ImageAssetsProvider repository={repository}>
+        {children}
+      </ImageAssetsProvider>
+    </DataContext.Provider>
+  )
 }
 
 export function useClosetData() {

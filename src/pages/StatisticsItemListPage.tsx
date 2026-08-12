@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Link,
   useNavigationType,
@@ -14,7 +14,22 @@ import {
 import { readStatisticsItemListSearchParams } from '../features/statistics/statistics-navigation'
 import { useStatisticsData } from '../features/statistics/useStatisticsData'
 import { formatMonthDayYear } from '../lib/date'
+import { COLLECTION_BATCH_SIZE } from '../lib/collection-pagination'
 import { seasonLabels } from '../lib/seasons'
+
+const STATISTICS_LIST_COUNT_STORAGE_PREFIX =
+  'closet-index:statistics-list-visible-count:v1:'
+
+function readVisibleCount(storageKey: string) {
+  try {
+    const stored = Number(window.sessionStorage.getItem(storageKey))
+    return Number.isInteger(stored) && stored >= COLLECTION_BATCH_SIZE
+      ? stored
+      : COLLECTION_BATCH_SIZE
+  } catch {
+    return COLLECTION_BATCH_SIZE
+  }
+}
 
 function filterSummary(
   filters: ReturnType<
@@ -81,6 +96,20 @@ export function StatisticsItemListPage() {
   const [searchParams] = useSearchParams()
   const navigationType = useNavigationType()
   const search = searchParams.toString()
+  const paginationStorageKey = `${STATISTICS_LIST_COUNT_STORAGE_PREFIX}${search}`
+  const [paginationState, setPaginationState] = useState(() => ({
+    storageKey: paginationStorageKey,
+    count:
+      navigationType === 'POP'
+        ? readVisibleCount(paginationStorageKey)
+        : COLLECTION_BATCH_SIZE,
+  }))
+  const visibleItemCount =
+    paginationState.storageKey === paginationStorageKey
+      ? paginationState.count
+      : navigationType === 'POP'
+        ? readVisibleCount(paginationStorageKey)
+        : COLLECTION_BATCH_SIZE
   const { kind, filters } = useMemo(
     () => readStatisticsItemListSearchParams(new URLSearchParams(search)),
     [search],
@@ -102,6 +131,34 @@ export function StatisticsItemListPage() {
     if (navigationType === 'POP') return
     window.scrollTo({ top: 0 })
   }, [navigationType])
+
+  useEffect(() => {
+    const nextCount =
+      navigationType === 'POP'
+        ? readVisibleCount(paginationStorageKey)
+        : COLLECTION_BATCH_SIZE
+    setPaginationState({ storageKey: paginationStorageKey, count: nextCount })
+    if (navigationType !== 'POP') {
+      try {
+        window.sessionStorage.removeItem(paginationStorageKey)
+      } catch {
+        // The list still starts from the first batch without session storage.
+      }
+    }
+  }, [navigationType, paginationStorageKey])
+
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(
+        paginationStorageKey,
+        String(visibleItemCount),
+      )
+    } catch {
+      // Pagination remains usable in memory when session storage is unavailable.
+    }
+  }, [paginationStorageKey, visibleItemCount])
+
+  const visibleRows = rows.slice(0, visibleItemCount)
 
   return (
     <AppShell title={title} eyebrow="STATISTICS ITEMS" back>
@@ -132,10 +189,29 @@ export function StatisticsItemListPage() {
             />
           ) : (
             <StatisticsFullList
-              rows={rows}
+              rows={visibleRows}
               ranked={kind === 'most-worn'}
             />
           )}
+          {visibleItemCount < rows.length ? (
+            <div className="collection-load-more">
+              <button
+                className="button button--secondary"
+                type="button"
+                onClick={() =>
+                  setPaginationState({
+                    storageKey: paginationStorageKey,
+                    count: Math.min(
+                      visibleItemCount + COLLECTION_BATCH_SIZE,
+                      rows.length,
+                    ),
+                  })
+                }
+              >
+                더 보기 ({Math.min(visibleItemCount, rows.length)}/{rows.length})
+              </button>
+            </div>
+          ) : null}
         </section>
       ) : null}
     </AppShell>

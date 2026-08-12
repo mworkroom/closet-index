@@ -49,7 +49,7 @@ export function AssetImage({
     expiresAtMs !== null &&
     (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now())
 
-  if (!asset || unavailable || expired) return fallback
+  if (!asset?.url || unavailable || expired) return fallback
 
   return (
     <img

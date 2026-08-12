@@ -12,7 +12,7 @@ export type PlaceHvacProfileSource = 'manual' | 'wear_log_observation'
 export interface ImageAsset {
   id: string
   storagePath: string
-  url: string
+  url: string | null
   widthPx: number | null
   heightPx: number | null
   expiresAt: string | null

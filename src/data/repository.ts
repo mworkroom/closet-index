@@ -26,6 +26,7 @@ import type { CareRepository } from './care-repository'
 
 export interface ClosetRepository {
   load(): Promise<AppData>
+  downloadItemImages?(storagePaths: string[]): Promise<Map<string, Blob>>
   readonly replacementLines: ReplacementLineRepository
   readonly purchases: PurchaseRepository
   readonly care: CareRepository

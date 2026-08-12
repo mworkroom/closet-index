@@ -104,6 +104,58 @@ describe('StatisticsPage Phase 4 item usage', () => {
     ).toBeInTheDocument()
   })
 
+  it('shows the Statistics full list in 24-item batches', async () => {
+    const user = userEvent.setup()
+    const stored = structuredClone(demoData)
+    const baseItem = stored.items[0]
+    const itemIds = Array.from({ length: 30 }, (_, index) => `batch-item-${index}`)
+    stored.items = itemIds.map((id, index) => ({
+      ...baseItem,
+      id,
+      name: `통계 아이템 ${String(index + 1).padStart(2, '0')}`,
+      image: null,
+    }))
+    stored.outfits = [
+      {
+        ...stored.outfits[0],
+        id: 'batch-outfit',
+        itemIds,
+        itemPlacements: [],
+      },
+    ]
+    stored.wearLogs = [
+      {
+        ...stored.wearLogs[0],
+        id: 'batch-log',
+        outfitId: 'batch-outfit',
+      },
+    ]
+    window.localStorage.setItem(
+      'closet-index-demo-data-v3',
+      JSON.stringify(stored),
+    )
+
+    renderPage('/statistics/items?result=most-worn&period=lifetime')
+
+    const section = (await screen.findByRole('heading', { name: '아이템' }))
+      .closest('section')!
+    expect(
+      within(section).getAllByRole('link', { name: /Item 상세 보기/ }),
+    ).toHaveLength(24)
+    const loadMore = within(section).getByRole('button', {
+      name: '더 보기 (24/30)',
+    })
+
+    await user.click(loadMore)
+
+    expect(
+      within(section).getAllByRole('link', { name: /Item 상세 보기/ }),
+    ).toHaveLength(30)
+    expect(
+      within(section).queryByRole('button', { name: /더 보기/ }),
+    ).not.toBeInTheDocument()
+  })
+
   it('Retired 제외 선택을 전체 Item 보기까지 전달하고 Retired Item을 숨긴다', async () => {
     const user = userEvent.setup()
     const retiredOutfit = demoData.outfits.find(
