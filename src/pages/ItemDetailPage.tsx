@@ -174,14 +174,14 @@ export function ItemDetailPage() {
 
           <nav className="item-detail-actions" aria-label="Item 작업">
             <Link
-              className="button button--primary"
+              className="button button--secondary"
               to={`/outfits/new?item=${encodeURIComponent(item.id)}`}
             >
               <Plus size={17} aria-hidden="true" />
               새 착장 만들기
             </Link>
             <Link
-              className="button button--secondary"
+              className="button button--primary"
               to={`/closet/${item.id}/edit`}
             >
               <Pencil size={17} aria-hidden="true" />
