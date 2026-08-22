@@ -163,12 +163,12 @@ export function ItemDetailPage() {
               </strong>
             </div>
             <div>
-              <span>착용 횟수</span>
-              <strong>{stats?.wearCount ?? 0}회</strong>
-            </div>
-            <div>
               <span>마지막 착용</span>
               <strong>{formatMonthDayYear(stats?.lastWornOn ?? null)}</strong>
+            </div>
+            <div>
+              <span>착용 횟수</span>
+              <strong>{stats?.wearCount ?? 0}회</strong>
             </div>
           </section>
 

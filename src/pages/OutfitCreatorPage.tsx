@@ -541,11 +541,7 @@ export function OutfitCreatorPage() {
             )}
           </section>
 
-          <section
-            className={`section outfit-creator__review${
-              isEditing ? ' outfit-creator__review--with-fixed-save' : ''
-            }`}
-          >
+          <section className="section outfit-creator__review outfit-creator__review--with-fixed-save">
             <div className="section-heading">
               <div>
                 <p className="eyebrow">REVIEW</p>
@@ -618,18 +614,6 @@ export function OutfitCreatorPage() {
                     </Link>
                   ))}
                 </div>
-                <button
-                  type="button"
-                  className="button button--secondary button--wide"
-                  disabled={saving}
-                  onClick={() => void save(true)}
-                >
-                  {saving
-                    ? '저장 중…'
-                    : isEditing
-                      ? '같은 조합으로 수정'
-                      : '같은 조합으로 별도 저장'}
-                </button>
               </div>
             )}
 
@@ -638,42 +622,34 @@ export function OutfitCreatorPage() {
                 {saveError}
               </p>
             )}
-            {!isEditing && (
-              <button
-                type="button"
-                className="button button--primary button--wide"
-                disabled={
-                  selectedItems.length === 0 || saving || matches.length > 0
-                }
-                onClick={() => void save(false)}
-              >
-                {saving ? 'Outfit 저장 중…' : '새 Outfit 저장'}
-              </button>
-            )}
             <p className="outfit-creator__save-note">
               {isEditing
                 ? '이름, 구성 Item, 평가를 수정합니다. 보관 상태와 Wear Log는 유지됩니다.'
                 : '저장할 때 새 Outfit과 모든 Item 관계를 한 번에 생성합니다. Wear Log는 자동으로 만들지 않습니다.'}
             </p>
           </section>
-          {isEditing && (
-            <div className="outfit-creator__fixed-save">
-              <button
-                type="button"
-                className={`button button--wide ${
-                  matches.length > 0 ? 'button--secondary' : 'button--primary'
-                }`}
-                disabled={selectedItems.length === 0 || saving}
-                onClick={() => void save(matches.length > 0)}
-              >
-                {saving
+          <div className="outfit-creator__fixed-save">
+            <button
+              type="button"
+              className={`button button--wide ${
+                matches.length > 0 ? 'button--secondary' : 'button--primary'
+              }`}
+              disabled={selectedItems.length === 0 || saving}
+              onClick={() => void save(matches.length > 0)}
+            >
+              {saving
+                ? isEditing
                   ? '변경 저장 중…'
-                  : matches.length > 0
+                  : 'Outfit 저장 중…'
+                : matches.length > 0
+                  ? isEditing
                     ? '같은 조합으로 수정'
-                    : '변경 저장'}
-              </button>
-            </div>
-          )}
+                    : '같은 조합으로 별도 저장'
+                  : isEditing
+                    ? '변경 저장'
+                    : '새 Outfit 저장'}
+            </button>
+          </div>
         </>
       )}
     </AppShell>

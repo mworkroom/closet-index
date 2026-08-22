@@ -207,7 +207,7 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
                 checked={favorite}
                 onChange={(event) => setFavorite(event.target.checked)}
               />
-              Favorite만
+              Favorite
             </label>
           )}
           <label className="check-row">

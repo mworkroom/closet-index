@@ -46,6 +46,9 @@ describe('Outfit creator', () => {
       'aria-pressed',
       'true',
     )
+    expect(
+      screen.getByRole('button', { name: '새 Outfit 저장' }).parentElement,
+    ).toHaveClass('outfit-creator__fixed-save')
     await user.click(screen.getByRole('button', { name: 'Outer' }))
     await user.click(
       await screen.findByRole('button', { name: '블루 가디건 추가' }),

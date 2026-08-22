@@ -182,8 +182,8 @@ export function StatisticsPage() {
   )
 
   const periodLabel = statistics?.period.isLifetime
-    ? '현재 보유 옷의 전체 기간 활용률'
-    : `현재 보유 옷의 ${statistics?.period.year}년 활용률`
+    ? '전체 기간 활용률'
+    : `${statistics?.period.year}년 활용률`
   const utilizationLabel =
     statistics?.summary.utilizationRate == null
       ? '—'
@@ -331,8 +331,6 @@ export function StatisticsPage() {
               </div>
             </div>
             <p className="muted">
-              현재 Active Item과 고정된 Outfit 구성, Wear Log를 기준으로
-              계산합니다.
               {statistics.summary.excludedUnknownAcquiredCount > 0
                 ? ` 취득일 미상 ${statistics.summary.excludedUnknownAcquiredCount}개는 과거 연도 분모에서 제외했습니다.`
                 : ''}
