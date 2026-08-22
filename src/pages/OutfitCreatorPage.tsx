@@ -4,7 +4,6 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { ItemVisual } from '../components/ItemVisual'
 import { OutfitDraftPositionEditor } from '../components/OutfitDraftPositionEditor'
-import { OutfitVisual } from '../components/OutfitVisual'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
 import { useSeasonScope } from '../context/SeasonScopeContext'
@@ -131,9 +130,7 @@ export function OutfitCreatorPage() {
   const [rating, setRating] = useState<Exclude<OutfitRating, null>>('ok')
   const [query, setQuery] = useState('')
   const [categoryGroup, setCategoryGroup] =
-    useState<ItemCategoryFilterGroupId | ''>(() =>
-      isEditing ? '' : 'top',
-    )
+    useState<ItemCategoryFilterGroupId | ''>('top')
   const [color, setColor] = useState('')
   const [season, setSeason] = useState<Season | ''>('')
   const [includeRetired, setIncludeRetired] = useState(false)
@@ -424,21 +421,6 @@ export function OutfitCreatorPage() {
             )}
           </section>
 
-          {selectedItems.length > 0 && (
-            <section className="section outfit-creator__preview-section">
-              <div className="section-heading">
-                <h2>실시간 미리보기</h2>
-                <span className="count">
-                  이미지 {imageCount} · 없음 {selectedItems.length - imageCount}
-                </span>
-              </div>
-              <OutfitVisual
-                outfit={draftOutfit}
-                items={data.items}
-                className="outfit-creator__preview"
-              />
-            </section>
-          )}
           {initialItemError && (
             <p className="form-error" role="alert">
               {initialItemError}
@@ -559,7 +541,11 @@ export function OutfitCreatorPage() {
             )}
           </section>
 
-          <section className="section outfit-creator__review">
+          <section
+            className={`section outfit-creator__review${
+              isEditing ? ' outfit-creator__review--with-fixed-save' : ''
+            }`}
+          >
             <div className="section-heading">
               <div>
                 <p className="eyebrow">REVIEW</p>
@@ -652,26 +638,42 @@ export function OutfitCreatorPage() {
                 {saveError}
               </p>
             )}
-            <button
-              type="button"
-              className="button button--primary button--wide"
-              disabled={selectedItems.length === 0 || saving || matches.length > 0}
-              onClick={() => void save(false)}
-            >
-              {saving
-                ? isEditing
-                  ? '변경 저장 중…'
-                  : 'Outfit 저장 중…'
-                : isEditing
-                  ? '변경 저장'
-                  : '새 Outfit 저장'}
-            </button>
+            {!isEditing && (
+              <button
+                type="button"
+                className="button button--primary button--wide"
+                disabled={
+                  selectedItems.length === 0 || saving || matches.length > 0
+                }
+                onClick={() => void save(false)}
+              >
+                {saving ? 'Outfit 저장 중…' : '새 Outfit 저장'}
+              </button>
+            )}
             <p className="outfit-creator__save-note">
               {isEditing
                 ? '이름, 구성 Item, 평가를 수정합니다. 보관 상태와 Wear Log는 유지됩니다.'
                 : '저장할 때 새 Outfit과 모든 Item 관계를 한 번에 생성합니다. Wear Log는 자동으로 만들지 않습니다.'}
             </p>
           </section>
+          {isEditing && (
+            <div className="outfit-creator__fixed-save">
+              <button
+                type="button"
+                className={`button button--wide ${
+                  matches.length > 0 ? 'button--secondary' : 'button--primary'
+                }`}
+                disabled={selectedItems.length === 0 || saving}
+                onClick={() => void save(matches.length > 0)}
+              >
+                {saving
+                  ? '변경 저장 중…'
+                  : matches.length > 0
+                    ? '같은 조합으로 수정'
+                    : '변경 저장'}
+              </button>
+            </div>
+          )}
         </>
       )}
     </AppShell>

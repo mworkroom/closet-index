@@ -2749,14 +2749,6 @@ a.item-detail-lineage__item:focus-visible {
   font-size: 0.7rem;
 }
 
-.outfit-creator__preview {
-  width: min(100%, 390px);
-  aspect-ratio: 3 / 4;
-  margin-inline: auto;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-}
-
 .outfit-creator__filters {
   margin-top: 30px;
 }
@@ -2878,6 +2870,26 @@ a.item-detail-lineage__item:focus-visible {
 
 .outfit-creator__review .section-heading {
   margin-bottom: 0;
+}
+
+.outfit-creator__review--with-fixed-save {
+  margin-bottom: calc(76px + env(safe-area-inset-bottom));
+}
+
+.outfit-creator__fixed-save {
+  position: fixed;
+  z-index: 100;
+  bottom: 0;
+  left: 50%;
+  width: min(100%, 760px);
+  transform: translateX(-50%);
+  border-top: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.96);
+  padding:
+    10px max(20px, env(safe-area-inset-right))
+    calc(10px + env(safe-area-inset-bottom))
+    max(20px, env(safe-area-inset-left));
+  backdrop-filter: blur(16px);
 }
 
 .outfit-creator__review-counts {

@@ -258,7 +258,7 @@ describe('Outfit creator', () => {
     renderCreator(repository, '/outfits/outfit-favorite/edit')
 
     expect(await screen.findByRole('heading', { name: 'Edit Outfit' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '전체' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'Top' })).toHaveAttribute(
       'aria-pressed',
       'true',
     )
@@ -293,7 +293,7 @@ describe('Outfit creator', () => {
     expect(savedOutfit?.rating).toBe('error')
   })
 
-  it('배치 조정을 Item 추가 목록보다 먼저 표시한다', async () => {
+  it('실시간 미리보기 없이 배치 조정을 Item 추가 목록보다 먼저 표시한다', async () => {
     const repository = new DemoRepository()
 
     renderCreator(repository, '/outfits/outfit-favorite/edit')
@@ -303,8 +303,17 @@ describe('Outfit creator', () => {
     })
     const itemAddHeading = screen.getByRole('heading', { name: 'Item 추가' })
     expect(
+      screen.queryByRole('heading', { name: '실시간 미리보기' }),
+    ).not.toBeInTheDocument()
+    expect(
       placementHeading.compareDocumentPosition(itemAddHeading) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
+    expect(screen.getByRole('button', { name: '변경 저장' })).toHaveClass(
+      'button--primary',
+    )
+    expect(
+      screen.getByRole('button', { name: '변경 저장' }).parentElement,
+    ).toHaveClass('outfit-creator__fixed-save')
   })
 })
