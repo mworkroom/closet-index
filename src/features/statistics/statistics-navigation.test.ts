@@ -10,6 +10,7 @@ describe('statistics item-list navigation', () => {
       period: { kind: 'year', year: 2025 },
       seasons: ['Winter', 'Spring'],
       categories: ['top', 'made'],
+      colors: ['Black', 'Ivory'],
       excludeRetired: true,
     })
     const parsed = readStatisticsItemListSearchParams(
@@ -22,6 +23,7 @@ describe('statistics item-list navigation', () => {
         period: { kind: 'year', year: 2025 },
         seasons: ['Winter', 'Spring'],
         categories: ['top', 'made'],
+        colors: ['Black', 'Ivory'],
         excludeRetired: true,
       },
     })
@@ -30,7 +32,7 @@ describe('statistics item-list navigation', () => {
   it('drops invalid values and falls back to the safe lifetime list', () => {
     const parsed = readStatisticsItemListSearchParams(
       new URLSearchParams(
-        'result=unknown&period=bad&season=Winter&season=Unknown&category=top&category=nope',
+        'result=unknown&period=bad&season=Winter&season=Unknown&category=top&category=nope&color=Black&color=Navy',
       ),
     )
 
@@ -40,6 +42,7 @@ describe('statistics item-list navigation', () => {
         period: { kind: 'lifetime' },
         seasons: ['Winter'],
         categories: ['top'],
+        colors: ['Black'],
         excludeRetired: false,
       },
     })

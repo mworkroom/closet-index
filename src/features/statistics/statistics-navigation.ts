@@ -1,5 +1,6 @@
 import {
   DEFAULT_STATISTICS_FILTERS,
+  isColorCategory,
   isStatisticsCategoryId,
   type StatisticsFilters,
 } from './statistics-calculations'
@@ -23,6 +24,7 @@ export function createStatisticsItemListUrl(
   for (const category of filters.categories) {
     params.append('category', category)
   }
+  for (const color of filters.colors) params.append('color', color)
   if (filters.excludeRetired) params.set('excludeRetired', 'true')
   return `/statistics/items?${params.toString()}`
 }
@@ -55,6 +57,11 @@ export function readStatisticsItemListSearchParams(
       (value) =>
         typeof value === 'string' && isStatisticsCategoryId(value),
     )
+  const colors = params
+    .getAll('color')
+    .filter(
+      (value) => typeof value === 'string' && isColorCategory(value),
+    )
 
   return {
     kind: params.get('result') === 'unworn' ? 'unworn' : 'most-worn',
@@ -62,6 +69,7 @@ export function readStatisticsItemListSearchParams(
       period,
       seasons: [...new Set(seasons)],
       categories: [...new Set(categories)],
+      colors: [...new Set(colors)],
       excludeRetired: params.get('excludeRetired') === 'true',
     },
   }

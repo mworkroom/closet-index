@@ -5,7 +5,13 @@ import {
 } from '../../lib/item-categories'
 import { todayInKorea } from '../../lib/date'
 import { isSeason, type Season } from '../../lib/seasons'
-import type { AppData, Item, WearLog } from '../../lib/types'
+import {
+  COLOR_CATEGORIES,
+  type AppData,
+  type ColorCategory,
+  type Item,
+  type WearLog,
+} from '../../lib/types'
 
 export interface StatisticsSnapshot {
   items: AppData['items']
@@ -32,6 +38,7 @@ export interface StatisticsFilters {
   period: StatisticsPeriod
   seasons: Season[]
   categories: StatisticsCategoryId[]
+  colors: ColorCategory[]
   excludeRetired: boolean
 }
 
@@ -70,11 +77,13 @@ const wearableGroupIds = new Set<ItemCategoryGroupId>([
 const categoryOptionIds = new Set(
   STATISTICS_CATEGORY_OPTIONS.map((option) => option.id),
 )
+const colorCategoryIds = new Set<ColorCategory>(COLOR_CATEGORIES)
 
 export const DEFAULT_STATISTICS_FILTERS: StatisticsFilters = {
   period: { kind: 'lifetime' },
   seasons: [],
   categories: [],
+  colors: [],
   excludeRetired: false,
 }
 
@@ -82,6 +91,10 @@ export function isStatisticsCategoryId(
   value: string,
 ): value is StatisticsCategoryId {
   return categoryOptionIds.has(value as StatisticsCategoryId)
+}
+
+export function isColorCategory(value: string): value is ColorCategory {
+  return colorCategoryIds.has(value as ColorCategory)
 }
 
 export function selectStatisticsSnapshot(data: AppData): StatisticsSnapshot {
@@ -146,6 +159,17 @@ function itemMatchesSeasons(
     item.seasons.some(
       (season) => isSeason(season) && seasons.includes(season),
     )
+  )
+}
+
+function itemMatchesColors(
+  item: Pick<Item, 'semanticColor'>,
+  colors: readonly ColorCategory[],
+) {
+  return (
+    colors.length === 0 ||
+    (item.semanticColor != null &&
+      colors.includes(item.semanticColor as ColorCategory))
   )
 }
 
@@ -241,6 +265,7 @@ export function calculateStatistics(
     (item) =>
       itemMatchesCategories(item, filters.categories) &&
       itemMatchesSeasons(item, filters.seasons) &&
+      itemMatchesColors(item, filters.colors) &&
       (!filters.excludeRetired || !item.retired),
   )
   const selectedLogsByItem = new Map<string, WearLog[]>()

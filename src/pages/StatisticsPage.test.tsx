@@ -18,6 +18,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { DataProvider } from '../context/DataContext'
 import { demoData } from '../data/demo-data'
 import { DemoRepository } from '../data/demo-repository'
+import { COLOR_CATEGORIES } from '../lib/types'
 import { StatisticsPage } from './StatisticsPage'
 import { StatisticsItemListPage } from './StatisticsItemListPage'
 
@@ -213,7 +214,9 @@ describe('StatisticsPage Phase 4 item usage', () => {
 
     expect(
       screen.getByRole('region', { name: '적용된 통계 조건' }),
-    ).toHaveTextContent('Lifetime · 모든 계절 · 모든 카테고리 · Retired 제외')
+    ).toHaveTextContent(
+      'Lifetime · 모든 계절 · 모든 카테고리 · 모든 컬러 · Retired 제외',
+    )
     expect(
       screen.queryByRole('link', {
         name: '브라운 로퍼 Item 상세 보기',
@@ -221,15 +224,53 @@ describe('StatisticsPage Phase 4 item usage', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('applies season and category filters independently to the statistics view', async () => {
+  it('shows labeled dropdowns in the requested order and keeps Retired as a checkbox', async () => {
+    renderPage()
+    await screen.findByRole('heading', {
+      name: '현재 보유 옷의 전체 기간 활용률',
+    })
+
+    const filterPanel = screen.getByRole('region', { name: '통계 필터' })
+    expect(
+      within(filterPanel)
+        .getAllByRole('combobox')
+        .map(
+          (select) =>
+            select.parentElement?.querySelector(':scope > span')?.textContent,
+        ),
+    ).toEqual(['기간', '계절', '카테고리', '컬러'])
+    expect(
+      within(screen.getByRole('combobox', { name: '컬러' }))
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['모든 컬러', ...COLOR_CATEGORIES])
+    expect(
+      within(filterPanel).getAllByRole('checkbox'),
+    ).toHaveLength(1)
+    expect(
+      within(filterPanel).getByRole('checkbox', { name: 'Retired 제외' }),
+    ).toBeInTheDocument()
+  })
+
+  it('applies season, category, and color dropdown filters to the statistics view', async () => {
     const user = userEvent.setup()
     renderPage()
     await screen.findByRole('heading', {
       name: '현재 보유 옷의 전체 기간 활용률',
     })
 
-    await user.click(screen.getByRole('checkbox', { name: '여름' }))
-    await user.click(screen.getByRole('checkbox', { name: 'Top' }))
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: '계절' }),
+      'Summer',
+    )
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: '카테고리' }),
+      'top',
+    )
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: '컬러' }),
+      'Blue',
+    )
 
     const utilization = screen.getByRole('region', {
       name: '현재 보유 옷의 전체 기간 활용률',
@@ -246,7 +287,10 @@ describe('StatisticsPage Phase 4 item usage', () => {
       name: '현재 보유 옷의 전체 기간 활용률',
     })
 
-    await user.selectOptions(screen.getByRole('combobox', { name: '통계 기간' }), '2025')
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: '기간' }),
+      '2025',
+    )
 
     const utilization = screen.getByRole('region', {
       name: '현재 보유 옷의 2025년 활용률',
@@ -265,13 +309,17 @@ describe('StatisticsPage Phase 4 item usage', () => {
         period: { kind: 'year', year: 2025 },
         seasons: ['Winter'],
         categories: ['top'],
+        colors: ['Ivory'],
       }),
     )
     renderPage()
 
-    expect(await screen.findByRole('checkbox', { name: '겨울' })).toBeChecked()
-    expect(screen.getByRole('checkbox', { name: 'Top' })).toBeChecked()
-    expect(screen.getByRole('combobox', { name: '통계 기간' })).toHaveValue(
+    expect(await screen.findByRole('combobox', { name: '계절' })).toHaveValue(
+      'Winter',
+    )
+    expect(screen.getByRole('combobox', { name: '카테고리' })).toHaveValue('top')
+    expect(screen.getByRole('combobox', { name: '컬러' })).toHaveValue('Ivory')
+    expect(screen.getByRole('combobox', { name: '기간' })).toHaveValue(
       '2025',
     )
   })

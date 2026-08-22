@@ -103,6 +103,7 @@ describe('Phase 4 statistics calculations', () => {
         period: { kind: 'year', year: 2025 },
         seasons: [],
         categories: [],
+        colors: [],
         excludeRetired: false,
       },
       '2026-08-03',
@@ -141,6 +142,7 @@ describe('Phase 4 statistics calculations', () => {
         period: { kind: 'year', year: 2025 },
         seasons: ['Spring', 'Fall'],
         categories: ['bag', 'made'],
+        colors: [],
         excludeRetired: false,
       },
       '2026-08-03',
@@ -199,6 +201,7 @@ describe('Phase 4 statistics calculations', () => {
         period: { kind: 'lifetime' },
         seasons: [],
         categories: [],
+        colors: [],
         excludeRetired: true,
       },
       '2026-08-03',
@@ -208,6 +211,33 @@ describe('Phase 4 statistics calculations', () => {
       'active-top',
     ])
     expect(result.itemRows.map((row) => row.item.id)).toEqual(['active-top'])
+  })
+
+  it('filters item statistics by the selected color category', () => {
+    const data = snapshot(
+      [
+        item('blue-top', { semanticColor: 'Blue' }),
+        item('black-top', { semanticColor: 'Black' }),
+        item('unassigned-top', { semanticColor: null }),
+      ],
+      [outfit('outfit', ['blue-top', 'black-top', 'unassigned-top'])],
+      [log('wear-log', 'outfit', '2026-05-05')],
+    )
+
+    const result = calculateStatistics(
+      data,
+      {
+        period: { kind: 'lifetime' },
+        seasons: [],
+        categories: [],
+        colors: ['Blue'],
+        excludeRetired: false,
+      },
+      '2026-08-03',
+    )
+
+    expect(result.itemRows.map((row) => row.item.id)).toEqual(['blue-top'])
+    expect(result.summary.targetItemCount).toBe(1)
   })
 
   it('counts every Wear Log once per item and groups lifetime wear into all 12 calendar months', () => {

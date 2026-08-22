@@ -6,6 +6,7 @@ import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import {
   DEFAULT_STATISTICS_FILTERS,
   getStatisticsYears,
+  isColorCategory,
   isStatisticsCategoryId,
   STATISTICS_CATEGORY_OPTIONS,
   type StatisticsCategoryId,
@@ -18,6 +19,7 @@ import {
   type StatisticsItemListKind,
 } from '../features/statistics/statistics-navigation'
 import { formatMonthDayYear } from '../lib/date'
+import { COLOR_CATEGORIES, type ColorCategory } from '../lib/types'
 import {
   isSeason,
   SEASONS,
@@ -52,6 +54,12 @@ function readStoredFilters(): StatisticsFilters {
         ? parsed.categories.filter(
             (value): value is StatisticsCategoryId =>
               typeof value === 'string' && isStatisticsCategoryId(value),
+          )
+        : [],
+      colors: Array.isArray(parsed.colors)
+        ? parsed.colors.filter(
+            (value): value is ColorCategory =>
+              typeof value === 'string' && isColorCategory(value),
           )
         : [],
     }
@@ -173,27 +181,6 @@ export function StatisticsPage() {
     [],
   )
 
-  const toggleSeason = (season: Season, checked: boolean) => {
-    setFilters((current) => ({
-      ...current,
-      seasons: checked
-        ? [...new Set([...current.seasons, season])]
-        : current.seasons.filter((value) => value !== season),
-    }))
-  }
-
-  const toggleCategory = (
-    category: StatisticsCategoryId,
-    checked: boolean,
-  ) => {
-    setFilters((current) => ({
-      ...current,
-      categories: checked
-        ? [...new Set([...current.categories, category])]
-        : current.categories.filter((value) => value !== category),
-    }))
-  }
-
   const periodLabel = statistics?.period.isLifetime
     ? '현재 보유 옷의 전체 기간 활용률'
     : `현재 보유 옷의 ${statistics?.period.year}년 활용률`
@@ -208,81 +195,113 @@ export function StatisticsPage() {
   return (
     <AppShell title="Statistics" eyebrow="ITEM USAGE" back>
       <section className="filter-panel" aria-label="통계 필터">
-        <div className="filter-row filter-row--single">
-          <select
-            aria-label="통계 기간"
-            value={
-              filters.period.kind === 'lifetime'
-                ? 'lifetime'
-                : String(filters.period.year)
-            }
+        <div className="field-grid field-grid--two">
+          <label className="field">
+            <span>기간</span>
+            <select
+              value={
+                filters.period.kind === 'lifetime'
+                  ? 'lifetime'
+                  : String(filters.period.year)
+              }
+              onChange={(event) =>
+                setFilters((current) => ({
+                  ...current,
+                  period:
+                    event.target.value === 'lifetime'
+                      ? { kind: 'lifetime' }
+                      : { kind: 'year', year: Number(event.target.value) },
+                }))
+              }
+            >
+              <option value="lifetime">Lifetime</option>
+              {years.map((year) => (
+                <option value={year} key={year}>
+                  {year}년
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            <span>계절</span>
+            <select
+              value={filters.seasons[0] ?? ''}
+              onChange={(event) =>
+                setFilters((current) => ({
+                  ...current,
+                  seasons: isSeason(event.target.value)
+                    ? [event.target.value]
+                    : [],
+                }))
+              }
+            >
+              <option value="">모든 계절</option>
+              {SEASONS.map((season) => (
+                <option value={season} key={season}>
+                  {seasonLabels[season]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            <span>카테고리</span>
+            <select
+              value={filters.categories[0] ?? ''}
+              onChange={(event) =>
+                setFilters((current) => ({
+                  ...current,
+                  categories: isStatisticsCategoryId(event.target.value)
+                    ? [event.target.value]
+                    : [],
+                }))
+              }
+            >
+              <option value="">모든 카테고리</option>
+              {STATISTICS_CATEGORY_OPTIONS.map((option) => (
+                <option value={option.id} key={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            <span>컬러</span>
+            <select
+              value={filters.colors[0] ?? ''}
+              onChange={(event) =>
+                setFilters((current) => ({
+                  ...current,
+                  colors: isColorCategory(event.target.value)
+                    ? [event.target.value]
+                    : [],
+                }))
+              }
+            >
+              <option value="">모든 컬러</option>
+              {COLOR_CATEGORIES.map((color) => (
+                <option value={color} key={color}>
+                  {color}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={filters.excludeRetired}
             onChange={(event) =>
               setFilters((current) => ({
                 ...current,
-                period:
-                  event.target.value === 'lifetime'
-                    ? { kind: 'lifetime' }
-                    : { kind: 'year', year: Number(event.target.value) },
+                excludeRetired: event.target.checked,
               }))
             }
-          >
-            <option value="lifetime">Lifetime</option>
-            {years.map((year) => (
-              <option value={year} key={year}>
-                {year}년
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <strong>계절</strong>
-          <div className="check-stack">
-            {SEASONS.map((season) => (
-              <label className="check-row" key={season}>
-                <input
-                  type="checkbox"
-                  checked={filters.seasons.includes(season)}
-                  onChange={(event) =>
-                    toggleSeason(season, event.target.checked)
-                  }
-                />
-                {seasonLabels[season]}
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <strong>카테고리</strong>
-          <div className="check-stack">
-            {STATISTICS_CATEGORY_OPTIONS.map((option) => (
-              <label className="check-row" key={option.id}>
-                <input
-                  type="checkbox"
-                  checked={filters.categories.includes(option.id)}
-                  onChange={(event) =>
-                    toggleCategory(option.id, event.target.checked)
-                  }
-                />
-                {option.label}
-              </label>
-            ))}
-            <label className="check-row">
-              <input
-                type="checkbox"
-                checked={filters.excludeRetired}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    excludeRetired: event.target.checked,
-                  }))
-                }
-              />
-              Retired 제외
-            </label>
-          </div>
-        </div>
+          />
+          Retired 제외
+        </label>
       </section>
 
       {loading ? <LoadingState label="통계를 계산하는 중" /> : null}
@@ -345,7 +364,7 @@ export function StatisticsPage() {
             {statistics.categoryRows.length === 0 ? (
               <EmptyState
                 title="조건에 맞는 Active Item이 없어요"
-                description="기간·계절·카테고리 선택을 바꿔 확인해 주세요."
+                description="기간·계절·카테고리·컬러 선택을 바꿔 확인해 주세요."
               />
             ) : (
               <dl className="category-stat-list">

@@ -16,6 +16,7 @@ import { useStatisticsData } from '../features/statistics/useStatisticsData'
 import { formatMonthDayYear } from '../lib/date'
 import { COLLECTION_BATCH_SIZE } from '../lib/collection-pagination'
 import { seasonLabels } from '../lib/seasons'
+import { COLOR_CATEGORIES } from '../lib/types'
 
 const STATISTICS_LIST_COUNT_STORAGE_PREFIX =
   'closet-index:statistics-list-visible-count:v1:'
@@ -52,8 +53,16 @@ function filterSummary(
         )
           .map((option) => option.label)
           .join(' · ')
+  const colors =
+    filters.colors.length === 0
+      ? '모든 컬러'
+      : COLOR_CATEGORIES.filter((color) => filters.colors.includes(color)).join(
+          ' · ',
+        )
   const retired = filters.excludeRetired ? 'Retired 제외' : null
-  return [period, seasons, categories, retired].filter(Boolean).join(' · ')
+  return [period, seasons, categories, colors, retired]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 function StatisticsFullList({
@@ -185,7 +194,7 @@ export function StatisticsItemListPage() {
           {rows.length === 0 ? (
             <EmptyState
               title="조건에 맞는 Item이 없어요"
-              description="뒤로 돌아가 기간·계절·카테고리를 바꿔 주세요."
+              description="뒤로 돌아가 기간·계절·카테고리·컬러를 바꿔 주세요."
             />
           ) : (
             <StatisticsFullList
