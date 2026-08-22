@@ -12,6 +12,7 @@ import {
   calculateScopedItemDerivedEvidence,
   simulateSparseRecentPurchaseEligibility,
 } from './sparse-outfit-item-evidence'
+import { getItemCategoryGroupId } from './item-categories'
 import type {
   AppData,
   Item,
@@ -94,9 +95,40 @@ function data(
   outfits: Outfit[],
   wearLogs: WearLog[],
 ): AppData {
+  const itemById = new Map(items.map((entry) => [entry.id, entry]))
+  const completionItems: Item[] = []
+  const completedOutfits = outfits.map((entry) => {
+    const groups = new Set(
+      entry.itemIds
+        .map((itemId) => itemById.get(itemId))
+        .filter((candidate): candidate is Item => Boolean(candidate))
+        .map((candidate) => getItemCategoryGroupId(candidate.category)),
+    )
+    const completionIds: string[] = []
+    const addCompletion = (suffix: string, category: string) => {
+      const completion = {
+        ...item(`fixture-${entry.id}-${suffix}`, category, '2020-01-01'),
+        acquiredOn: null,
+      }
+      completionItems.push(completion)
+      completionIds.push(completion.id)
+    }
+
+    if (!groups.has('dress')) {
+      if (!groups.has('top')) addCompletion('top', 'Top-Shirts')
+      if (!groups.has('bottom')) addCompletion('bottom', 'Bottom-Pants')
+    }
+    if (!groups.has('shoes')) addCompletion('shoes', 'Shoes')
+
+    return {
+      ...entry,
+      itemIds: [...entry.itemIds, ...completionIds],
+    }
+  })
+
   return {
-    items,
-    outfits,
+    items: [...items, ...completionItems],
+    outfits: completedOutfits,
     wearLogs,
     places: [
       { id: 'nearby', name: 'nearby', kind: 'specific_venue' },
@@ -177,12 +209,14 @@ describe('sparse Outfit Item-derived evidence', () => {
 
   it('does not borrow jacket Car and cinema evidence as short-walk exact support', () => {
     const jacket = item('jacket', 'Outer-Jacket')
+    const top = item('top', 'Top-T-shirts')
     const bottom = item('bottom', 'Bottom-Skirts')
     const source = data(
-      [jacket, bottom],
+      [jacket, top, bottom],
       [
-        outfit('target', ['jacket', 'bottom']),
+        outfit('target', ['jacket', 'top', 'bottom']),
         outfit('jacket-history', ['jacket']),
+        outfit('top-history', ['top']),
         outfit('bottom-history', ['bottom']),
       ],
       [
@@ -191,6 +225,7 @@ describe('sparse Outfit Item-derived evidence', () => {
           placeId: 'cinema',
           transportModeId: 'car',
         }),
+        log('top-short', 'top-history', 33),
         log('bottom-short', 'bottom-history', 33),
       ],
     )

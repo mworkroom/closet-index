@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { DataProvider } from '../context/DataContext'
 import { DemoRepository } from '../data/demo-repository'
+import { COLOR_CATEGORIES } from '../lib/types'
 import { ItemDetailPage } from './ItemDetailPage'
 import { ItemEditorPage } from './ItemEditorPage'
 
@@ -32,6 +33,22 @@ describe('Item editor', () => {
 
   afterEach(() => {
     cleanup()
+  })
+
+  it('공통 색상 카테고리 목록을 표시하고 fallback 입력 UI는 표시하지 않는다', async () => {
+    const repository = new DemoRepository()
+
+    renderEditor(repository)
+
+    const colorSelect = await screen.findByRole('combobox', {
+      name: '색상 카테고리',
+    })
+    expect(
+      [...colorSelect.querySelectorAll('option')].map((option) => option.value),
+    ).toEqual(['', ...COLOR_CATEGORIES])
+    expect(screen.queryByText('fallback 색상 *')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('fallback HEX')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('fallback 색상 선택')).not.toBeInTheDocument()
   })
 
   it('같은 이름과 카테고리는 먼저 경고하고 명시적 확인 뒤 한 번만 생성한다', async () => {
@@ -107,6 +124,7 @@ describe('Item editor', () => {
       expect.objectContaining({
         name: '수정한 카디건',
         category: 'Top-Knitwear',
+        displayHex: '#6F8FAF',
       }),
     )
   })

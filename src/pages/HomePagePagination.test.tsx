@@ -78,6 +78,10 @@ describe('HomePage recommendation pagination', () => {
     const user = userEvent.setup()
     const data = structuredClone(demoData)
     const sourceItem = data.items.find((item) => item.category.startsWith('Top-'))!
+    const sourceBottom = data.items.find((item) =>
+      item.category.startsWith('Bottom-'),
+    )!
+    const sourceShoes = data.items.find((item) => item.category === 'Shoes')!
     const sourceOutfit = data.outfits.find((outfit) =>
       data.wearLogs.some((log) => log.outfitId === outfit.id),
     )!
@@ -100,20 +104,53 @@ describe('HomePage recommendation pagination', () => {
       seasons: ['Winter'],
       acquiredOn: null,
     }
+    const summerBottom = {
+      ...structuredClone(sourceBottom),
+      id: 'season-bottom-summer',
+      name: 'Summer season bottom',
+      seasons: ['Summer'],
+      acquiredOn: null,
+    }
+    const winterBottom = {
+      ...structuredClone(sourceBottom),
+      id: 'season-bottom-winter',
+      name: 'Winter season bottom',
+      seasons: ['Winter'],
+      acquiredOn: null,
+    }
+    const summerShoes = {
+      ...structuredClone(sourceShoes),
+      id: 'season-shoes-summer',
+      name: 'Summer season shoes',
+      acquiredOn: null,
+    }
+    const winterShoes = {
+      ...structuredClone(sourceShoes),
+      id: 'season-shoes-winter',
+      name: 'Winter season shoes',
+      acquiredOn: null,
+    }
 
-    data.items = [summerItem, winterItem]
+    data.items = [
+      summerItem,
+      winterItem,
+      summerBottom,
+      winterBottom,
+      summerShoes,
+      winterShoes,
+    ]
     data.outfits = [
       {
         ...structuredClone(sourceOutfit),
         id: 'season-outfit-summer',
         displayName: 'Summer recommendation',
-        itemIds: [summerItem.id],
+        itemIds: [summerItem.id, summerBottom.id, summerShoes.id],
       },
       {
         ...structuredClone(sourceOutfit),
         id: 'season-outfit-winter',
         displayName: 'Winter recommendation',
-        itemIds: [winterItem.id],
+        itemIds: [winterItem.id, winterBottom.id, winterShoes.id],
       },
     ]
     data.wearLogs = [

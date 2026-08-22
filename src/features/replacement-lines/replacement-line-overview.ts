@@ -1,4 +1,5 @@
 import type {
+  ColorCategory,
   Item,
   ReplacementLineSnapshot,
 } from '../../lib/types'
@@ -74,26 +75,27 @@ function normalizeColor(value: string) {
 
 const LINE_COLOR_ALIASES = [
   { label: 'Black', aliases: ['Black'] },
-  { label: 'Blue', aliases: ['Blue'] },
-  { label: 'Brown', aliases: ['Brown'] },
-  { label: 'Burgundy', aliases: ['Burgundy'] },
   { label: 'Charcoal', aliases: ['Charcoal'] },
-  { label: 'Denim', aliases: ['Denim', 'Demin'] },
-  { label: 'Green', aliases: ['Green'] },
   { label: 'Grey', aliases: ['Grey', 'Gray'] },
-  { label: 'Ivory', aliases: ['Ivory'] },
-  { label: 'Navy', aliases: ['Navy'] },
   { label: 'Silver', aliases: ['Silver'] },
-  { label: 'White', aliases: ['White'] },
+  { label: 'Ivory', aliases: ['White', 'Ivory', 'Cream'] },
+  { label: 'Blue', aliases: ['Blue', 'Navy'] },
+  { label: 'Light blue', aliases: ['Light blue', 'Denim', 'Demin'] },
+  { label: 'Brown', aliases: ['Brown'] },
   { label: 'Beige', aliases: ['Beige'] },
-  { label: 'Cream', aliases: ['Cream'] },
-  { label: 'Khaki', aliases: ['Khaki'] },
-  { label: 'Orange', aliases: ['Orange'] },
+  { label: 'Burgundy', aliases: ['Burgundy'] },
+  { label: 'Red', aliases: ['Red'] },
   { label: 'Pink', aliases: ['Pink'] },
   { label: 'Purple', aliases: ['Purple'] },
-  { label: 'Red', aliases: ['Red'] },
+  { label: 'Lavender', aliases: ['Lavender'] },
+  { label: 'Green', aliases: ['Green'] },
+  { label: 'Khaki', aliases: ['Khaki'] },
   { label: 'Yellow', aliases: ['Yellow'] },
-] as const
+  { label: 'Orange', aliases: ['Orange'] },
+] as const satisfies readonly {
+  label: ColorCategory
+  aliases: readonly string[]
+}[]
 
 function lineColorFromName(lineName: string) {
   const normalizedName = normalizeColor(lineName)

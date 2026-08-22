@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { demoData } from '../data/demo-data'
 import type { AppData, RecommendationInput, WearLog } from './types'
-import { partitionRecommendations, recommendOutfits } from './recommendation'
+import {
+  isCompleteRecommendationOutfit,
+  partitionRecommendations,
+  recommendOutfits,
+} from './recommendation'
 
 const baseInput: RecommendationInput = {
   tempOut: 20,
@@ -24,6 +28,71 @@ function wearLog(id: string, outfitId: string, wornOn: string): WearLog {
 }
 
 describe('recommendOutfits', () => {
+  it('Dress와 Shoes 또는 Top과 Bottom과 Shoes가 있는 완성 착장만 인정한다', () => {
+    const item = (category: string) => ({ category })
+
+    expect(
+      isCompleteRecommendationOutfit([item('Dress'), item('Shoes')]),
+    ).toBe(true)
+    expect(
+      isCompleteRecommendationOutfit([
+        item('Top-Knitwear'),
+        item('Bottom-Pants'),
+        item('Shoes'),
+      ]),
+    ).toBe(true)
+    expect(
+      isCompleteRecommendationOutfit([item('Bags'), item('Acc-Neck-made')]),
+    ).toBe(false)
+    expect(
+      isCompleteRecommendationOutfit([item('Top-Knitwear'), item('Shoes')]),
+    ).toBe(false)
+    expect(
+      isCompleteRecommendationOutfit([item('Bottom-Pants'), item('Shoes')]),
+    ).toBe(false)
+    expect(
+      isCompleteRecommendationOutfit([
+        item('Top-Knitwear'),
+        item('Bottom-Pants'),
+      ]),
+    ).toBe(false)
+  })
+
+  it('Active Item만 있어도 완성 구성이 아니면 추천 후보에서 제외한다', () => {
+    const data: AppData = {
+      ...structuredClone(demoData),
+      outfits: [
+        {
+          id: 'complete',
+          displayName: null,
+          rating: 'ok',
+          itemIds: ['item-knit', 'item-pants', 'item-shoes'],
+        },
+        {
+          id: 'missing-bottom',
+          displayName: null,
+          rating: 'ok',
+          itemIds: ['item-knit', 'item-shoes'],
+        },
+        {
+          id: 'accessory-kit',
+          displayName: null,
+          rating: 'ok',
+          itemIds: ['item-belt'],
+        },
+      ],
+      wearLogs: [
+        wearLog('complete-log', 'complete', '2026-08-01'),
+        wearLog('missing-bottom-log', 'missing-bottom', '2026-08-01'),
+        wearLog('accessory-kit-log', 'accessory-kit', '2026-08-01'),
+      ],
+    }
+
+    expect(recommendOutfits(data, baseInput).map((entry) => entry.outfit.id)).toEqual([
+      'complete',
+    ])
+  })
+
   it('평균 온도 적합성을 Favorite보다 먼저 평가한다', () => {
     const results = recommendOutfits(demoData, {
       ...baseInput,
@@ -82,7 +151,7 @@ describe('recommendOutfits', () => {
           id: 'untried',
           displayName: null,
           rating: null,
-          itemIds: ['item-pants'],
+          itemIds: ['item-knit', 'item-pants', 'item-shoes'],
         },
       ],
       wearLogs: [],
@@ -179,25 +248,46 @@ describe('recommendOutfits', () => {
         category: 'Bottom-Skirts',
         acquiredOn: null,
       },
+      {
+        ...template,
+        id: 'bottom-history-shoes',
+        name: '하의 기록 신발',
+        category: 'Shoes',
+        acquiredOn: null,
+      },
+      {
+        ...template,
+        id: 'top-history-shoes',
+        name: '상의 기록 신발',
+        category: 'Shoes',
+        acquiredOn: null,
+      },
+      {
+        ...template,
+        id: 'target-shoes',
+        name: '새 조합 신발',
+        category: 'Shoes',
+        acquiredOn: null,
+      },
     ]
     data.outfits = [
       {
         id: 'bottom-history',
         displayName: null,
         rating: 'ok',
-        itemIds: ['other-top', 'target-bottom'],
+        itemIds: ['other-top', 'target-bottom', 'bottom-history-shoes'],
       },
       {
         id: 'top-history',
         displayName: null,
         rating: 'ok',
-        itemIds: ['target-top', 'other-bottom'],
+        itemIds: ['target-top', 'other-bottom', 'top-history-shoes'],
       },
       {
         id: 'new-combination',
         displayName: null,
         rating: null,
-        itemIds: ['target-top', 'target-bottom'],
+        itemIds: ['target-top', 'target-bottom', 'target-shoes'],
       },
     ]
     data.wearLogs = [
@@ -275,19 +365,61 @@ describe('recommendOutfits', () => {
         name: '새 상의',
         category: 'Top-Shirts',
       },
+      {
+        ...template,
+        id: 'observed-top',
+        name: '과거 상의',
+        category: 'Top-Shirts',
+      },
+      {
+        ...template,
+        id: 'observed-bottom',
+        name: '과거 하의',
+        category: 'Bottom-Pants',
+      },
+      {
+        ...template,
+        id: 'observed-shoes',
+        name: '과거 신발',
+        category: 'Shoes',
+      },
+      {
+        ...template,
+        id: 'target-bottom',
+        name: '새 하의',
+        category: 'Bottom-Pants',
+      },
+      {
+        ...template,
+        id: 'target-shoes',
+        name: '새 신발',
+        category: 'Shoes',
+      },
     ]
     data.outfits = [
       {
         id: 'observed',
         displayName: null,
         rating: 'ok',
-        itemIds: ['bag', 'accessory'],
+        itemIds: [
+          'bag',
+          'accessory',
+          'observed-top',
+          'observed-bottom',
+          'observed-shoes',
+        ],
       },
       {
         id: 'untried',
         displayName: null,
         rating: null,
-        itemIds: ['bag', 'accessory', 'new-top'],
+        itemIds: [
+          'bag',
+          'accessory',
+          'new-top',
+          'target-bottom',
+          'target-shoes',
+        ],
       },
     ]
     data.wearLogs = [wearLog('observed-1', 'observed', '2026-07-01')]
@@ -436,8 +568,18 @@ describe('recommendOutfits', () => {
     const data: AppData = {
       ...structuredClone(demoData),
       outfits: [
-        { id: 'many', displayName: null, rating: 'ok', itemIds: ['item-pants'] },
-        { id: 'few', displayName: null, rating: 'ok', itemIds: ['item-pants'] },
+        {
+          id: 'many',
+          displayName: null,
+          rating: 'ok',
+          itemIds: ['item-knit', 'item-pants', 'item-shoes'],
+        },
+        {
+          id: 'few',
+          displayName: null,
+          rating: 'ok',
+          itemIds: ['item-knit', 'item-pants', 'item-shoes'],
+        },
       ],
       wearLogs: [
         wearLog('many-1', 'many', '2025-01-01'),
@@ -456,8 +598,18 @@ describe('recommendOutfits', () => {
     const data: AppData = {
       ...structuredClone(demoData),
       outfits: [
-        { id: 'older', displayName: null, rating: 'ok', itemIds: ['item-pants'] },
-        { id: 'recent', displayName: null, rating: 'ok', itemIds: ['item-pants'] },
+        {
+          id: 'older',
+          displayName: null,
+          rating: 'ok',
+          itemIds: ['item-knit', 'item-pants', 'item-shoes'],
+        },
+        {
+          id: 'recent',
+          displayName: null,
+          rating: 'ok',
+          itemIds: ['item-knit', 'item-pants', 'item-shoes'],
+        },
       ],
       wearLogs: [
         wearLog('older-1', 'older', '2025-01-01'),
@@ -475,8 +627,18 @@ describe('recommendOutfits', () => {
     const data: AppData = {
       ...structuredClone(demoData),
       outfits: [
-        { id: 'b', displayName: null, rating: 'ok', itemIds: ['item-pants'] },
-        { id: 'a', displayName: null, rating: 'ok', itemIds: ['item-pants'] },
+        {
+          id: 'b',
+          displayName: null,
+          rating: 'ok',
+          itemIds: ['item-knit', 'item-pants', 'item-shoes'],
+        },
+        {
+          id: 'a',
+          displayName: null,
+          rating: 'ok',
+          itemIds: ['item-knit', 'item-pants', 'item-shoes'],
+        },
       ],
       wearLogs: [],
     }
@@ -520,7 +682,21 @@ describe('recommendOutfits', () => {
       category: 'Acc-Neck-made',
       acquiredOn: '2026-07-10',
     }
-    data.items = [template, ...categoryItems, madeNeck]
+    const top = {
+      ...template,
+      id: 'complete-top',
+      name: '완성 착장 상의',
+      category: 'Top-Shirts',
+      acquiredOn: null,
+    }
+    const shoes = {
+      ...template,
+      id: 'complete-shoes',
+      name: '완성 착장 신발',
+      category: 'Shoes',
+      acquiredOn: null,
+    }
+    data.items = [top, template, shoes, ...categoryItems, madeNeck]
     data.outfits = [
       {
         id: 'category-filter',
@@ -583,9 +759,7 @@ describe('recommendOutfits', () => {
     )
     expect(
       warmGroups.trialRecommendations.map((entry) => entry.outfit.id),
-    ).toContain(
-      'outfit-layered',
-    )
+    ).not.toContain('outfit-layered')
   })
 
   it('OK 온도 근거가 없는 시험 착장은 HOME 추천 그룹에서 제외한다', () => {
@@ -596,7 +770,7 @@ describe('recommendOutfits', () => {
           id: 'unknown-trial',
           displayName: null,
           rating: null,
-          itemIds: ['item-pants'],
+          itemIds: ['item-knit', 'item-pants', 'item-shoes'],
         },
       ],
       wearLogs: [],

@@ -25,6 +25,8 @@ const nearbyInput: RecommendationInput = {
   placeId: 'nearby',
   transportModeId: 'short-walk',
 }
+const fixtureBottomId = 'fixture-complete-bottom'
+const fixtureShoesId = 'fixture-complete-shoes'
 
 function item(
   id: string,
@@ -53,7 +55,7 @@ function outfit(id: string, itemIds = [`item-${id}`]): Outfit {
     displayName: id,
     rating: 'ok',
     archivedAt: null,
-    itemIds,
+    itemIds: [...new Set([...itemIds, fixtureBottomId, fixtureShoesId])],
   }
 }
 
@@ -108,6 +110,14 @@ function dataFor(
           ),
         ),
         ...extraItems,
+        {
+          ...item(fixtureBottomId, 'Bottom-Pants', '2020-01-01'),
+          acquiredOn: null,
+        },
+        {
+          ...item(fixtureShoesId, 'Shoes', '2020-01-01'),
+          acquiredOn: null,
+        },
       ].map((entry) => [entry.id, entry]),
     ).values(),
   ]

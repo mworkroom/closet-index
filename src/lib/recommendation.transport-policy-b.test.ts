@@ -117,9 +117,10 @@ describe('disabled HOME Transport thermal Policy B integration', () => {
 
   it('never moves a penalized candidate across recommendation levels', () => {
     const data = policyFixture()
+    const cautionBase = phase5BaselineOutfit('borrowed-caution', 'favorite')
     const caution = {
-      ...phase5BaselineOutfit('borrowed-caution', 'favorite'),
-      itemIds: ['item-caution-shoe'],
+      ...cautionBase,
+      itemIds: [...cautionBase.itemIds, 'item-caution-shoe'],
     }
     const cautionData: AppData = {
       ...data,

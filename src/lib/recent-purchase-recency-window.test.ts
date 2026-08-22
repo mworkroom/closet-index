@@ -32,6 +32,8 @@ const completeInput: RecommendationInput = {
   placeId: 'nearby',
   transportModeId: 'short',
 }
+const fixtureBottomId = 'fixture-complete-bottom'
+const fixtureShoesId = 'fixture-complete-shoes'
 
 function item(
   id: string,
@@ -60,7 +62,7 @@ function outfit(id: string, itemIds = [`item-${id}`]): Outfit {
     displayName: id,
     rating: 'ok',
     archivedAt: null,
-    itemIds,
+    itemIds: [...new Set([...itemIds, fixtureBottomId, fixtureShoesId])],
   }
 }
 
@@ -101,11 +103,24 @@ function dataFor(
   wearLogs: WearLog[],
   sourceItems?: Item[],
 ): AppData {
-  const items =
-    sourceItems ??
-    outfits.flatMap((entry, index) =>
+  const generatedItems = outfits.flatMap((entry, index) =>
       entry.itemIds.map((itemId) => item(itemId, `2026-07-${20 - index}`)),
     )
+  const items = [
+    ...new Map(
+      [
+        ...(sourceItems ?? generatedItems),
+        {
+          ...item(fixtureBottomId, '2020-01-01', 'Bottom-Pants'),
+          acquiredOn: null,
+        },
+        {
+          ...item(fixtureShoesId, '2020-01-01', 'Shoes'),
+          acquiredOn: null,
+        },
+      ].map((entry) => [entry.id, entry]),
+    ).values(),
+  ]
   return {
     items,
     outfits,
@@ -216,7 +231,7 @@ describe('recency-bounded Recent Purchase exploration audit', () => {
     const data = dataFor(
       [linen],
       [wear('linen-log', linen.id)],
-      [item('item-linen', '2025-07-04', 'Outer-Jacket')],
+      [item('item-linen', '2025-07-04', 'Top-Shirts')],
     )
     const simulation = run(data, 'W2').simulation
     expect(simulation.selections).toEqual([])

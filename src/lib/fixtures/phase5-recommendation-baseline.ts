@@ -14,6 +14,20 @@ const baseItem: Item = {
   acquiredOn: null,
 }
 
+const baseBottom: Item = {
+  ...baseItem,
+  id: 'item-core-bottom',
+  name: '기준 하의 Item',
+  category: 'Bottom-Pants',
+}
+
+const baseShoes: Item = {
+  ...baseItem,
+  id: 'item-core-shoes',
+  name: '기준 신발 Item',
+  category: 'Shoes',
+}
+
 export function phase5BaselineOutfit(
   id: string,
   rating: Outfit['rating'],
@@ -22,7 +36,7 @@ export function phase5BaselineOutfit(
     id,
     displayName: id,
     rating,
-    itemIds: [baseItem.id],
+    itemIds: [baseItem.id, baseBottom.id, baseShoes.id],
   }
 }
 
@@ -59,7 +73,7 @@ export function phase5BaselineWearLog(
 }
 
 export const phase5RecommendationBaselineFixture: AppData = {
-  items: [baseItem],
+  items: [baseItem, baseBottom, baseShoes],
   outfits: [
     phase5BaselineOutfit('outfit-unrated', null),
     phase5BaselineOutfit('outfit-ok-one', 'ok'),

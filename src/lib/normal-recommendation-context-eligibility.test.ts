@@ -18,6 +18,8 @@ const input: RecommendationInput = {
   placeId: 'nearby',
   transportModeId: 'short',
 }
+const fixtureBottomId = 'item-fixture-complete-bottom'
+const fixtureShoesId = 'item-fixture-complete-shoes'
 
 function item(id: string): Item {
   return {
@@ -42,7 +44,7 @@ function outfit(id: string): Outfit {
     displayName: id,
     rating: 'ok',
     archivedAt: null,
-    itemIds: [`item-${id}`],
+    itemIds: [`item-${id}`, fixtureBottomId, fixtureShoesId],
   }
 }
 
@@ -96,7 +98,19 @@ function fixture(): AppData {
     outfit('mixed'),
   ]
   return {
-    items: outfits.map((entry) => item(entry.id)),
+    items: [
+      ...outfits.map((entry) => item(entry.id)),
+      {
+        ...item('fixture-complete-bottom'),
+        category: 'Bottom-Pants',
+        acquiredOn: null,
+      },
+      {
+        ...item('fixture-complete-shoes'),
+        category: 'Shoes',
+        acquiredOn: null,
+      },
+    ],
     outfits,
     wearLogs: [
       wear('exact-log', 'exact'),

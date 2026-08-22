@@ -13,7 +13,7 @@ import type {
   ReplacementLineMergeInput,
   ReplacementLineRecord,
 } from '../../../lib/types'
-import { REPLACEMENT_LINE_COLOR_CATEGORIES } from '../../../lib/types'
+import { COLOR_CATEGORIES } from '../../../lib/types'
 
 interface LineReviewAlertProps {
   pendingEdgeCount: number
@@ -433,7 +433,7 @@ export function LineManagementPanel({
                   autoFocus
                 >
                   <option value="">자동 제안 사용</option>
-                  {REPLACEMENT_LINE_COLOR_CATEGORIES.map((category) => (
+                  {COLOR_CATEGORIES.map((category) => (
                     <option value={category} key={category}>
                       {category}
                     </option>

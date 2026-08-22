@@ -24,6 +24,8 @@ const input: RecommendationInput = {
   placeId: 'nearby',
   transportModeId: 'short',
 }
+const fixtureBottomId = 'item-fixture-complete-bottom'
+const fixtureShoesId = 'item-fixture-complete-shoes'
 
 function outfit(id: string, rating: OutfitRating = 'ok'): Outfit {
   return {
@@ -31,7 +33,7 @@ function outfit(id: string, rating: OutfitRating = 'ok'): Outfit {
     displayName: id,
     rating,
     archivedAt: null,
-    itemIds: [`item-${id}`],
+    itemIds: [`item-${id}`, fixtureBottomId, fixtureShoesId],
   }
 }
 
@@ -148,7 +150,19 @@ function dataFor(
   wearLogs: WearLog[],
 ): AppData {
   return {
-    items: recommendations.map((entry) => item(entry.outfit.id)),
+    items: [
+      ...recommendations.map((entry) => item(entry.outfit.id)),
+      {
+        ...item('fixture-complete-bottom', '2020-01-01'),
+        category: 'Bottom-Pants',
+        acquiredOn: null,
+      },
+      {
+        ...item('fixture-complete-shoes', '2020-01-01'),
+        category: 'Shoes',
+        acquiredOn: null,
+      },
+    ],
     outfits: recommendations.map((entry) => entry.outfit),
     wearLogs,
     places: [
@@ -328,7 +342,20 @@ describe('safety-first N2 normal recommendation HOME integration', () => {
         ...stateLog('normal', 'normal', 'cross'),
       ],
     )
-    data.items = [item('recent', '2025-08-08'), item('normal', '2024-01-01')]
+    data.items = [
+      item('recent', '2025-08-08'),
+      item('normal', '2024-01-01'),
+      {
+        ...item('fixture-complete-bottom', '2020-01-01'),
+        category: 'Bottom-Pants',
+        acquiredOn: null,
+      },
+      {
+        ...item('fixture-complete-shoes', '2020-01-01'),
+        category: 'Shoes',
+        acquiredOn: null,
+      },
+    ]
     const results = recommendOutfits(data, input)
     const baseline = partitionRecommendations(results)
     const w2 = applyRecentPurchaseW2Home({

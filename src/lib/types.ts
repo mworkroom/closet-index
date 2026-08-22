@@ -394,31 +394,43 @@ export interface ReplacementLineCreateInput {
   colorCategory: ReplacementLineColorCategory
 }
 
-export const REPLACEMENT_LINE_COLOR_CATEGORIES = [
+export const COLOR_CATEGORIES = [
   'Black',
-  'Blue',
-  'Brown',
-  'Burgundy',
   'Charcoal',
-  'Denim',
-  'Green',
   'Grey',
-  'Ivory',
-  'Navy',
   'Silver',
-  'White',
+  'Ivory',
+  'Blue',
+  'Light blue',
+  'Brown',
   'Beige',
-  'Cream',
-  'Khaki',
-  'Orange',
+  'Burgundy',
+  'Red',
   'Pink',
   'Purple',
-  'Red',
+  'Lavender',
+  'Green',
+  'Khaki',
   'Yellow',
+  'Orange',
 ] as const
 
+export type ColorCategory = (typeof COLOR_CATEGORIES)[number]
+
+// Keep the old export name while Line callers move to the shared category list.
+export const REPLACEMENT_LINE_COLOR_CATEGORIES = COLOR_CATEGORIES
+
+// These values may still exist in imported Line records, but are intentionally
+// excluded from the current creation/editing menu.
+export type LegacyReplacementLineColorCategory =
+  | 'Denim'
+  | 'Ivory'
+  | 'Navy'
+  | 'Cream'
+
 export type ReplacementLineColorCategory =
-  (typeof REPLACEMENT_LINE_COLOR_CATEGORIES)[number]
+  | ColorCategory
+  | LegacyReplacementLineColorCategory
 
 export interface ReplacementLineColorUpdateInput {
   lineId: string

@@ -9,6 +9,7 @@ import { ItemReplenishmentSection } from '../features/replenishment/components/I
 import { getPurchaseReplacementRule } from '../features/replenishment/purchase-replenishment'
 import { useItemPurchaseEvents } from '../features/replenishment/useItemPurchaseEvents'
 import { todayInKorea } from '../lib/date'
+import { COLOR_CATEGORIES } from '../lib/types'
 import type { ItemWriteInput } from '../lib/types'
 
 const seasonOptions = [
@@ -93,17 +94,6 @@ export function ItemEditorPage() {
 
   const categories = useMemo(
     () => [...new Set(data?.items.map((item) => item.category) ?? [])].sort(),
-    [data],
-  )
-  const semanticColors = useMemo(
-    () =>
-      [
-        ...new Set(
-          data?.items
-            .map((item) => item.semanticColor)
-            .filter((value): value is string => Boolean(value)) ?? [],
-        ),
-      ].sort(),
     [data],
   )
   const duplicates = useMemo(() => {
@@ -297,34 +287,12 @@ export function ItemEditorPage() {
                 }
               >
                 <option value="">미지정</option>
-                {semanticColors.map((color) => (
+                {COLOR_CATEGORIES.map((color) => (
                   <option value={color} key={color}>
                     {color}
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="field">
-              <span>fallback 색상 *</span>
-              <span className="item-editor-color-field">
-                <input
-                  type="color"
-                  value={form.displayHex}
-                  aria-label="fallback 색상 선택"
-                  onChange={(event) =>
-                    updateField('displayHex', event.target.value)
-                  }
-                />
-                <input
-                  value={form.displayHex}
-                  required
-                  pattern="#[0-9A-Fa-f]{6}"
-                  aria-label="fallback HEX"
-                  onChange={(event) =>
-                    updateField('displayHex', event.target.value)
-                  }
-                />
-              </span>
             </label>
             <label className="field">
               <span>구매일</span>

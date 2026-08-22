@@ -134,7 +134,7 @@ describe('Replacement Line overview', () => {
 
     expect(overview.colorGroups.map((group) => group.label)).toEqual([
       'Black',
-      'Ivory',
+      'White',
     ])
     expect(overview.colorGroups[0]).toMatchObject({
       displayHex: '#111111',

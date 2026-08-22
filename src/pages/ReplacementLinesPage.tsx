@@ -15,7 +15,7 @@ import type {
   ReplacementLineColorCategory,
   ReplacementLineSnapshot,
 } from '../lib/types'
-import { REPLACEMENT_LINE_COLOR_CATEGORIES } from '../lib/types'
+import { COLOR_CATEGORIES } from '../lib/types'
 
 function usesLightText(hex: string) {
   const value = hex.replace('#', '')
@@ -269,7 +269,7 @@ export function ReplacementLinesPage() {
                 onChange={(event) => setNewLineColorCategory(event.target.value)}
               >
                 <option value="">색상을 골라 주세요</option>
-                {REPLACEMENT_LINE_COLOR_CATEGORIES.map((category) => (
+                {COLOR_CATEGORIES.map((category) => (
                   <option value={category} key={category}>
                     {category}
                   </option>
