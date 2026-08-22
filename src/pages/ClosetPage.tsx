@@ -224,7 +224,7 @@ export function ClosetPage() {
       eyebrow="ALL ITEMS"
       action={
         <Link className="button button--primary" to="/closet/new">
-          새 Item
+          Add
         </Link>
       }
     >

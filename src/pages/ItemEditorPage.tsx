@@ -215,7 +215,7 @@ export function ItemEditorPage() {
     (itemId && editingItem && initializedItemId !== itemId)
   ) {
     return (
-      <AppShell title={itemId ? 'Item 수정' : '새 Item'} eyebrow="ITEM EDITOR" back>
+      <AppShell title={itemId ? 'Edit Item' : 'Add Item'} eyebrow="ITEM EDITOR" back>
         <LoadingState />
       </AppShell>
     )
@@ -223,7 +223,7 @@ export function ItemEditorPage() {
 
   if (data && itemId && !editingItem) {
     return (
-      <AppShell title="Item 수정" eyebrow="ITEM EDITOR" back>
+      <AppShell title="Edit Item" eyebrow="ITEM EDITOR" back>
         <ErrorState message="수정할 Item을 찾을 수 없습니다." />
       </AppShell>
     )
@@ -231,7 +231,7 @@ export function ItemEditorPage() {
 
   return (
     <AppShell
-      title={itemId ? 'Item 수정' : '새 Item'}
+      title={itemId ? 'Edit Item' : 'Add Item'}
       eyebrow={itemId ? 'EDIT ITEM' : 'ADD ITEM'}
       back
     >

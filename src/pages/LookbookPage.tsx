@@ -141,7 +141,7 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
       action={
         !favoriteOnly ? (
           <Link className="button button--primary" to="/outfits/new">
-            새 Outfit
+            Add
           </Link>
         ) : undefined
       }

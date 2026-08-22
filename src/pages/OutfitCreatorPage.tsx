@@ -346,7 +346,7 @@ export function OutfitCreatorPage() {
 
   return (
     <AppShell
-      title={isEditing ? '착장 수정' : '새 Outfit'}
+      title={isEditing ? 'Edit Outfit' : 'Add Outfit'}
       eyebrow={isEditing ? 'EDIT OUTFIT' : 'CREATE OUTFIT'}
       back
       hideNavigation
