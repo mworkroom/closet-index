@@ -3943,6 +3943,7 @@ a.item-detail-lineage__item:focus-visible {
 
 .ranking-list {
   border-top: 1px solid var(--line);
+  padding-bottom: 15px;
 }
 
 .ranking-list a {
