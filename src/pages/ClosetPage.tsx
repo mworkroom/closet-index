@@ -21,10 +21,11 @@ import {
   itemMatchesCategoryGroup,
   type ItemCategoryFilterGroupId,
 } from '../lib/item-categories'
-import { sortItems, type ItemSort } from '../lib/items'
+import { isWishItem, sortItems, type ItemSort } from '../lib/items'
 import { getItemStats } from '../lib/outfits'
 import { itemMatchesSeasonScope } from '../lib/seasons'
 import { COLLECTION_BATCH_SIZE } from '../lib/collection-pagination'
+import { COLOR_CATEGORIES } from '../lib/types'
 
 const defaultSort: ItemSort = 'acquired-desc'
 const CLOSET_FILTER_STORAGE_KEY = 'closet-index:closet-filters:v2'
@@ -35,6 +36,7 @@ interface StoredClosetFilters {
   includeRetired: boolean
   madeOnly: boolean
   unwornOnly: boolean
+  wishOnly: boolean
   sort: ItemSort
 }
 
@@ -44,6 +46,7 @@ const defaultFilters: StoredClosetFilters = {
   includeRetired: false,
   madeOnly: false,
   unwornOnly: false,
+  wishOnly: false,
   sort: defaultSort,
 }
 
@@ -68,6 +71,7 @@ function readStoredFilters(): StoredClosetFilters {
       madeOnly: typeof parsed.madeOnly === 'boolean' ? parsed.madeOnly : false,
       unwornOnly:
         typeof parsed.unwornOnly === 'boolean' ? parsed.unwornOnly : false,
+      wishOnly: typeof parsed.wishOnly === 'boolean' ? parsed.wishOnly : false,
       sort: validSorts.includes(parsed.sort as ItemSort)
         ? (parsed.sort as ItemSort)
         : defaultSort,
@@ -91,6 +95,7 @@ export function ClosetPage() {
   )
   const [madeOnly, setMadeOnly] = useState(initialFilters.madeOnly)
   const [unwornOnly, setUnwornOnly] = useState(initialFilters.unwornOnly)
+  const [wishOnly, setWishOnly] = useState(initialFilters.wishOnly)
   const [sort, setSort] = useState<ItemSort>(initialFilters.sort)
   const [visibleItemCount, setVisibleItemCount] = useState(COLLECTION_BATCH_SIZE)
   const today = todayInKorea()
@@ -102,6 +107,7 @@ export function ClosetPage() {
       includeRetired,
       madeOnly,
       unwornOnly,
+      wishOnly,
       sort,
     }
     try {
@@ -112,7 +118,7 @@ export function ClosetPage() {
     } catch {
       // Storage can be unavailable in private browsing; filters still work in memory.
     }
-  }, [categoryGroup, color, includeRetired, madeOnly, sort, unwornOnly])
+  }, [categoryGroup, color, includeRetired, madeOnly, sort, unwornOnly, wishOnly])
 
   useEffect(() => {
     setVisibleItemCount(COLLECTION_BATCH_SIZE)
@@ -125,23 +131,14 @@ export function ClosetPage() {
     query,
     sort,
     unwornOnly,
+    wishOnly,
   ])
 
   const categoryGroups = useMemo(
     () => getAvailableItemCategoryGroups(data?.items ?? []),
     [data],
   )
-  const colors = useMemo(
-    () =>
-      [
-        ...new Set(
-          data?.items
-            .map((item) => item.semanticColor)
-            .filter((value): value is string => Boolean(value)) ?? [],
-        ),
-      ].sort(),
-    [data],
-  )
+  const colors = COLOR_CATEGORIES
   const wornItemIds = useMemo(() => {
     if (!data) return new Set<string>()
     const wornOutfitIds = new Set(data.wearLogs.map((log) => log.outfitId))
@@ -160,6 +157,7 @@ export function ClosetPage() {
         if (!includeRetired && item.retired) return false
         if (madeOnly && !isMadeItemCategory(item)) return false
         if (unwornOnly && wornItemIds.has(item.id)) return false
+        if (wishOnly && !isWishItem(item)) return false
         if (!itemMatchesSeasonScope(item, activeSeasons)) return false
         if (!itemMatchesCategoryGroup(item, categoryGroup)) return false
         if (color && item.semanticColor !== color) return false
@@ -181,6 +179,7 @@ export function ClosetPage() {
     query,
     sort,
     unwornOnly,
+    wishOnly,
     wornItemIds,
   ])
   const visibleItems = items.slice(0, visibleItemCount)
@@ -215,6 +214,7 @@ export function ClosetPage() {
     setIncludeRetired(false)
     setMadeOnly(false)
     setUnwornOnly(false)
+    setWishOnly(false)
     setSort(defaultSort)
   }
 
@@ -302,6 +302,14 @@ export function ClosetPage() {
             />
             Made
           </label>
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={wishOnly}
+              onChange={(event) => setWishOnly(event.target.checked)}
+            />
+            Wish
+          </label>
         </div>
       </section>
 
@@ -336,20 +344,28 @@ export function ClosetPage() {
                 {visibleItems.map((item) => {
                   const stats = getItemStats(item.id, data.outfits, data.wearLogs)
                   const maintenanceSignal = maintenanceSignals.get(item.id)
-                  const badge = maintenanceSignal?.primaryBadge ?? null
+                  const wish = isWishItem(item)
+                  const badge = wish
+                    ? '구매 전'
+                    : maintenanceSignal?.primaryBadge ?? null
+                  const badgeClass = wish
+                    ? 'wish'
+                    : badge
+                      ? getManagementBadgeClass(badge)
+                      : null
 
                   return (
                     <Link
                       className="item-card"
                       to={`/closet/${item.id}`}
                       key={item.id}
-                      aria-label={`${item.name} 아이템 상세 보기${badge ? `, 관리 상태 ${badge}` : ''}`}
+                      aria-label={`${item.name} 아이템 상세 보기${badge ? `, ${wish ? '구매 상태' : '관리 상태'} ${badge}` : ''}`}
                     >
                       <div className="item-card__visual">
                         <ItemVisual item={item} className="item-visual--grid" />
                         {badge ? (
                           <span
-                            className={`item-card__badge badge badge--${getManagementBadgeClass(badge)}`}
+                            className={`item-card__badge badge badge--${badgeClass}`}
                           >
                             {badge}
                           </span>

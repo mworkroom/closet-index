@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -42,9 +42,15 @@ describe('Outfit creator', () => {
 
     renderCreator(repository)
 
+    expect(await screen.findByRole('button', { name: 'Top' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await user.click(screen.getByRole('button', { name: 'Outer' }))
     await user.click(
       await screen.findByRole('button', { name: '블루 가디건 추가' }),
     )
+    await user.click(screen.getByRole('button', { name: 'Top' }))
     await user.click(screen.getByRole('button', { name: '아이보리 니트 추가' }))
     expect(screen.getByText('평가 OK')).toBeInTheDocument()
     expect(screen.queryByRole('radio', { name: '미입력' })).not.toBeInTheDocument()
@@ -87,9 +93,11 @@ describe('Outfit creator', () => {
 
     renderCreator(repository)
 
+    await user.click(await screen.findByRole('button', { name: 'Top' }))
     await user.click(
       await screen.findByRole('button', { name: '아이보리 니트 추가' }),
     )
+    await user.click(screen.getByRole('button', { name: 'Bottom' }))
     await user.click(screen.getByRole('button', { name: '블랙 팬츠 추가' }))
     await user.click(screen.getByRole('button', { name: '새 Outfit 저장' }))
 
@@ -142,6 +150,7 @@ describe('Outfit creator', () => {
 
     renderCreator(repository)
 
+    await user.click(await screen.findByRole('button', { name: 'Acc' }))
     expect(
       await screen.findByRole('button', { name: '테스트 양말 추가' }),
     ).toBeInTheDocument()
@@ -149,7 +158,6 @@ describe('Outfit creator', () => {
       screen.queryByRole('button', { name: '테스트 이너웨어 추가' }),
     ).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Acc' }))
     expect(
       screen.getByRole('button', { name: '테스트 양말 추가' }),
     ).toBeInTheDocument()
@@ -220,6 +228,27 @@ describe('Outfit creator', () => {
     ).toEqual(sourceBefore)
   })
 
+  it('Item 상세에서 시작하면 해당 Item을 새 Outfit 초안에 미리 선택한다', async () => {
+    const repository = new DemoRepository()
+
+    renderCreator(repository, '/outfits/new?item=item-cardigan')
+
+    expect(
+      (await screen.findAllByRole('button', {
+        name: '블루 가디건 선택 해제',
+      })).length,
+    ).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: 'Outer' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    const selectedSection = screen
+      .getByRole('heading', { name: '현재 선택' })
+      .closest('section')
+    expect(selectedSection).not.toBeNull()
+    expect(within(selectedSection as HTMLElement).getByText('1개')).toBeInTheDocument()
+  })
+
   it('기존 Outfit에서 Item을 빼고 같은 ID로 수정한다', async () => {
     const user = userEvent.setup()
     const repository = new DemoRepository()
@@ -228,7 +257,11 @@ describe('Outfit creator', () => {
 
     renderCreator(repository, '/outfits/outfit-favorite/edit')
 
-    expect(await screen.findByRole('heading', { name: '착장 수정' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Edit Outfit' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '전체' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
     await waitFor(() => {
       expect(screen.getByRole('radio', { name: 'Favorite' })).toBeChecked()
     })
@@ -258,5 +291,20 @@ describe('Outfit creator', () => {
     )
     expect(savedOutfit?.itemIds).not.toContain('item-pants')
     expect(savedOutfit?.rating).toBe('error')
+  })
+
+  it('배치 조정을 Item 추가 목록보다 먼저 표시한다', async () => {
+    const repository = new DemoRepository()
+
+    renderCreator(repository, '/outfits/outfit-favorite/edit')
+
+    const placementHeading = await screen.findByRole('heading', {
+      name: 'Item별 배치 조정',
+    })
+    const itemAddHeading = screen.getByRole('heading', { name: 'Item 추가' })
+    expect(
+      placementHeading.compareDocumentPosition(itemAddHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
   })
 })

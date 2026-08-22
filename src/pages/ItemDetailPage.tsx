@@ -1,3 +1,4 @@
+import { Pencil, Plus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
@@ -19,6 +20,7 @@ import {
 } from '../features/replenishment/purchase-replenishment'
 import { useItemPurchaseEvents } from '../features/replenishment/useItemPurchaseEvents'
 import { formatMonthDayYear, todayInKorea } from '../lib/date'
+import { isWishItem } from '../lib/items'
 import { getItemStats, getOutfitStats } from '../lib/outfits'
 
 const calendarMonths = Array.from({ length: 12 }, (_, index) => index + 1)
@@ -105,16 +107,6 @@ export function ItemDetailPage() {
       title={item?.name ?? 'Item'}
       eyebrow="ITEM DETAIL"
       back
-      action={
-        item ? (
-          <Link
-            className="button button--secondary"
-            to={`/closet/${item.id}/edit`}
-          >
-            정보 수정
-          </Link>
-        ) : undefined
-      }
     >
       {loading && <LoadingState />}
       {error && <ErrorState message={error} onRetry={() => void refresh()} />}
@@ -138,6 +130,9 @@ export function ItemDetailPage() {
                 <dt>상태</dt>
                 <dd className="item-status-summary">
                   <span>{item.retired ? 'Retired' : '사용 중'}</span>
+                  {isWishItem(item) ? (
+                    <span className="badge badge--wish">구매 전</span>
+                  ) : null}
                   {maintenanceSignals?.allBadges.map((label) => (
                     <span
                       className={`badge badge--${getManagementBadgeClass(label)}`}
@@ -176,6 +171,23 @@ export function ItemDetailPage() {
               <strong>{formatMonthDayYear(stats?.lastWornOn ?? null)}</strong>
             </div>
           </section>
+
+          <nav className="item-detail-actions" aria-label="Item 작업">
+            <Link
+              className="button button--primary"
+              to={`/outfits/new?item=${encodeURIComponent(item.id)}`}
+            >
+              <Plus size={17} aria-hidden="true" />
+              새 착장 만들기
+            </Link>
+            <Link
+              className="button button--secondary"
+              to={`/closet/${item.id}/edit`}
+            >
+              <Pencil size={17} aria-hidden="true" />
+              정보 수정
+            </Link>
+          </nav>
 
           {reviewSignal ? (
             <section

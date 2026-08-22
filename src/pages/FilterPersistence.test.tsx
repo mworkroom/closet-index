@@ -121,6 +121,49 @@ describe('section filter persistence', () => {
     expect(await screen.findByRole('checkbox', { name: 'Made' })).toBeChecked()
   })
 
+  it('Closet에서 구매일이 없는 Wish Item만 거르고 선택 상태를 복원한다', async () => {
+    const user = userEvent.setup()
+    const template = demoData.items.find((item) => !item.retired)
+    if (!template) throw new Error('item fixture missing')
+    window.localStorage.setItem(
+      'closet-index-demo-data-v3',
+      JSON.stringify({
+        ...demoData,
+        items: [
+          ...demoData.items,
+          {
+            ...template,
+            id: 'wish-filter-item',
+            name: '구매 전 베스트',
+            acquiredOn: null,
+            retired: false,
+          },
+        ],
+      }),
+    )
+
+    const first = renderCloset()
+    const wish = await screen.findByRole('checkbox', { name: 'Wish' })
+    await user.click(wish)
+
+    expect(wish).toBeChecked()
+    expect(
+      screen.getByRole('link', {
+        name: '구매 전 베스트 아이템 상세 보기, 구매 상태 구매 전',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', {
+        name: '블루 가디건 아이템 상세 보기',
+      }),
+    ).not.toBeInTheDocument()
+
+    first.unmount()
+    renderCloset()
+
+    expect(await screen.findByRole('checkbox', { name: 'Wish' })).toBeChecked()
+  })
+
   it('이전 날짜의 HOME 조건은 복원하지 않는다', async () => {
     window.localStorage.setItem(
       'closet-index:home-weather:v3',

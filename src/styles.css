@@ -1063,6 +1063,11 @@ button:disabled {
   color: #51486f;
 }
 
+.badge--wish {
+  background: #f4eff8;
+  color: #654f78;
+}
+
 .level--high {
   background: #edf6f0;
   color: var(--success);
@@ -1784,6 +1789,17 @@ button:disabled {
 
 .detail-grid--item-stats strong {
   font-variant-numeric: tabular-nums;
+}
+
+.item-detail-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.item-detail-actions .button {
+  min-width: 0;
 }
 
 .monthly-wear-section {

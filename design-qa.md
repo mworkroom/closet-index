@@ -48,3 +48,49 @@ The combined comparison focuses on the matching G0-to-G1 Black Skirt region beca
 ## Final Result
 
 final result: passed
+
+---
+
+# Item Detail Action and Wish Design QA
+
+## Evidence
+
+- Source visual truth: `C:/Users/Marion/Desktop/IMG_0846.PNG`
+- Implementation route: `http://127.0.0.1:5191/closet/item-cardigan`
+- Mobile implementation screenshot: `C:/Users/Marion/.codex/visualizations/2026/08/22/01a02a70-13c5-7b13-9520-9a4e529d4479/closet-item-detail-mobile.png`
+- Wish Item screenshot: `C:/Users/Marion/.codex/visualizations/2026/08/22/01a02a70-13c5-7b13-9520-9a4e529d4479/closet-wish-item-mobile.png`
+- Desktop implementation screenshot: `C:/Users/Marion/.codex/visualizations/2026/08/22/01a02a70-13c5-7b13-9520-9a4e529d4479/closet-item-detail-desktop.png`
+
+## Normalization
+
+- Source pixels: 1170 × 2532.
+- Mobile CSS viewport: 390 × 844; viewport and full-page captures used.
+- Desktop CSS viewport: 1280 × 900; viewport capture used.
+- State: Demo mode Item detail, Add Outfit, and Closet filters. A local no-purchase-date QA Item was created to exercise the Wish state without touching live data.
+- Comparison scope: the source visual is a placement sketch rather than a complete restyle request, so the comparison focuses on the top action removal and the two-button row below Item usage stats.
+
+## Full-view Comparison Evidence
+
+The implementation removes the header-level edit action that competed with long Item names and places `새 착장 만들기` and `정보 수정` directly below the three usage stats. The new row follows the existing Closet Index button, spacing, icon, and corner-radius system instead of copying the source application's visual tokens.
+
+## Findings
+
+- No actionable P0, P1, or P2 visual difference remains for the requested scope.
+- Layout: both actions remain side by side at 390 px with no horizontal overflow; measured document width stayed within the viewport.
+- Hierarchy: `새 착장 만들기` is the primary filled action and `정보 수정` is the secondary outlined action, matching their expected frequency and consequence.
+- Wish state: an Item with no purchase date shows a compact `구매 전` badge on detail and card surfaces. The Closet card uses it as the primary badge when another maintenance badge also applies.
+- Interaction: `새 착장 만들기` opened `/outfits/new?item=...` with the source Item already selected and its category active. The Closet list placed the no-date Item first, and enabling `Wish` reduced the Demo result to that Item.
+- Accessibility: the action row has an `Item 작업` navigation label, Wish cards announce `구매 상태 구매 전`, and the native Wish checkbox exposes checked state.
+- Browser quality: desktop and 390 × 844 mobile states rendered without an error overlay; console error and warning counts were zero.
+
+## Comparison History
+
+- Pass 1: no P0/P1/P2 finding. The requested action placement and compact mobile behavior matched the source intent without a visual correction iteration.
+
+## Residual Test Gaps
+
+- Browser QA used local Demo data. The authenticated Supabase flow and deployed mobile browser were not exercised in this task.
+
+## Final Result
+
+final result: passed

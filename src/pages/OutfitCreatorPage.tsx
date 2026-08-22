@@ -31,14 +31,15 @@ import {
   seasonLabels,
   type Season,
 } from '../lib/seasons'
-import type {
-  Item,
-  MatchingOutfit,
-  Outfit,
-  OutfitItemPlacement,
-  OutfitRating,
+import {
+  COLOR_CATEGORIES,
+  type Item,
+  type MatchingOutfit,
+  type Outfit,
+  type OutfitItemPlacement,
+  type OutfitRating,
+  ratingLabels,
 } from '../lib/types'
-import { ratingLabels } from '../lib/types'
 
 interface DraftPlacement {
   displayMode: OutfitItemDisplayMode
@@ -109,6 +110,8 @@ export function OutfitCreatorPage() {
   const [searchParams] = useSearchParams()
   const isEditing = Boolean(editOutfitId)
   const sourceOutfitId = editOutfitId ?? searchParams.get('source')
+  const initialItemId =
+    isEditing || sourceOutfitId ? null : searchParams.get('item')
   const {
     data,
     loading,
@@ -128,7 +131,9 @@ export function OutfitCreatorPage() {
   const [rating, setRating] = useState<Exclude<OutfitRating, null>>('ok')
   const [query, setQuery] = useState('')
   const [categoryGroup, setCategoryGroup] =
-    useState<ItemCategoryFilterGroupId | ''>('')
+    useState<ItemCategoryFilterGroupId | ''>(() =>
+      isEditing ? '' : 'top',
+    )
   const [color, setColor] = useState('')
   const [season, setSeason] = useState<Season | ''>('')
   const [includeRetired, setIncludeRetired] = useState(false)
@@ -137,6 +142,8 @@ export function OutfitCreatorPage() {
   const [saving, setSaving] = useState(false)
   const [sourceApplied, setSourceApplied] = useState(!sourceOutfitId)
   const [sourceError, setSourceError] = useState<string | null>(null)
+  const [initialItemApplied, setInitialItemApplied] = useState(!initialItemId)
+  const [initialItemError, setInitialItemError] = useState<string | null>(null)
 
   const sourceOutfit = sourceOutfitId
     ? data?.outfits.find((outfit) => outfit.id === sourceOutfitId) ?? null
@@ -178,17 +185,28 @@ export function OutfitCreatorPage() {
     setSourceApplied(true)
   }, [data, isEditing, sourceApplied, sourceOutfit, sourceOutfitId])
 
-  const colors = useMemo(
-    () =>
-      [
-        ...new Set(
-          data?.items
-            .map((item) => item.semanticColor)
-            .filter((value): value is string => Boolean(value)) ?? [],
-        ),
-      ].sort(),
-    [data],
-  )
+  useEffect(() => {
+    if (!data || initialItemApplied || !initialItemId) return
+    const initialItem = data.items.find((item) => item.id === initialItemId)
+    if (!initialItem || !isItemVisibleInWardrobeSelection(initialItem)) {
+      setInitialItemError('착장에 추가할 Item을 찾을 수 없습니다.')
+      setInitialItemApplied(true)
+      return
+    }
+
+    const category = getItemCategoryGroupId(initialItem.category)
+    if (category === 'innerwear') {
+      setInitialItemError('착장에 추가할 Item을 찾을 수 없습니다.')
+      setInitialItemApplied(true)
+      return
+    }
+
+    setSelectedIds([initialItem.id])
+    setCategoryGroup(category === 'other' ? '' : category)
+    setInitialItemApplied(true)
+  }, [data, initialItemApplied, initialItemId])
+
+  const colors = COLOR_CATEGORIES
 
   const availableItems = useMemo(() => {
     if (!data) return []
@@ -421,6 +439,19 @@ export function OutfitCreatorPage() {
               />
             </section>
           )}
+          {initialItemError && (
+            <p className="form-error" role="alert">
+              {initialItemError}
+            </p>
+          )}
+
+          {draftOutfit.itemIds.length > 0 && imageCount > 0 && (
+            <OutfitDraftPositionEditor
+              outfit={draftOutfit}
+              items={data.items}
+              onChange={updatePlacement}
+            />
+          )}
 
           <section className="filter-panel outfit-creator__filters">
             <div className="section-heading">
@@ -527,14 +558,6 @@ export function OutfitCreatorPage() {
               </div>
             )}
           </section>
-
-          {draftOutfit.itemIds.length > 0 && imageCount > 0 && (
-            <OutfitDraftPositionEditor
-              outfit={draftOutfit}
-              items={data.items}
-              onChange={updatePlacement}
-            />
-          )}
 
           <section className="section outfit-creator__review">
             <div className="section-heading">

@@ -8,6 +8,7 @@ import { demoData } from '../data/demo-data'
 import { DemoRepository } from '../data/demo-repository'
 import { formatMonthDayYear } from '../lib/date'
 import { getItemStats, getOutfitStats, outfitLabel } from '../lib/outfits'
+import { COLOR_CATEGORIES } from '../lib/types'
 import { CalendarPage } from './CalendarPage'
 import { ClosetPage } from './ClosetPage'
 import { ItemDetailPage } from './ItemDetailPage'
@@ -153,6 +154,28 @@ describe('Phase 1B screen visuals', () => {
     ).toBeInTheDocument()
   })
 
+  it('CLOSET 색상 필터는 공통 COLOR_CATEGORIES와 실제 Item 결과를 사용한다', async () => {
+    const user = userEvent.setup()
+    renderRoute('/closet', '/closet', <ClosetPage />)
+
+    const colorSelect = await screen.findByRole('combobox', { name: '색상' })
+    expect(
+      [...colorSelect.querySelectorAll('option')].map((option) => option.value),
+    ).toEqual(['', ...COLOR_CATEGORIES])
+
+    await user.selectOptions(colorSelect, 'Ivory')
+
+    const grid = document.querySelector<HTMLElement>('.item-grid')
+    expect(grid).toBeInTheDocument()
+    expect(within(grid!).getAllByRole('link')).toHaveLength(2)
+    expect(
+      within(grid!).getByRole('link', { name: /아이보리 니트/ }),
+    ).toBeInTheDocument()
+    expect(
+      within(grid!).getByRole('link', { name: /화이트 스니커즈/ }),
+    ).toBeInTheDocument()
+  })
+
   it('CLOSET의 Unworn 필터는 어떤 Outfit에서도 입지 않은 Item만 표시한다', async () => {
     const user = userEvent.setup()
     const unwornItem = {
@@ -180,10 +203,10 @@ describe('Phase 1B screen visuals', () => {
     const links = within(grid!).getAllByRole('link')
     expect(links).toHaveLength(2)
     const testItemLink = within(grid!).getByRole('link', {
-      name: '미착용 테스트 Item 아이템 상세 보기, 관리 상태 점검',
+      name: '미착용 테스트 Item 아이템 상세 보기, 구매 상태 구매 전',
     })
     const itemVisual = testItemLink.querySelector('.item-card__visual')
-    const badge = within(testItemLink).getByText('점검')
+    const badge = within(testItemLink).getByText('구매 전')
     expect(itemVisual).toBeInTheDocument()
     expect(itemVisual).toContainElement(badge)
     expect(within(testItemLink).getByText('착용 0회')).toBeInTheDocument()
@@ -221,6 +244,19 @@ describe('Phase 1B screen visuals', () => {
     expect(within(usageInfo).getByText('7/1/26')).toBeInTheDocument()
     expect(within(usageInfo).getByText('착용 횟수')).toBeInTheDocument()
     expect(within(usageInfo).getByText('마지막 착용')).toBeInTheDocument()
+
+    const actions = screen.getByRole('navigation', { name: 'Item 작업' })
+    expect(
+      within(actions).getByRole('link', { name: '새 착장 만들기' }),
+    ).toHaveAttribute('href', '/outfits/new?item=item-cardigan')
+    expect(
+      within(actions).getByRole('link', { name: '정보 수정' }),
+    ).toHaveAttribute('href', '/closet/item-cardigan/edit')
+    expect(
+      usageInfo.compareDocumentPosition(actions) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(document.querySelector('.topbar__action')).toBeNull()
 
     const includedSection = screen
       .getByRole('heading', { name: '포함된 Outfit' })
