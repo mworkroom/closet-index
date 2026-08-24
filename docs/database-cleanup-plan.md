@@ -216,7 +216,7 @@ Lineage의 manual edge 편집, 시작점, 이동, 병합, 보관 기능은 유�
 3. [x] 전체 test, TypeScript, production build, Pages 산출물 검증을 통과시킨다.
 4. [x] client cleanup을 먼저 commit·push·배포한다.
 5. [x] 공개 JavaScript에서 `clone_closet_outfit`과 clone 오류 문자열이 0건인지 확인한다.
-6. [ ] 로그인 세션에서 source-prefill → 일반 create 초안 복제 UX를 smoke test한다. production 데이터 저장은 별도 승인 없이 실행하지 않는다.
+6. [x] 로그인 세션에서 source-prefill → 일반 create 초안 복제 UX를 smoke test한다. 저장 버튼은 누르지 않고 원본 불변 상태를 확인한다.
 7. [x] 정확한 signature만 DROP하는 cleanup migration, live definition 복구 SQL, 함수 부재와 create helper 보존을 검증하는 pgTAP을 준비하고 격리 CI를 통과시킨다.
 8. [x] production에 cleanup migration을 적용한 뒤 lifecycle 문서·database map을 제거 완료 상태로 갱신한다. `private.create_closet_outfit_record`는 유지한다.
 9. [x] production 함수·grant 부재, 데이터 checksum 불변, create/update RPC transaction 동작과 advisor 변화를 검증한다.
@@ -249,7 +249,8 @@ Lineage의 manual edge 편집, 시작점, 이동, 병합, 보관 기능은 유�
 - 적용 전후 `closet_outfits` 517행, `closet_outfit_items` 2,443행, `closet_wear_logs` 807행과 각 전체-row checksum이 동일했다.
 - 일반 `create_closet_outfit`, `update_closet_outfit_with_rating`, `private.create_closet_outfit_record`의 definition MD5와 권한은 적용 전후 동일했다. 기존 멤버십·Item 구성을 사용한 transaction probe에서 새 Outfit header 1개와 relation 8개 생성, rating update가 성공했고 전부 rollback했다. rollback 뒤 row count와 checksum도 다시 동일했다.
 - Security Advisor는 48건에서 47건으로 줄었고 제거 대상에만 해당하던 `authenticated_security_definer_function_executable` 1건이 사라졌다. Performance Advisor는 33건으로 동일하며 clone 관련 항목은 전후 0건이다.
-- 로그인된 공개 앱의 source-prefill 화면 수동 조작은 사용할 수 있는 브라우저 세션이 없어 아직 실행하지 않았다. 격리 화면 테스트와 production DB의 인증 role create/update transaction은 통과했다.
+- 로그인된 공개 앱에서 실제 Outfit 상세의 `새로 만들기`를 열어 source query, 복제 안내, 이름, 선택 Item 5개와 각 Item의 좌표·크기·표시 방식이 원본 편집 화면과 모두 동일함을 확인했다. 저장 버튼은 누르지 않았고 `저장 완료` 표시도 없었다. 원본 상세는 평가, Item 수, 착용 횟수가 이전과 같은 상태로 다시 렌더링됐으며 모든 확인 화면의 console warning·error는 0건이었다.
+- in-app browser의 screenshot API는 화면을 표시한 뒤에도 두 번 캡처에 실패해 이미지 artifact는 남기지 못했다. URL, DOM snapshot, locator별 값 비교, console log와 실제 열린 clone 초안 탭을 기능 검증 근거로 사용했다.
 
 ### 적용 전 중단 조건
 
