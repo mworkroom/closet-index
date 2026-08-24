@@ -1,4 +1,4 @@
--- Emergency rollback for 20260824173632_remove_outfit_clone_rpc.sql.
+-- Emergency rollback for 20260824180057_remove_outfit_clone_rpc.sql.
 -- Recreates the audited 2026-08-25 definition, grants, and lifecycle comment.
 
 create function public.clone_closet_outfit(

@@ -2,7 +2,7 @@
 
 - 작성일: 2026-08-05
 - 근거 문서: [`database-map.md`](./database-map.md)
-- 현재 단계: Outfit Preview subsystem production cleanup 완료. Outfit clone client cleanup·배포와 공개 자산 검증, RPC cleanup migration·rollback·격리 pgTAP 준비를 마쳤고 production 적용 대기 중.
+- 현재 단계: Outfit Preview subsystem과 Outfit clone RPC production cleanup 완료. clone client 선행 배포, 공개 자산 검증, exact RPC 제거, 데이터 무변경·활성 create/update 검증까지 마침.
 
 ## 1. 목적과 원칙
 
@@ -19,11 +19,11 @@
 
 | 질문 | 결론 |
 |---|---|
-| 즉시 안전하게 제거 가능한 DB object | Preview subsystem은 frontend·DB·Storage·Edge Function까지 제거 완료. `clone_closet_outfit`은 client 선행 배포 조건을 충족했지만 live 기준선 재확인과 별도 cleanup migration 없이 즉시 DROP하지 않음 |
+| 즉시 안전하게 제거 가능한 DB object | Preview subsystem은 frontend·DB·Storage·Edge Function까지 제거 완료. `clone_closet_outfit`도 client 선행 배포와 exact cleanup migration 검증 뒤 production에서 제거 완료 |
 | 가장 독립적인 후보 | `closet_import_runs` 2행 |
 | 현재 dependency 때문에 제거할 수 없는 후보 | Legacy Link subsystem. Preview DB dependency는 제거 완료 |
 | Outfit Preview 결정 | J가 영구 제거를 확정. frontend·Function 전환과 DB cleanup 완료 |
-| Outfit clone RPC 결정 | 현재 복제 UX는 source-prefill 뒤 일반 create 경로를 사용한다. client dead code 제거·배포와 공개 자산 검증을 완료했으며, live 기준선을 다시 확인한 뒤 RPC만 cleanup하고 공용 private helper는 유지 |
+| Outfit clone RPC 결정 | 현재 복제 UX는 source-prefill 뒤 일반 create 경로를 사용한다. client dead code와 production RPC를 제거했으며, 일반 create가 공유하는 private helper는 유지 |
 | Line 색상 자동 분류 | 일회성 초기 제안으로만 사용하고 직접 지정 완료 후 제거 권장 |
 
 `closet_import_runs`는 DB FK·trigger·RPC dependency가 없지만, 아직 export하지 않았고 `scripts/import-supabase.mjs`가 쓰므로 “즉시 DROP”으로 분류하지 않는다.
@@ -178,13 +178,13 @@ Lineage의 manual edge 편집, 시작점, 이동, 병합, 보관 기능은 유�
 
 ### 감사 범위와 결론
 
-2026-08-24에 local source, `origin/main`, production catalog·사용량, remote Edge Function, 공개 GitHub Pages 산출물을 읽기 전용으로 대조했다. 결론은 `public.clone_closet_outfit(uuid, uuid, uuid, text)`과 그 client wrapper가 현재 제품 동작에는 필요하지 않은 cleanup 후보라는 것이다. 당시 공개 JavaScript에는 wrapper가 남아 있어 DB 함수 제거를 보류했고, 2026-08-25에 compatible client 배포와 공개 자산의 참조 0건을 확인했다.
+2026-08-24에 local source, `origin/main`, production catalog·사용량, remote Edge Function, 공개 GitHub Pages 산출물을 읽기 전용으로 대조했다. 결론은 `public.clone_closet_outfit(uuid, uuid, uuid, text)`과 그 client wrapper가 현재 제품 동작에는 필요하지 않은 cleanup 후보라는 것이다. 당시 공개 JavaScript에는 wrapper가 남아 있어 DB 함수 제거를 보류했고, 2026-08-25에 compatible client 배포와 공개 자산의 참조 0건을 확인한 뒤 exact cleanup migration을 production에 적용했다.
 
 현재 복제 UX는 `OutfitDetailPage`가 `/outfits/new?source=<id>`로 이동하고 `OutfitCreatorPage`가 원본 이름·Item·배치를 미리 채운 뒤 일반 `createOutfit`/`create_closet_outfit` 경로로 새 Outfit을 저장한다. 제품 UI에서 `cloneOutfit`을 호출하는 경로는 없었다. 2026-08-24 감사 당시 concrete Demo·Supabase repository와 Phase 3 계약 테스트에만 남아 있던 clone client 계약은 2026-08-25 cleanup에서 제거했고, 활성 일반 create 계약은 유지했다.
 
 ### production 기준선
 
-| 확인 항목 | 2026-08-24 기준 / 2026-08-25 재확인 |
+| 확인 항목 | 2026-08-24 기준 / 2026-08-25 적용 직전 재확인 |
 |---|---|
 | live 함수 | OID 34723, `SECURITY DEFINER`, `search_path = ''`, definition MD5 `aec3ed94d2b11791cd7a4e10d5825b61` |
 | 권한 | `authenticated`, `postgres`, `service_role`에 EXECUTE. `anon`·`PUBLIC` grant 없음 |
@@ -218,12 +218,12 @@ Lineage의 manual edge 편집, 시작점, 이동, 병합, 보관 기능은 유�
 5. [x] 공개 JavaScript에서 `clone_closet_outfit`과 clone 오류 문자열이 0건인지 확인한다.
 6. [ ] 로그인 세션에서 source-prefill → 일반 create 초안 복제 UX를 smoke test한다. production 데이터 저장은 별도 승인 없이 실행하지 않는다.
 7. [x] 정확한 signature만 DROP하는 cleanup migration, live definition 복구 SQL, 함수 부재와 create helper 보존을 검증하는 pgTAP을 준비하고 격리 CI를 통과시킨다.
-8. [ ] production에 cleanup migration을 적용한 뒤 lifecycle 문서·database map을 제거 완료 상태로 갱신한다. `private.create_closet_outfit_record`는 유지한다.
-9. [ ] production 함수·grant 부재, create/update RPC 정상 동작, advisor, 인증된 앱 저장 흐름을 검증한다.
+8. [x] production에 cleanup migration을 적용한 뒤 lifecycle 문서·database map을 제거 완료 상태로 갱신한다. `private.create_closet_outfit_record`는 유지한다.
+9. [x] production 함수·grant 부재, 데이터 checksum 불변, create/update RPC transaction 동작과 advisor 변화를 검증한다.
 
 ### client cleanup·배포 결과
 
-- client source와 활성 pgTAP 계약에서 `OutfitCloneInput`, `OutfitCloneRepository`, `cloneOutfit`, `clone_closet_outfit` 참조가 0건이다. 적용 migration·rollback·live-object 문서의 historical/schema 참조는 DB removal 전까지 보존한다.
+- client source와 활성 제품 계약에서 `OutfitCloneInput`, `OutfitCloneRepository`, `cloneOutfit`, `clone_closet_outfit` 참조가 0건이다. 과거 migration, cleanup pgTAP, rollback과 감사 문서의 historical/schema 참조만 복구·회귀 근거로 보존한다.
 - 기존 Demo clone+archive 테스트는 archive가 relation·rating을 바꾸지 않는 현재 책임만 검증하도록 정리했다.
 - source-prefill 화면 테스트는 원본 Item·placement를 초안으로 복사하고, Item을 변경한 새 UUID를 `createOutfit`으로 저장하며, 원본이 불변임을 계속 검증한다.
 - Phase 3 pgTAP은 35개 assertion과 `plan(35)`가 일치하며 clone invocation 대신 `create_closet_outfit`으로 독립 relation을 만드는 계약을 검증한다. 로컬 Supabase가 실행 중이지 않아 pgTAP 실제 실행은 DB 연결 단계에서 중단됐고 production DB에는 실행하지 않았다.
@@ -237,12 +237,21 @@ Lineage의 manual edge 편집, 시작점, 이동, 병합, 보관 기능은 유�
 - 2026-08-25 production 재감사에서 exact overload 1개, OID `34723`, definition MD5 `aec3ed94d2b11791cd7a4e10d5825b61`, `SECURITY DEFINER`, 빈 `search_path`, ACL과 lifecycle COMMENT가 2026-08-24 기준선과 동일했다.
 - 직접 dependency는 언어·schema·반환형 3개뿐이고 역방향 dependency, 다른 routine·view·materialized view·rule·trigger·RLS policy, 활성 Edge Function 3개의 참조는 모두 0건이었다.
 - `pg_stat_statements`의 clone 관련 4회는 최초 `CREATE`, `REVOKE`, `GRANT`, `COMMENT` DDL뿐이었다. 2026-07-18 reset 이후 PostgREST/runtime clone은 0건이며 같은 구간 create 13건, update 43건이 확인됐다.
-- migration `20260824173632_remove_outfit_clone_rpc.sql`은 exact signature 1개만 `DROP`하고 `IF EXISTS`·`CASCADE`를 쓰지 않는다. 별도 rollback은 live definition·권한·COMMENT를 복원한다.
+- production 이력과 맞춘 migration `20260824180057_remove_outfit_clone_rpc.sql`은 exact signature 1개만 `DROP`하고 `IF EXISTS`·`CASCADE`를 쓰지 않는다. 별도 rollback은 live definition·권한·COMMENT를 복원한다.
 - 첫 격리 run `32758052647`에서 새 cleanup pgTAP 6건은 통과했지만, 기존 Phase 3 assertion 1건이 현재 `rating NOT NULL DEFAULT 'ok'` 계약 대신 과거 NULL을 기대해 실패했다. 제품이나 migration을 바꾸지 않고 기대값만 현재 계약에 맞췄다.
 - 후속 run `32758392803`에서 빈 PostgreSQL 17 DB에 전체 migration을 적용한 뒤 6개 파일·97개 pgTAP이 모두 통과했고 컨테이너도 정리됐다. Pages run `32758376889`도 test·build·artifact·deploy를 통과했다.
-- production DB에는 cleanup migration을 아직 적용하지 않았다.
+- production DB에 remote version `20260824180057`, name `remove_outfit_clone_rpc`로 cleanup migration을 적용했다.
 
-### 적용 중단 조건
+### production 적용·검증 결과
+
+- 적용 직전 exact overload는 1개였고 OID `34723`, definition MD5 `aec3ed94d2b11791cd7a4e10d5825b61`, ACL, lifecycle COMMENT, 빈 `search_path`가 기준선과 동일했다. 역방향 dependency와 다른 schema object 참조는 0건이었으며, `pg_stat_statements`의 4건은 모두 최초 DDL이고 runtime clone 호출은 0건이었다.
+- `DROP FUNCTION public.clone_closet_outfit(uuid, uuid, uuid, text)` 한 문장만 Supabase migration으로 적용했다. 적용 후 exact regprocedure와 동일 이름 overload는 모두 0건이며 remote migration 이력은 65개가 됐다.
+- 적용 전후 `closet_outfits` 517행, `closet_outfit_items` 2,443행, `closet_wear_logs` 807행과 각 전체-row checksum이 동일했다.
+- 일반 `create_closet_outfit`, `update_closet_outfit_with_rating`, `private.create_closet_outfit_record`의 definition MD5와 권한은 적용 전후 동일했다. 기존 멤버십·Item 구성을 사용한 transaction probe에서 새 Outfit header 1개와 relation 8개 생성, rating update가 성공했고 전부 rollback했다. rollback 뒤 row count와 checksum도 다시 동일했다.
+- Security Advisor는 48건에서 47건으로 줄었고 제거 대상에만 해당하던 `authenticated_security_definer_function_executable` 1건이 사라졌다. Performance Advisor는 33건으로 동일하며 clone 관련 항목은 전후 0건이다.
+- 로그인된 공개 앱의 source-prefill 화면 수동 조작은 사용할 수 있는 브라우저 세션이 없어 아직 실행하지 않았다. 격리 화면 테스트와 production DB의 인증 role create/update transaction은 통과했다.
+
+### 적용 전 중단 조건
 
 - 공개 JavaScript에 clone RPC 또는 clone 오류 문자열이 남아 있음
 - 새 runtime usage가 1건이라도 확인됨
@@ -250,7 +259,7 @@ Lineage의 manual edge 편집, 시작점, 이동, 병합, 보관 기능은 유�
 - source-prefill → create 복제 UX가 실패함
 - cleanup migration이 clone signature 외 helper나 data object를 변경함
 
-이번 client cleanup에서도 production DB의 `DROP`, `DELETE`, `UPDATE`, RPC 호출을 수행하지 않았다. client 배포와 DB removal은 서로 다른 배포 단계로 진행한다.
+client cleanup 단계에서는 production DB를 변경하지 않았고, 이후 별도 production migration 단계에서 exact RPC만 제거했다. 검증용 create/update는 한 transaction 안에서 rollback해 영구 row를 남기지 않았다.
 
 ## 8. 예상 변경 파일
 

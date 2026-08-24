@@ -225,6 +225,8 @@
 
 모든 함수는 production `public` schema의 현재 signature를 기준으로 기록했다. `UI`의 “간접”은 frontend가 Edge Function이나 상위 RPC를 호출하고 해당 함수가 내부에서 실행된다는 뜻이다.
 
+`clone_closet_outfit(uuid, uuid, uuid, text)`은 2026-08-25 remote migration `20260824180057_remove_outfit_clone_rpc`로 제거되어 현재 inventory에서 제외했다. 감사 기준선과 복구 SQL은 [`database-cleanup-plan.md`](./database-cleanup-plan.md)와 `supabase/rollback/remove_outfit_clone_rpc_rollback.sql`에 보존한다.
+
 | Function과 arguments | 호출 경로 / UI | 참조 table | Transaction으로 묶는 이유 | 현재 판정 |
 |---|---|---|---|---|
 | `begin_closet_item_image_upload(workspace, item, image, width, height, bytes)` | `closet-item-image` Edge Function; Item 편집에서 간접 접근 | items, item_images | pending row·경로·기존 upload 정리의 일관성 | 필요 |
@@ -232,7 +234,6 @@
 | `cancel_closet_item_image_upload(workspace, item, image)` | 같은 Edge Function; 실패 복구에서 간접 | item_images | pending 취소와 storage 정리 대상 확정 | 필요 |
 | `create_closet_outfit(workspace, outfit, name, items, allow_duplicate)` | `SupabaseOutfitRepository.create`; Outfit 생성 UI | outfits, 내부 helper를 통한 outfit_items/items | header·구성·중복 검사를 한 번에 저장 | 필요 |
 | `update_closet_outfit(workspace, outfit, name, items, allow_duplicate)` | `SupabaseOutfitRepository.update`; Outfit 편집 UI | items, outfits, outfit_items | 기존 구성 교체와 중복 검사를 원자 처리 | 필요 |
-| `clone_closet_outfit(workspace, source, new_id, name)` | client wrapper와 공개 bundle 참조는 0건. 현재 복제 UX는 source-prefill 뒤 일반 create 경로를 사용하며 production RPC만 staged cleanup을 위해 유지 | outfits, outfit_items | 새 header와 모든 구성 복사 | exact cleanup migration·rollback·격리 pgTAP 완료. production 적용 대기 |
 | `find_matching_closet_outfits(workspace, item_ids[])` | `SupabaseOutfitRepository.findMatching`; 생성 중 중복 확인 | outfits, outfit_items | 읽기 함수이며 동일 item set 계산을 서버에서 고정 | 필요 |
 | `delete_closet_item_if_unreferenced(user, workspace, item)` | `closet-item-image` Edge Function; Item 삭제 UI | items, images, outfit_items, line_items | 참조 재확인·row 삭제·storage 경로 반환 | 필요 |
 | `delete_closet_outfit_if_unworn(user, workspace, outfit)` | `closet-outfit-delete` Edge Function; Outfit 삭제 UI | outfits, wear_logs | Wear Log 차단과 삭제를 한 transaction에서 처리 | 필요 |
