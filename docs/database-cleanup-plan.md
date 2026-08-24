@@ -2,7 +2,7 @@
 
 - 작성일: 2026-08-05
 - 근거 문서: [`database-map.md`](./database-map.md)
-- 현재 단계: Outfit Preview subsystem production cleanup 완료. Outfit clone client dead code의 로컬 cleanup·검증을 마쳤고 client 배포 검증 대기 중.
+- 현재 단계: Outfit Preview subsystem production cleanup 완료. Outfit clone client cleanup·배포와 공개 자산 검증을 마쳤고, 별도 RPC cleanup migration 전 live 기준선 재확인 대기 중.
 
 ## 1. 목적과 원칙
 
@@ -19,11 +19,11 @@
 
 | 질문 | 결론 |
 |---|---|
-| 즉시 안전하게 제거 가능한 DB object | Preview subsystem은 frontend·DB·Storage·Edge Function까지 제거 완료. `clone_closet_outfit`은 cleanup 후보로 확정했지만 현재 공개 번들에서 client wrapper를 먼저 제거해야 하므로 즉시 DROP 대상은 아님 |
+| 즉시 안전하게 제거 가능한 DB object | Preview subsystem은 frontend·DB·Storage·Edge Function까지 제거 완료. `clone_closet_outfit`은 client 선행 배포 조건을 충족했지만 live 기준선 재확인과 별도 cleanup migration 없이 즉시 DROP하지 않음 |
 | 가장 독립적인 후보 | `closet_import_runs` 2행 |
 | 현재 dependency 때문에 제거할 수 없는 후보 | Legacy Link subsystem. Preview DB dependency는 제거 완료 |
 | Outfit Preview 결정 | J가 영구 제거를 확정. frontend·Function 전환과 DB cleanup 완료 |
-| Outfit clone RPC 결정 | 현재 복제 UX는 source-prefill 뒤 일반 create 경로를 사용한다. client dead code는 로컬에서 제거·검증 완료했으며 배포 산출물을 확인한 뒤 RPC만 cleanup하고 공용 private helper는 유지 |
+| Outfit clone RPC 결정 | 현재 복제 UX는 source-prefill 뒤 일반 create 경로를 사용한다. client dead code 제거·배포와 공개 자산 검증을 완료했으며, live 기준선을 다시 확인한 뒤 RPC만 cleanup하고 공용 private helper는 유지 |
 | Line 색상 자동 분류 | 일회성 초기 제안으로만 사용하고 직접 지정 완료 후 제거 권장 |
 
 `closet_import_runs`는 DB FK·trigger·RPC dependency가 없지만, 아직 export하지 않았고 `scripts/import-supabase.mjs`가 쓰므로 “즉시 DROP”으로 분류하지 않는다.
@@ -178,9 +178,9 @@ Lineage의 manual edge 편집, 시작점, 이동, 병합, 보관 기능은 유�
 
 ### 감사 범위와 결론
 
-2026-08-24에 local source, `origin/main`, production catalog·사용량, remote Edge Function, 공개 GitHub Pages 산출물을 읽기 전용으로 대조했다. 결론은 `public.clone_closet_outfit(uuid, uuid, uuid, text)`과 그 client wrapper가 현재 제품 동작에는 필요하지 않은 cleanup 후보라는 것이다. 다만 현재 공개 JavaScript에는 wrapper가 아직 포함되어 있으므로 DB 함수부터 제거하지 않는다.
+2026-08-24에 local source, `origin/main`, production catalog·사용량, remote Edge Function, 공개 GitHub Pages 산출물을 읽기 전용으로 대조했다. 결론은 `public.clone_closet_outfit(uuid, uuid, uuid, text)`과 그 client wrapper가 현재 제품 동작에는 필요하지 않은 cleanup 후보라는 것이다. 당시 공개 JavaScript에는 wrapper가 남아 있어 DB 함수 제거를 보류했고, 2026-08-25에 compatible client 배포와 공개 자산의 참조 0건을 확인했다.
 
-현재 복제 UX는 `OutfitDetailPage`가 `/outfits/new?source=<id>`로 이동하고 `OutfitCreatorPage`가 원본 이름·Item·배치를 미리 채운 뒤 일반 `createOutfit`/`create_closet_outfit` 경로로 새 Outfit을 저장한다. 제품 UI에서 `cloneOutfit`을 호출하는 경로는 없으며, concrete Demo·Supabase repository와 Phase 3 계약 테스트에만 남아 있다.
+현재 복제 UX는 `OutfitDetailPage`가 `/outfits/new?source=<id>`로 이동하고 `OutfitCreatorPage`가 원본 이름·Item·배치를 미리 채운 뒤 일반 `createOutfit`/`create_closet_outfit` 경로로 새 Outfit을 저장한다. 제품 UI에서 `cloneOutfit`을 호출하는 경로는 없었다. 2026-08-24 감사 당시 concrete Demo·Supabase repository와 Phase 3 계약 테스트에만 남아 있던 clone client 계약은 2026-08-25 cleanup에서 제거했고, 활성 일반 create 계약은 유지했다.
 
 ### production 기준선
 
@@ -194,7 +194,7 @@ Lineage의 manual edge 편집, 시작점, 이동, 병합, 보관 기능은 유�
 | 측정 가능한 사용량 | `pg_stat_statements` reset 시각인 2026-07-18 11:29 UTC 이후 clone의 PostgREST/runtime statement 0건. 같은 구간 create 13건, update 43건 |
 | 통계 보존 상태 | `pg_stat_statements_info.dealloc = 0`이라 측정 구간의 statement eviction 없음. `track_functions = none`이므로 함수 통계가 아니라 statement 통계를 근거로 사용 |
 | 최근 로그 보조 확인 | API·Postgres 최근 24시간 로그에서 clone/create/update RPC 이름의 exact match 0건. 이 결과는 24시간 범위의 보조 증거로만 사용 |
-| 공개 앱 산출물 | 현재 production JavaScript에 `clone_closet_outfit`과 clone 오류 문자열이 각각 1회 포함됨. 정적 wrapper가 아직 배포 번들에 남아 있으므로 DB 제거 선행 금지 |
+| 공개 앱 산출물 | 2026-08-24 기준 두 문자열이 각각 1회 포함됐으나, 2026-08-25 client 배포 후 service worker가 참조하는 JavaScript 61개 전체에서 두 문자열 모두 0건. 일반 create RPC와 `source=` 경로는 유지됨 |
 
 활성 `public.create_closet_outfit`도 `private.create_closet_outfit_record`를 사용한다. 따라서 clone RPC를 제거할 때 private helper는 함께 제거하거나 변경하지 않는다.
 
@@ -213,12 +213,13 @@ cleanup migration 작성 직전에는 live `pg_get_functiondef`, ACL, COMMENT, M
 1. [x] `OutfitCloneInput`, `OutfitCloneRepository`, Demo·Supabase `cloneOutfit` method와 facade 위임, 현재 동작을 대표하지 않는 clone concrete test를 제거한다.
 2. [x] Phase 3 pgTAP에서 clone RPC 생성·권한·동작 기대를 제거하고 source-prefill 결과도 일반 create RPC로 저장하는 활성 계약만 남긴다.
 3. [x] 전체 test, TypeScript, production build, Pages 산출물 검증을 통과시킨다.
-4. [ ] client cleanup을 먼저 commit·push·배포한다.
-5. [ ] 공개 JavaScript에서 `clone_closet_outfit`과 clone 오류 문자열이 0건인지 확인하고 source-prefill → create 복제 UX를 smoke test한다.
-6. [ ] 별도 cleanup migration에서 정확한 signature의 `public.clone_closet_outfit(uuid, uuid, uuid, text)`만 DROP하고 lifecycle 문서·database map을 갱신한다. `private.create_closet_outfit_record`는 유지한다.
-7. [ ] production migration 적용 후 함수·grant 부재, create/update RPC 정상 동작, advisor, 인증된 앱 저장 흐름을 검증한다.
+4. [x] client cleanup을 먼저 commit·push·배포한다.
+5. [x] 공개 JavaScript에서 `clone_closet_outfit`과 clone 오류 문자열이 0건인지 확인한다.
+6. [ ] 로그인 세션에서 source-prefill → 일반 create 초안 복제 UX를 smoke test한다. production 데이터 저장은 별도 승인 없이 실행하지 않는다.
+7. [ ] 별도 cleanup migration에서 정확한 signature의 `public.clone_closet_outfit(uuid, uuid, uuid, text)`만 DROP하고 lifecycle 문서·database map을 갱신한다. `private.create_closet_outfit_record`는 유지한다.
+8. [ ] production migration 적용 후 함수·grant 부재, create/update RPC 정상 동작, advisor, 인증된 앱 저장 흐름을 검증한다.
 
-### client cleanup 로컬 결과
+### client cleanup·배포 결과
 
 - client source와 활성 pgTAP 계약에서 `OutfitCloneInput`, `OutfitCloneRepository`, `cloneOutfit`, `clone_closet_outfit` 참조가 0건이다. 적용 migration·rollback·live-object 문서의 historical/schema 참조는 DB removal 전까지 보존한다.
 - 기존 Demo clone+archive 테스트는 archive가 relation·rating을 바꾸지 않는 현재 책임만 검증하도록 정리했다.
@@ -226,7 +227,8 @@ cleanup migration 작성 직전에는 live `pg_get_functiondef`, ACL, COMMENT, M
 - Phase 3 pgTAP은 35개 assertion과 `plan(35)`가 일치하며 clone invocation 대신 `create_closet_outfit`으로 독립 relation을 만드는 계약을 검증한다. 로컬 Supabase가 실행 중이지 않아 pgTAP 실제 실행은 DB 연결 단계에서 중단됐고 production DB에는 실행하지 않았다.
 - 집중 테스트 11건과 TypeScript 검사, 전체 테스트 652건 중 645건 통과·7건 건너뜀·실패 0건을 확인했다.
 - GitHub Pages 조건 build와 SPA fallback 검증을 통과했다. 로컬 production JavaScript의 clone RPC·오류 문자열은 각각 0건이며 create RPC·source query는 각각 1건이다.
-- 이 세션에는 인앱 Browser 제어 도구가 노출되지 않아 실제 Pages preview 상호작용은 실행하지 못했다. 렌더링된 source-prefill 저장 동작은 통과한 `OutfitCreatorPage` 상호작용 테스트로 확인했으며 실제 공개 앱 검증은 배포 뒤 중단 조건으로 유지한다.
+- client cleanup commit `fa01da6`과 CI 안정화 commit `78846a4`를 배포했고, 공개 service worker가 참조하는 JavaScript 61개 전체에서 clone RPC·오류 문자열 0건을 확인했다.
+- 실제 공개 로그인 화면은 정상 렌더링됐고 console warning·error는 0건이었다. 사용할 수 있는 로그인 세션과 Chrome·Edge 연동이 없어 인증 후 source-prefill 상호작용은 실행하지 않았으며, 해당 동작은 통과한 `OutfitCreatorPage` 격리 테스트로만 확인된 상태다.
 
 ### 적용 중단 조건
 
