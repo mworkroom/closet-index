@@ -442,9 +442,9 @@ select ok(
     select rating
     from public.closet_outfits
     where id = '85000000-0000-0000-0000-000000000001'
-      and rating is null
+      and rating = 'ok'
   ),
-  'creating another Outfit does not change the existing rating'
+  'creating another Outfit leaves the existing default rating unchanged'
 );
 
 select lives_ok(
