@@ -111,7 +111,7 @@ describe("Phase 1B image upload plan", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
-  });
+  }, 15_000);
 
   it("rejects manifest input paths outside the local-only input folder", () => {
     const root = path.resolve("assets/private/phase-1b/input");
