@@ -53,7 +53,7 @@ describe('StatisticsPage Phase 4 item usage', () => {
     renderPage()
 
     const utilization = await screen.findByRole('region', {
-      name: '현재 보유 옷의 전체 기간 활용률',
+      name: '전체 기간 활용률',
     })
     expect(within(utilization).getByText('100%')).toBeInTheDocument()
     expect(within(utilization).getByText('6/6개')).toBeInTheDocument()
@@ -187,7 +187,7 @@ describe('StatisticsPage Phase 4 item usage', () => {
     renderPage()
 
     await screen.findByRole('heading', {
-      name: '현재 보유 옷의 전체 기간 활용률',
+      name: '전체 기간 활용률',
     })
     const retiredFilter = screen.getByRole('checkbox', {
       name: 'Retired 제외',
@@ -227,7 +227,7 @@ describe('StatisticsPage Phase 4 item usage', () => {
   it('shows labeled dropdowns in the requested order and keeps Retired as a checkbox', async () => {
     renderPage()
     await screen.findByRole('heading', {
-      name: '현재 보유 옷의 전체 기간 활용률',
+      name: '전체 기간 활용률',
     })
 
     const filterPanel = screen.getByRole('region', { name: '통계 필터' })
@@ -256,7 +256,7 @@ describe('StatisticsPage Phase 4 item usage', () => {
     const user = userEvent.setup()
     renderPage()
     await screen.findByRole('heading', {
-      name: '현재 보유 옷의 전체 기간 활용률',
+      name: '전체 기간 활용률',
     })
 
     await user.selectOptions(
@@ -273,7 +273,7 @@ describe('StatisticsPage Phase 4 item usage', () => {
     )
 
     const utilization = screen.getByRole('region', {
-      name: '현재 보유 옷의 전체 기간 활용률',
+      name: '전체 기간 활용률',
     })
     expect(within(utilization).getByText('1/1개')).toBeInTheDocument()
     expect(screen.getByText('네이비 티셔츠')).toBeInTheDocument()
@@ -284,7 +284,7 @@ describe('StatisticsPage Phase 4 item usage', () => {
     const user = userEvent.setup()
     renderPage()
     await screen.findByRole('heading', {
-      name: '현재 보유 옷의 전체 기간 활용률',
+      name: '전체 기간 활용률',
     })
 
     await user.selectOptions(
@@ -293,7 +293,7 @@ describe('StatisticsPage Phase 4 item usage', () => {
     )
 
     const utilization = screen.getByRole('region', {
-      name: '현재 보유 옷의 2025년 활용률',
+      name: '2025년 활용률',
     })
     expect(within(utilization).getByText('0%')).toBeInTheDocument()
     expect(within(utilization).getByText('0/3개')).toBeInTheDocument()
@@ -335,7 +335,7 @@ describe('StatisticsPage Phase 4 item usage', () => {
     renderPage()
 
     await screen.findByRole('heading', {
-      name: '현재 보유 옷의 전체 기간 활용률',
+      name: '전체 기간 활용률',
     })
     await waitFor(() =>
       expect(scrollTo).toHaveBeenCalledWith({ top: 240 }),

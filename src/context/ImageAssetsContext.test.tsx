@@ -1,7 +1,7 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ItemVisual } from '../components/ItemVisual'
-import type { ClosetRepository } from '../data/repository'
+import type { ItemImageAssetRepository } from '../data/repository'
 import type { Item } from '../lib/types'
 import { ImageAssetsProvider } from './ImageAssetsContext'
 
@@ -49,7 +49,7 @@ describe('ImageAssetsProvider', () => {
       configurable: true,
       value: vi.fn(),
     })
-    const repository = { downloadItemImages } as unknown as ClosetRepository
+    const repository: ItemImageAssetRepository = { downloadItemImages }
 
     render(
       <ImageAssetsProvider repository={repository}>
@@ -58,13 +58,13 @@ describe('ImageAssetsProvider', () => {
       </ImageAssetsProvider>,
     )
 
-    await waitFor(() => expect(screen.getAllByRole('img')).toHaveLength(2))
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole('img').map((image) => image.getAttribute('src')),
+      ).toEqual(['blob:closet-item-1', 'blob:closet-item-1']),
+    )
     expect(downloadItemImages).toHaveBeenCalledTimes(1)
     expect(downloadItemImages).toHaveBeenCalledWith([item.image!.storagePath])
     expect(createObjectURL).toHaveBeenCalledTimes(1)
-    expect(screen.getAllByRole('img').map((image) => image.getAttribute('src'))).toEqual([
-      'blob:closet-item-1',
-      'blob:closet-item-1',
-    ])
   })
 })

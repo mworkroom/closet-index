@@ -2,15 +2,11 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type {
   MatchingOutfit,
   Outfit,
-  OutfitCloneInput,
   OutfitCreateInput,
   OutfitUpdateInput,
   OutfitItemPlacementInput,
 } from '../../lib/types'
 import {
-  collectAllPages,
-  nullableNumericValue,
-  type OutfitItemRow,
   type OutfitRow,
   toOutfitItemWriteRow,
 } from './shared'
@@ -68,55 +64,6 @@ export class SupabaseOutfitRepository {
         positionY: item.positionY,
         itemScale: item.itemScale,
         zIndex: item.zIndex,
-      })),
-    }
-  }
-
-  async clone(input: OutfitCloneInput): Promise<Outfit> {
-    const { data, error } = await this.client.rpc('clone_closet_outfit', {
-      p_workspace_id: this.workspaceId,
-      p_source_outfit_id: input.sourceOutfitId,
-      p_outfit_id: input.id,
-      p_display_name: input.displayName?.trim() || null,
-    })
-    if (error) throw error
-
-    const row = (Array.isArray(data) ? data[0] : data) as OutfitRow | null
-    if (!row) throw new Error('복제된 Outfit을 불러오지 못했습니다.')
-    const relations = await collectAllPages<OutfitItemRow>(
-      async (from, to) => {
-        const result = await this.client
-          .from('closet_outfit_items')
-          .select(
-            'outfit_id,item_id,sort_order,slot,position_x,position_y,scale,z_index',
-          )
-          .eq('workspace_id', this.workspaceId)
-          .eq('outfit_id', input.id)
-          .order('sort_order')
-          .order('item_id')
-          .range(from, to)
-        return {
-          data: result.data as OutfitItemRow[] | null,
-          error: result.error,
-        }
-      },
-    )
-    if (relations.error) throw relations.error
-
-    const links = relations.data ?? []
-    return {
-      id: row.id,
-      displayName: row.display_name,
-      rating: row.rating,
-      archivedAt: row.archived_at ?? null,
-      itemIds: links.map((link) => link.item_id),
-      itemPlacements: links.map((link) => ({
-        itemId: link.item_id,
-        slot: link.slot,
-        positionX: nullableNumericValue(link.position_x),
-        positionY: nullableNumericValue(link.position_y),
-        itemScale: nullableNumericValue(link.scale),
-        zIndex: link.z_index,
       })),
     }
   }

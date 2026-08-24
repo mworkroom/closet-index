@@ -1,37 +1,134 @@
-import { useMemo } from 'react'
+import { lazy, Suspense, useMemo } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { LoadingState } from './components/States'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { DataProvider } from './context/DataContext'
 import { SeasonScopeProvider } from './context/SeasonScopeContext'
 import { DemoRepository } from './data/demo-repository'
-import type { ClosetRepository } from './data/repository'
+import type { ClosetDataProviderRepository } from './data/repository'
 import { SupabaseRepository } from './data/supabase-repository'
 import { CLOSET_WORKSPACE_ID, supabase } from './lib/supabase'
-import { CalendarPage } from './pages/CalendarPage'
-import { ClosetPage } from './pages/ClosetPage'
-import { HomePage } from './pages/HomePage'
-import { ItemDetailPage } from './pages/ItemDetailPage'
-import { ItemEditorPage } from './pages/ItemEditorPage'
 import { AccessDeniedPage, LoginPage } from './pages/LoginPage'
-import { LookbookPage } from './pages/LookbookPage'
-import { LaundryPage, MaintenancePage } from './pages/MaintenancePage'
-import { MorePage } from './pages/MorePage'
-import { PlaceHvacProfilesPage } from './pages/PlaceHvacProfilesPage'
-import { ReplacementLinesPage } from './pages/ReplacementLinesPage'
-import { ReplacementLegacyLinkReviewPage } from './pages/ReplacementLegacyLinkReviewPage'
-import { ReplacementLineageEdgePreviewPage } from './pages/ReplacementLineageEdgePreviewPage'
-import { ReplacementLineagePage } from './pages/ReplacementLineagePage'
-import { OutfitDetailPage } from './pages/OutfitDetailPage'
-import { OutfitCreatorPage } from './pages/OutfitCreatorPage'
-import { SettingsPage } from './pages/SettingsPage'
-import { StatisticsPage } from './pages/StatisticsPage'
-import { StatisticsItemListPage } from './pages/StatisticsItemListPage'
-import { WearLogPage } from './pages/WearLogPage'
-import { WearLogEditorPage } from './pages/WearLogEditorPage'
+
+const HomePage = lazy(() =>
+  import('./pages/HomePage').then(({ HomePage }) => ({ default: HomePage })),
+)
+const CalendarPage = lazy(() =>
+  import('./pages/CalendarPage').then(({ CalendarPage }) => ({
+    default: CalendarPage,
+  })),
+)
+const ClosetPage = lazy(() =>
+  import('./pages/ClosetPage').then(({ ClosetPage }) => ({
+    default: ClosetPage,
+  })),
+)
+const ItemDetailPage = lazy(() =>
+  import('./pages/ItemDetailPage').then(({ ItemDetailPage }) => ({
+    default: ItemDetailPage,
+  })),
+)
+const ItemEditorPage = lazy(() =>
+  import('./pages/ItemEditorPage').then(({ ItemEditorPage }) => ({
+    default: ItemEditorPage,
+  })),
+)
+const LookbookPage = lazy(() =>
+  import('./pages/LookbookPage').then(({ LookbookPage }) => ({
+    default: LookbookPage,
+  })),
+)
+const MaintenancePage = lazy(() =>
+  import('./pages/MaintenancePage').then(({ MaintenancePage }) => ({
+    default: MaintenancePage,
+  })),
+)
+const LaundryPage = lazy(() =>
+  import('./pages/MaintenancePage').then(({ LaundryPage }) => ({
+    default: LaundryPage,
+  })),
+)
+const MorePage = lazy(() =>
+  import('./pages/MorePage').then(({ MorePage }) => ({ default: MorePage })),
+)
+const PlaceHvacProfilesPage = lazy(() =>
+  import('./pages/PlaceHvacProfilesPage').then(
+    ({ PlaceHvacProfilesPage }) => ({ default: PlaceHvacProfilesPage }),
+  ),
+)
+const ReplacementLinesPage = lazy(() =>
+  import('./pages/ReplacementLinesPage').then(({ ReplacementLinesPage }) => ({
+    default: ReplacementLinesPage,
+  })),
+)
+const ReplacementLegacyLinkReviewPage = lazy(() =>
+  import('./pages/ReplacementLegacyLinkReviewPage').then(
+    ({ ReplacementLegacyLinkReviewPage }) => ({
+      default: ReplacementLegacyLinkReviewPage,
+    }),
+  ),
+)
+const ReplacementLineageEdgePreviewPage = lazy(() =>
+  import('./pages/ReplacementLineageEdgePreviewPage').then(
+    ({ ReplacementLineageEdgePreviewPage }) => ({
+      default: ReplacementLineageEdgePreviewPage,
+    }),
+  ),
+)
+const ReplacementLineagePage = lazy(() =>
+  import('./pages/ReplacementLineagePage').then(({ ReplacementLineagePage }) => ({
+    default: ReplacementLineagePage,
+  })),
+)
+const OutfitDetailPage = lazy(() =>
+  import('./pages/OutfitDetailPage').then(({ OutfitDetailPage }) => ({
+    default: OutfitDetailPage,
+  })),
+)
+const OutfitCreatorPage = lazy(() =>
+  import('./pages/OutfitCreatorPage').then(({ OutfitCreatorPage }) => ({
+    default: OutfitCreatorPage,
+  })),
+)
+const SettingsPage = lazy(() =>
+  import('./pages/SettingsPage').then(({ SettingsPage }) => ({
+    default: SettingsPage,
+  })),
+)
+const StatisticsPage = lazy(() =>
+  import('./pages/StatisticsPage').then(({ StatisticsPage }) => ({
+    default: StatisticsPage,
+  })),
+)
+const StatisticsItemListPage = lazy(() =>
+  import('./pages/StatisticsItemListPage').then(({ StatisticsItemListPage }) => ({
+    default: StatisticsItemListPage,
+  })),
+)
+const WearLogPage = lazy(() =>
+  import('./pages/WearLogPage').then(({ WearLogPage }) => ({
+    default: WearLogPage,
+  })),
+)
+const WearLogEditorPage = lazy(() =>
+  import('./pages/WearLogEditorPage').then(({ WearLogEditorPage }) => ({
+    default: WearLogEditorPage,
+  })),
+)
+
+function RouteLoadingFallback() {
+  return (
+    <div className="app-frame">
+      <main className="page">
+        <LoadingState label="화면을 불러오는 중" />
+      </main>
+    </div>
+  )
+}
 
 function AuthenticatedApp() {
   const auth = useAuth()
-  const repository = useMemo<ClosetRepository | null>(() => {
+  const repository = useMemo<ClosetDataProviderRepository | null>(() => {
     if (auth.mode === 'demo') return new DemoRepository()
     if (auth.user && supabase) {
       return new SupabaseRepository(supabase, CLOSET_WORKSPACE_ID)
@@ -55,61 +152,71 @@ function AuthenticatedApp() {
   return (
     <SeasonScopeProvider>
       <DataProvider repository={repository}>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/closet" element={<ClosetPage />} />
-          <Route path="/closet/new" element={<ItemEditorPage />} />
-          <Route path="/closet/:itemId/edit" element={<ItemEditorPage />} />
-          <Route path="/closet/:itemId" element={<ItemDetailPage />} />
-          <Route path="/lookbook" element={<LookbookPage />} />
-          <Route path="/favorite" element={<LookbookPage favoriteOnly />} />
-          <Route path="/outfits/new" element={<OutfitCreatorPage />} />
-          <Route path="/outfits/:outfitId/edit" element={<OutfitCreatorPage />} />
-          <Route path="/outfits/:outfitId" element={<OutfitDetailPage />} />
-          <Route path="/wear/:outfitId" element={<WearLogPage />} />
-          <Route path="/records/:logId/edit" element={<WearLogPage />} />
-          <Route path="/tools/wear-log" element={<WearLogEditorPage />} />
-          <Route path="/tools/place-hvac" element={<PlaceHvacProfilesPage />} />
-          <Route path="/more" element={<MorePage />} />
-          <Route path="/calendar" element={<CalendarPage />} />
-          <Route path="/statistics" element={<StatisticsPage />} />
-          <Route path="/maintenance" element={<MaintenancePage />} />
-          <Route path="/laundry" element={<LaundryPage />} />
-          <Route
-            path="/replacement-lines"
-            element={<ReplacementLinesPage />}
-          />
-          <Route
-            path="/replacement-lines/review"
-            element={<ReplacementLegacyLinkReviewPage />}
-          />
-          <Route
-            path="/replacement-lines/edges/preview"
-            element={<ReplacementLineageEdgePreviewPage />}
-          />
-          <Route
-            path="/replacement-lines/:lineId"
-            element={<ReplacementLineagePage />}
-          />
-          <Route
-            path="/statistics/replacement-lines"
-            element={<Navigate to="/replacement-lines" replace />}
-          />
-          <Route
-            path="/statistics/replacement-lines/review"
-            element={<Navigate to="/replacement-lines/review" replace />}
-          />
-          <Route
-            path="/statistics/replacement-lines/edges/preview"
-            element={<Navigate to="/replacement-lines/edges/preview" replace />}
-          />
-          <Route
-            path="/statistics/items"
-            element={<StatisticsItemListPage />}
-          />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={<RouteLoadingFallback />}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/closet" element={<ClosetPage />} />
+            <Route path="/closet/new" element={<ItemEditorPage />} />
+            <Route path="/closet/:itemId/edit" element={<ItemEditorPage />} />
+            <Route path="/closet/:itemId" element={<ItemDetailPage />} />
+            <Route path="/lookbook" element={<LookbookPage />} />
+            <Route path="/favorite" element={<LookbookPage favoriteOnly />} />
+            <Route path="/outfits/new" element={<OutfitCreatorPage />} />
+            <Route
+              path="/outfits/:outfitId/edit"
+              element={<OutfitCreatorPage />}
+            />
+            <Route path="/outfits/:outfitId" element={<OutfitDetailPage />} />
+            <Route path="/wear/:outfitId" element={<WearLogPage />} />
+            <Route path="/records/:logId/edit" element={<WearLogPage />} />
+            <Route path="/tools/wear-log" element={<WearLogEditorPage />} />
+            <Route
+              path="/tools/place-hvac"
+              element={<PlaceHvacProfilesPage />}
+            />
+            <Route path="/more" element={<MorePage />} />
+            <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/statistics" element={<StatisticsPage />} />
+            <Route path="/maintenance" element={<MaintenancePage />} />
+            <Route path="/laundry" element={<LaundryPage />} />
+            <Route
+              path="/replacement-lines"
+              element={<ReplacementLinesPage />}
+            />
+            <Route
+              path="/replacement-lines/review"
+              element={<ReplacementLegacyLinkReviewPage />}
+            />
+            <Route
+              path="/replacement-lines/edges/preview"
+              element={<ReplacementLineageEdgePreviewPage />}
+            />
+            <Route
+              path="/replacement-lines/:lineId"
+              element={<ReplacementLineagePage />}
+            />
+            <Route
+              path="/statistics/replacement-lines"
+              element={<Navigate to="/replacement-lines" replace />}
+            />
+            <Route
+              path="/statistics/replacement-lines/review"
+              element={<Navigate to="/replacement-lines/review" replace />}
+            />
+            <Route
+              path="/statistics/replacement-lines/edges/preview"
+              element={
+                <Navigate to="/replacement-lines/edges/preview" replace />
+              }
+            />
+            <Route
+              path="/statistics/items"
+              element={<StatisticsItemListPage />}
+            />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </DataProvider>
     </SeasonScopeProvider>
   )

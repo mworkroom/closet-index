@@ -5,7 +5,7 @@ import {
   useState,
   type ChangeEvent,
 } from 'react'
-import { useClosetData } from '../context/DataContext'
+import { useClosetActions } from '../context/DataContext'
 import {
   prepareItemCutout,
   type PreparedItemCutout,
@@ -13,7 +13,7 @@ import {
 import type { Item } from '../lib/types'
 
 export function ItemImageEditor({ item }: { item: Item }) {
-  const { replaceItemImage } = useClosetData()
+  const { replaceItemImage } = useClosetActions()
   const inputRef = useRef<HTMLInputElement>(null)
   const [prepared, setPrepared] = useState<PreparedItemCutout | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)

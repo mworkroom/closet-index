@@ -1,6 +1,6 @@
 begin;
 
-select plan(36);
+select plan(35);
 
 select has_column(
   'public',
@@ -137,12 +137,11 @@ select is(
     where namespace.nspname = 'public'
       and procedure.proname = any(array[
         'create_closet_outfit',
-        'clone_closet_outfit',
         'find_matching_closet_outfits'
       ])
   ),
-  3,
-  'the three Phase 3 Outfit RPC functions exist'
+  2,
+  'the active Phase 3 Outfit RPC functions exist'
 );
 
 select is(
@@ -153,13 +152,12 @@ select is(
     where namespace.nspname = 'public'
       and procedure.proname = any(array[
         'create_closet_outfit',
-        'clone_closet_outfit',
         'find_matching_closet_outfits'
       ])
       and procedure.prosecdef
   ),
-  3,
-  'the RPC functions use controlled security-definer boundaries'
+  2,
+  'the active RPC functions use controlled security-definer boundaries'
 );
 
 select ok(
@@ -178,15 +176,6 @@ select ok(
     'execute'
   ),
   'anonymous users cannot call the Outfit creator'
-);
-
-select ok(
-  has_function_privilege(
-    'authenticated',
-    'public.clone_closet_outfit(uuid,uuid,uuid,text)',
-    'execute'
-  ),
-  'authenticated users can call the Outfit clone contract'
 );
 
 select ok(
@@ -420,14 +409,21 @@ select is(
 
 select lives_ok(
   $$
-    select public.clone_closet_outfit(
+    select public.create_closet_outfit(
       '83000000-0000-0000-0000-000000000001',
-      '85000000-0000-0000-0000-000000000001',
       '85000000-0000-0000-0000-000000000004',
-      'Cloned Outfit'
+      'Source-prefilled Outfit',
+      jsonb_build_array(
+        jsonb_build_object(
+          'item_id', '84000000-0000-0000-0000-000000000001',
+          'slot', 'top',
+          'sort_order', 0
+        )
+      ),
+      true
     )
   $$,
-  'an existing Outfit can be cloned to a new UUID'
+  'a source-prefilled Outfit can be saved through the creator'
 );
 
 select is(
@@ -438,7 +434,7 @@ select is(
       and outfit_id = '85000000-0000-0000-0000-000000000004'
   ),
   1::bigint,
-  'the clone receives independent relation rows'
+  'the independently created Outfit receives its own relation rows'
 );
 
 select ok(
@@ -448,7 +444,7 @@ select ok(
     where id = '85000000-0000-0000-0000-000000000001'
       and rating is null
   ),
-  'cloning does not change the source rating'
+  'creating another Outfit does not change the existing rating'
 );
 
 select lives_ok(
@@ -458,7 +454,7 @@ select lives_ok(
     where id = '85000000-0000-0000-0000-000000000004'
       and workspace_id = '83000000-0000-0000-0000-000000000001'
   $$,
-  'a member can archive a cloned Outfit'
+  'a member can archive the newly created Outfit'
 );
 
 select ok(
@@ -467,7 +463,7 @@ select ok(
     from public.closet_outfits
     where id = '85000000-0000-0000-0000-000000000004'
   ),
-  'the clone has a recoverable archive timestamp'
+  'the archived Outfit has a recoverable timestamp'
 );
 
 select ok(
@@ -476,7 +472,7 @@ select ok(
     from public.closet_outfits
     where id = '85000000-0000-0000-0000-000000000001'
   ),
-  'archiving the clone leaves the source active'
+  'archiving the new Outfit leaves the existing Outfit active'
 );
 
 select * from finish();

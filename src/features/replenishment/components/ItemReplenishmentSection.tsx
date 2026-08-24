@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useState } from 'react'
-import { useClosetData } from '../../../context/DataContext'
+import { useClosetActions } from '../../../context/DataContext'
 import { formatMonthDayYear } from '../../../lib/date'
 import type { Item, PurchaseEvent } from '../../../lib/types'
 import type { PurchaseCycleStatus } from '../purchase-replenishment'
@@ -52,7 +52,7 @@ export function ItemReplenishmentSection({
   today: string
   variant?: ReplenishmentSectionVariant
 }) {
-  const { purchases, refresh } = useClosetData()
+  const { purchases, refresh } = useClosetActions()
   const [createOpen, setCreateOpen] = useState(false)
   const [purchaseId, setPurchaseId] = useState(() => crypto.randomUUID())
   const [purchaseDate, setPurchaseDate] = useState(today)

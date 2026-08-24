@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { ClosetRepository } from '../../data/repository'
+import type { WeatherRepository } from '../../data/repository'
 import {
   LOCAL_P5A_DIRECT_EVIDENCE_E2_ENABLED,
   rankHomeRecommendationsWithDirectEvidenceE2,
@@ -275,7 +275,7 @@ function parseTemperature(value: string) {
 interface UseHomeRecommendationOptions {
   data: AppData | null
   activeSeasons: Season[]
-  fetchWeatherForecast: ClosetRepository['fetchWeatherForecast']
+  fetchWeatherForecast: WeatherRepository['fetchWeatherForecast']
 }
 
 export function useHomeRecommendation({

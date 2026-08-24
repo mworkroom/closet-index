@@ -78,12 +78,6 @@ export interface OutfitCreateInput {
   allowDuplicate: boolean
 }
 
-export interface OutfitCloneInput {
-  id: string
-  sourceOutfitId: string
-  displayName: string | null
-}
-
 export interface MatchingOutfit {
   id: string
   displayName: string | null

@@ -232,7 +232,7 @@
 | `cancel_closet_item_image_upload(workspace, item, image)` | 같은 Edge Function; 실패 복구에서 간접 | item_images | pending 취소와 storage 정리 대상 확정 | 필요 |
 | `create_closet_outfit(workspace, outfit, name, items, allow_duplicate)` | `SupabaseOutfitRepository.create`; Outfit 생성 UI | outfits, 내부 helper를 통한 outfit_items/items | header·구성·중복 검사를 한 번에 저장 | 필요 |
 | `update_closet_outfit(workspace, outfit, name, items, allow_duplicate)` | `SupabaseOutfitRepository.update`; Outfit 편집 UI | items, outfits, outfit_items | 기존 구성 교체와 중복 검사를 원자 처리 | 필요 |
-| `clone_closet_outfit(workspace, source, new_id, name)` | `SupabaseOutfitRepository.clone`; 복제 UI | outfits, outfit_items | 새 header와 모든 구성 복사 | 필요 |
+| `clone_closet_outfit(workspace, source, new_id, name)` | client wrapper는 로컬에서 제거 완료. 현재 복제 UX는 source-prefill 뒤 일반 create 경로를 사용하며 production RPC만 staged cleanup을 위해 유지 | outfits, outfit_items | 새 header와 모든 구성 복사 | client build 검증 완료. 배포 후 공개 번들 0건 확인 전까지 RPC 유지 |
 | `find_matching_closet_outfits(workspace, item_ids[])` | `SupabaseOutfitRepository.findMatching`; 생성 중 중복 확인 | outfits, outfit_items | 읽기 함수이며 동일 item set 계산을 서버에서 고정 | 필요 |
 | `delete_closet_item_if_unreferenced(user, workspace, item)` | `closet-item-image` Edge Function; Item 삭제 UI | items, images, outfit_items, line_items | 참조 재확인·row 삭제·storage 경로 반환 | 필요 |
 | `delete_closet_outfit_if_unworn(user, workspace, outfit)` | `closet-outfit-delete` Edge Function; Outfit 삭제 UI | outfits, wear_logs | Wear Log 차단과 삭제를 한 transaction에서 처리 | 필요 |

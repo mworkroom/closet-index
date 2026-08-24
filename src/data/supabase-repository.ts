@@ -4,7 +4,6 @@ import type {
   ItemCreateInput,
   ItemImageUploadInput,
   ItemWriteInput,
-  OutfitCloneInput,
   OutfitCreateInput,
   OutfitUpdateInput,
   OutfitItemPlacementInput,
@@ -110,10 +109,6 @@ export class SupabaseRepository implements ClosetRepository {
 
   updateOutfit(outfitId: string, input: OutfitUpdateInput) {
     return this.outfits.update(outfitId, input)
-  }
-
-  cloneOutfit(input: OutfitCloneInput) {
-    return this.outfits.clone(input)
   }
 
   setOutfitArchived(outfitId: string, archived: boolean) {

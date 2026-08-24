@@ -32,7 +32,7 @@ describe('statistics item-list navigation', () => {
   it('drops invalid values and falls back to the safe lifetime list', () => {
     const parsed = readStatisticsItemListSearchParams(
       new URLSearchParams(
-        'result=unknown&period=bad&season=Winter&season=Unknown&category=top&category=nope&color=Black&color=Navy',
+        'result=unknown&period=bad&season=Winter&season=Unknown&category=top&category=nope&color=Black&color=Navy&color=Unknown',
       ),
     )
 
@@ -42,7 +42,7 @@ describe('statistics item-list navigation', () => {
         period: { kind: 'lifetime' },
         seasons: ['Winter'],
         categories: ['top'],
-        colors: ['Black'],
+        colors: ['Black', 'Navy'],
         excludeRetired: false,
       },
     })

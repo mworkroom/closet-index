@@ -291,7 +291,7 @@ describe('ItemDetailPage care history', () => {
     renderItemDetail(repository, 'item-knit')
 
     const section = await screen.findByRole('region', {
-      name: '손세탁·드라이클리닝',
+      name: 'Special Care',
     })
     expect(within(section).queryByText('현재 관리 방식')).not.toBeInTheDocument()
     expect(within(section).queryByText('최근 관리일')).not.toBeInTheDocument()
@@ -353,7 +353,7 @@ describe('ItemDetailPage care history', () => {
     renderItemDetail(repository, 'item-knit')
 
     const section = await screen.findByRole('region', {
-      name: '손세탁·드라이클리닝',
+      name: 'Special Care',
     })
     const history = section.querySelector('.replenishment-history')
     expect(history).not.toBeNull()
@@ -387,7 +387,7 @@ describe('ItemDetailPage care history', () => {
     renderItemDetail(repository, 'item-knit')
 
     const section = await screen.findByRole('region', {
-      name: '손세탁·드라이클리닝',
+      name: 'Special Care',
     })
     expect(within(section).getByText('세탁 이력')).toBeInTheDocument()
     expect(within(section).getByRole('button', { name: '수정' })).toBeInTheDocument()

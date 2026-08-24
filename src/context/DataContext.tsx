@@ -8,74 +8,29 @@ import {
   useRef,
   useState,
 } from 'react'
-import type {
-  AppData,
-  Item,
-  ItemCreateInput,
-  ItemImageUploadInput,
-  ItemWriteInput,
-  MatchingOutfit,
-  Outfit,
-  OutfitCreateInput,
-  OutfitUpdateInput,
-  OutfitItemPlacementInput,
-  PlaceHvacProfileInput,
-  WeatherForecastRequest,
-  WeatherForecastResponse,
-  WeatherLocationInput,
-  WearLogPatch,
-  WearLogInput,
-} from '../lib/types'
-import type { ClosetRepository } from '../data/repository'
-import type { ReplacementLineRepository } from '../data/replacement-line-repository'
-import type { PurchaseRepository } from '../data/purchase-repository'
-import type { CareRepository } from '../data/care-repository'
+import type { ClosetDataProviderRepository } from '../data/repository'
+import type { AppData } from '../lib/types'
 import { ImageAssetsProvider } from './ImageAssetsContext'
+import {
+  type ClosetActions,
+  useClosetActionsValue,
+} from './use-closet-actions'
 
-interface DataState {
+interface ClosetDataState {
   data: AppData | null
   loading: boolean
   error: string | null
-  refresh: () => Promise<void>
-  readonly replacementLines: ReplacementLineRepository
-  readonly purchases: PurchaseRepository
-  readonly care: CareRepository
-  createItem: (input: ItemCreateInput) => Promise<Item>
-  updateItem: (itemId: string, input: ItemWriteInput) => Promise<Item>
-  replaceItemImage: (
-    itemId: string,
-    input: ItemImageUploadInput,
-  ) => Promise<void>
-  setItemRetired: (itemId: string, retired: boolean) => Promise<void>
-  deleteItem: (itemId: string) => Promise<void>
-  updateItemSuitability: (
-    itemId: string,
-    rainOk: boolean,
-    longWalkOk: boolean,
-  ) => Promise<void>
-  findMatchingOutfits: (itemIds: string[]) => Promise<MatchingOutfit[]>
-  createOutfit: (input: OutfitCreateInput) => Promise<Outfit>
-  updateOutfit: (outfitId: string, input: OutfitUpdateInput) => Promise<Outfit>
-  setOutfitArchived: (outfitId: string, archived: boolean) => Promise<void>
-  deleteOutfit: (outfitId: string) => Promise<void>
-  updateOutfitItemPlacement: (input: OutfitItemPlacementInput) => Promise<void>
-  saveDefaultWeatherLocation: (input: WeatherLocationInput) => Promise<void>
-  fetchWeatherForecast: (
-    input: WeatherForecastRequest,
-  ) => Promise<WeatherForecastResponse>
-  savePlaceHvacProfile: (input: PlaceHvacProfileInput) => Promise<void>
-  createWearLog: (input: WearLogInput) => Promise<void>
-  updateWearLog: (id: string, input: WearLogInput) => Promise<void>
-  updateWearLogFields: (id: string, patch: WearLogPatch) => Promise<void>
-  deleteWearLog: (id: string) => Promise<void>
 }
 
-const DataContext = createContext<DataState | null>(null)
+type ClosetDataValue = ClosetDataState & ClosetActions
+
+const ClosetDataStateContext = createContext<ClosetDataState | null>(null)
+const ClosetActionsContext = createContext<ClosetActions | null>(null)
 
 export function DataProvider({
   repository,
   children,
-}: PropsWithChildren<{ repository: ClosetRepository }>) {
+}: PropsWithChildren<{ repository: ClosetDataProviderRepository }>) {
   const [data, setData] = useState<AppData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -105,309 +60,47 @@ export function DataProvider({
     void refresh()
   }, [refresh])
 
-  const mutate = useCallback(
-    async (operation: () => Promise<unknown>) => {
-      setError(null)
-      try {
-        await operation()
-        await refresh()
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : '저장하지 못했습니다.'
-        setError(message)
-        throw cause
-      }
-    },
-    [refresh],
-  )
+  const actionsValue = useClosetActionsValue({
+    repository,
+    refresh,
+    setData,
+    setError,
+  })
 
-  const updateWearLogFields = useCallback(
-    async (id: string, patch: WearLogPatch) => {
-      setError(null)
-      try {
-        const log = await repository.updateWearLogFields(id, patch)
-        setData((current) =>
-          current
-            ? {
-                ...current,
-                wearLogs: current.wearLogs.map((entry) =>
-                  entry.id === log.id ? log : entry,
-                ),
-              }
-            : current,
-        )
-      } catch (cause) {
-        const message =
-          cause instanceof Error ? cause.message : 'Wear Log 저장에 실패했습니다.'
-        setError(message)
-        throw cause
-      }
-    },
-    [repository],
-  )
-
-  const updateOutfitItemPlacement = useCallback(
-    async (input: OutfitItemPlacementInput) => {
-      setError(null)
-      try {
-        await repository.updateOutfitItemPlacement(input)
-        setData((current) => {
-          if (!current) return current
-
-          return {
-            ...current,
-            outfits: current.outfits.map((outfit) => {
-              if (outfit.id !== input.outfitId) return outfit
-
-              const placements = outfit.itemPlacements ?? []
-              const hasPlacement = placements.some(
-                (placement) => placement.itemId === input.itemId,
-              )
-              const nextPlacement = {
-                itemId: input.itemId,
-                slot: input.slot,
-                positionX: input.positionX,
-                positionY: input.positionY,
-                itemScale: input.itemScale,
-                zIndex: input.zIndex,
-              }
-
-              return {
-                ...outfit,
-                itemPlacements: hasPlacement
-                  ? placements.map((placement) =>
-                      placement.itemId === input.itemId
-                        ? {
-                          ...placement,
-                          slot: input.slot,
-                          positionX: input.positionX,
-                          positionY: input.positionY,
-                          itemScale: input.itemScale,
-                          zIndex: input.zIndex,
-                          }
-                        : placement,
-                    )
-                  : [...placements, nextPlacement],
-              }
-            }),
-          }
-        })
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : '저장하지 못했습니다.'
-        setError(message)
-        throw cause
-      }
-    },
-    [repository],
-  )
-
-  const findMatchingOutfits = useCallback(
-    (itemIds: string[]) => repository.findMatchingOutfits(itemIds),
-    [repository],
-  )
-
-
-  const createOutfit = useCallback(
-    async (input: OutfitCreateInput) => {
-      setError(null)
-      try {
-        const outfit = await repository.createOutfit(input)
-        setData((current) =>
-          current
-            ? {
-                ...current,
-                outfits: current.outfits.some((entry) => entry.id === outfit.id)
-                  ? current.outfits.map((entry) =>
-                      entry.id === outfit.id ? outfit : entry,
-                    )
-                  : [...current.outfits, outfit],
-              }
-            : current,
-        )
-        return outfit
-      } catch (cause) {
-        const message =
-          cause instanceof Error ? cause.message : 'Outfit을 저장하지 못했습니다.'
-        setError(message)
-        throw cause
-      }
-    },
-    [repository],
-  )
-
-  const setOutfitArchived = useCallback(
-    async (outfitId: string, archived: boolean) => {
-      setError(null)
-      try {
-        await repository.setOutfitArchived(outfitId, archived)
-        setData((current) =>
-          current
-            ? {
-                ...current,
-                outfits: current.outfits.map((outfit) =>
-                  outfit.id === outfitId
-                    ? {
-                        ...outfit,
-                        archivedAt: archived ? new Date().toISOString() : null,
-                      }
-                    : outfit,
-                ),
-              }
-            : current,
-        )
-      } catch (cause) {
-        const message =
-          cause instanceof Error ? cause.message : 'Outfit 상태를 바꾸지 못했습니다.'
-        setError(message)
-        throw cause
-      }
-    },
-    [repository],
-  )
-
-  const updateOutfit = useCallback(
-    async (outfitId: string, input: OutfitUpdateInput) => {
-      setError(null)
-      try {
-        const outfit = await repository.updateOutfit(outfitId, input)
-        setData((current) =>
-          current
-            ? {
-                ...current,
-                outfits: current.outfits.map((entry) =>
-                  entry.id === outfit.id ? outfit : entry,
-                ),
-              }
-            : current,
-        )
-        return outfit
-      } catch (cause) {
-        const message =
-          cause instanceof Error ? cause.message : 'Outfit을 수정하지 못했습니다.'
-        setError(message)
-        throw cause
-      }
-    },
-    [repository],
-  )
-
-  const createItem = useCallback(
-    async (input: ItemCreateInput) => {
-      setError(null)
-      try {
-        const item = await repository.createItem(input)
-        setData((current) =>
-          current
-            ? {
-                ...current,
-                items: current.items.some((entry) => entry.id === item.id)
-                  ? current.items.map((entry) =>
-                      entry.id === item.id ? item : entry,
-                    )
-                  : [...current.items, item],
-              }
-            : current,
-        )
-        return item
-      } catch (cause) {
-        const message =
-          cause instanceof Error ? cause.message : '저장하지 못했습니다.'
-        setError(message)
-        throw cause
-      }
-    },
-    [repository],
-  )
-
-  const updateItem = useCallback(
-    async (itemId: string, input: ItemWriteInput) => {
-      setError(null)
-      try {
-        const item = await repository.updateItem(itemId, input)
-        setData((current) =>
-          current
-            ? {
-                ...current,
-                items: current.items.map((entry) =>
-                  entry.id === item.id ? item : entry,
-                ),
-              }
-            : current,
-        )
-        return item
-      } catch (cause) {
-        const message =
-          cause instanceof Error ? cause.message : '저장하지 못했습니다.'
-        setError(message)
-        throw cause
-      }
-    },
-    [repository],
-  )
-
-  const value = useMemo<DataState>(
-    () => ({
-      data,
-      loading,
-      error,
-      refresh,
-      replacementLines: repository.replacementLines,
-      purchases: repository.purchases,
-      care: repository.care,
-      createItem,
-      updateItem,
-      replaceItemImage: (itemId, input) =>
-        mutate(() => repository.replaceItemImage(itemId, input)),
-      setItemRetired: (itemId, retired) =>
-        mutate(() => repository.setItemRetired(itemId, retired)),
-      deleteItem: (itemId) => mutate(() => repository.deleteItem(itemId)),
-      updateItemSuitability: (itemId, rainOk, longWalkOk) =>
-        mutate(() => repository.updateItemSuitability(itemId, rainOk, longWalkOk)),
-      findMatchingOutfits,
-      createOutfit,
-      updateOutfit,
-      setOutfitArchived,
-      deleteOutfit: (outfitId) =>
-        mutate(() => repository.deleteOutfit(outfitId)),
-      updateOutfitItemPlacement,
-      saveDefaultWeatherLocation: (input) =>
-        mutate(() => repository.saveDefaultWeatherLocation(input)),
-      fetchWeatherForecast: (input) => repository.fetchWeatherForecast(input),
-      savePlaceHvacProfile: (input) =>
-        mutate(() => repository.savePlaceHvacProfile(input)),
-      createWearLog: (input) => mutate(() => repository.createWearLog(input)),
-      updateWearLog: (id, input) => mutate(() => repository.updateWearLog(id, input)),
-      updateWearLogFields,
-      deleteWearLog: (id) => mutate(() => repository.deleteWearLog(id)),
-    }),
-    [
-      createItem,
-      createOutfit,
-      updateOutfit,
-      data,
-      error,
-      loading,
-      findMatchingOutfits,
-      mutate,
-      refresh,
-      repository,
-      setOutfitArchived,
-      updateItem,
-      updateWearLogFields,
-      updateOutfitItemPlacement,
-    ],
+  const stateValue = useMemo<ClosetDataState>(
+    () => ({ data, loading, error }),
+    [data, error, loading],
   )
 
   return (
-    <DataContext.Provider value={value}>
-      <ImageAssetsProvider repository={repository}>
-        {children}
-      </ImageAssetsProvider>
-    </DataContext.Provider>
+    <ClosetActionsContext.Provider value={actionsValue}>
+      <ClosetDataStateContext.Provider value={stateValue}>
+        <ImageAssetsProvider repository={repository}>
+          {children}
+        </ImageAssetsProvider>
+      </ClosetDataStateContext.Provider>
+    </ClosetActionsContext.Provider>
   )
 }
 
-export function useClosetData() {
-  const value = useContext(DataContext)
+export function useClosetDataState() {
+  const value = useContext(ClosetDataStateContext)
   if (!value) throw new Error('DataProvider가 필요합니다.')
   return value
+}
+
+export function useClosetActions() {
+  const value = useContext(ClosetActionsContext)
+  if (!value) throw new Error('DataProvider가 필요합니다.')
+  return value
+}
+
+export function useClosetData() {
+  const state = useClosetDataState()
+  const actions = useClosetActions()
+
+  return useMemo<ClosetDataValue>(
+    () => ({ ...state, ...actions }),
+    [actions, state],
+  )
 }

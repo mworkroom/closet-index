@@ -106,31 +106,22 @@ describe('DemoRepository Phase 3 writes', () => {
     })
   })
 
-  it('Outfit 복제와 보관은 원본 relation과 평가를 바꾸지 않는다', async () => {
+  it('Outfit 보관은 relation과 평가를 바꾸지 않는다', async () => {
     const repository = new DemoRepository()
-    const sourceBefore = structuredClone(
+    const outfitBefore = structuredClone(
       (await repository.load()).outfits.find(
         (outfit) => outfit.id === 'outfit-favorite',
       ),
     )
-    if (sourceBefore) sourceBefore.archivedAt ??= null
+    if (outfitBefore) outfitBefore.archivedAt ??= null
 
-    const clone = await repository.cloneOutfit({
-      id: 'outfit-clone',
-      sourceOutfitId: 'outfit-favorite',
-      displayName: '복제 착장',
-    })
-    await repository.setOutfitArchived(clone.id, true)
+    await repository.setOutfitArchived('outfit-favorite', true)
 
     const data = await repository.load()
     expect(
       data.outfits.find((outfit) => outfit.id === 'outfit-favorite'),
-    ).toEqual(sourceBefore)
-    expect(
-      data.outfits.find((outfit) => outfit.id === 'outfit-clone'),
-    ).toMatchObject({
-      rating: 'ok',
-      itemIds: sourceBefore?.itemIds,
+    ).toEqual({
+      ...outfitBefore,
       archivedAt: expect.any(String),
     })
   })

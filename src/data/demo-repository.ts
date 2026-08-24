@@ -5,7 +5,6 @@ import type {
   ItemWriteInput,
   MatchingOutfit,
   Outfit,
-  OutfitCloneInput,
   OutfitCreateInput,
   OutfitUpdateInput,
   OutfitItemPlacementInput,
@@ -547,34 +546,6 @@ export class DemoRepository implements ClosetRepository {
     data.outfits.push(outfit)
     writeData(data)
     return outfit
-  }
-
-  async cloneOutfit(input: OutfitCloneInput): Promise<Outfit> {
-    const data = readData()
-    const source = data.outfits.find(
-      (outfit) => outfit.id === input.sourceOutfitId,
-    )
-    if (!source) throw new Error('복제할 Outfit을 찾을 수 없습니다.')
-
-    return this.createOutfit({
-      id: input.id,
-      displayName: input.displayName ?? source.displayName,
-      allowDuplicate: true,
-      items: source.itemIds.map((itemId, index) => {
-        const placement = source.itemPlacements?.find(
-          (entry) => entry.itemId === itemId,
-        )
-        return {
-          itemId,
-          slot: placement?.slot ?? null,
-          sortOrder: index,
-          positionX: placement?.positionX ?? null,
-          positionY: placement?.positionY ?? null,
-          itemScale: placement?.itemScale ?? null,
-          zIndex: placement?.zIndex ?? null,
-        }
-      }),
-    })
   }
 
   async setOutfitArchived(outfitId: string, archived: boolean) {

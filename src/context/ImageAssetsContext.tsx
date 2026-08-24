@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import type { ClosetRepository } from '../data/repository'
+import type { ItemImageAssetRepository } from '../data/repository'
 import type { ImageAsset } from '../lib/types'
 
 const IMAGE_OBSERVER_ROOT_MARGIN = '600px 0px'
@@ -29,7 +29,7 @@ function revokeObjectUrls(urls: Iterable<string>) {
 export function ImageAssetsProvider({
   repository,
   children,
-}: PropsWithChildren<{ repository: ClosetRepository }>) {
+}: PropsWithChildren<{ repository: ItemImageAssetRepository }>) {
   const [objectUrls, setObjectUrls] = useState<Map<string, string>>(
     () => new Map(),
   )

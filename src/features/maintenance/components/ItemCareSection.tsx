@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from 'react'
-import { useClosetData } from '../../../context/DataContext'
+import { useClosetActions } from '../../../context/DataContext'
 import { formatMonthDayYear } from '../../../lib/date'
 import type { CareEvent, CareMethod, Item } from '../../../lib/types'
 import {
@@ -26,7 +26,7 @@ export function ItemCareSection({
   rule: CareRule | null
   today: string
 }) {
-  const { care } = useClosetData()
+  const { care } = useClosetActions()
   const [createOpen, setCreateOpen] = useState(false)
   const [careId, setCareId] = useState(() => crypto.randomUUID())
   const [careDate, setCareDate] = useState(today)

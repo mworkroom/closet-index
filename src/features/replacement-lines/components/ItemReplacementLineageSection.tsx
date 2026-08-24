@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ItemVisual } from '../../../components/ItemVisual'
 import { ErrorState, LoadingState } from '../../../components/States'
-import { useClosetData } from '../../../context/DataContext'
+import { useClosetActions } from '../../../context/DataContext'
 import type { Item, ReplacementLineEdge } from '../../../lib/types'
 import {
   getItemReplacementLineage,
@@ -89,7 +89,7 @@ export function ItemReplacementLineageSection({
   item: Item
   items: Item[]
 }) {
-  const { replacementLines } = useClosetData()
+  const { replacementLines } = useClosetActions()
   const [edges, setEdges] = useState<ReplacementLineEdge[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loadAttempt, setLoadAttempt] = useState(0)

@@ -9,6 +9,26 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   },
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: 'react-vendor',
+              test: /node_modules[\\/](?:react|react-dom|react-router|react-router-dom|scheduler)[\\/]/,
+              priority: 20,
+            },
+            {
+              name: 'supabase-vendor',
+              test: /node_modules[\\/]@supabase[\\/]/,
+              priority: 10,
+            },
+          ],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({

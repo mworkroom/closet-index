@@ -1,9 +1,14 @@
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
-import type { ClosetRepository } from '../data/repository'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { ClosetDataProviderRepository } from '../data/repository'
 import type { AppData } from '../lib/types'
-import { DataProvider, useClosetData } from './DataContext'
+import {
+  DataProvider,
+  useClosetActions,
+  useClosetData,
+  useClosetDataState,
+} from './DataContext'
 
 const appData: AppData = {
   items: [],
@@ -29,6 +34,39 @@ const appData: AppData = {
   places: [],
   placeHvacProfiles: [],
   transportModes: [],
+}
+
+afterEach(cleanup)
+
+function createRepository(
+  overrides: Partial<ClosetDataProviderRepository> = {},
+): ClosetDataProviderRepository {
+  return {
+    load: vi.fn(async () => structuredClone(appData)),
+    replacementLines: {} as ClosetDataProviderRepository['replacementLines'],
+    purchases: {} as ClosetDataProviderRepository['purchases'],
+    care: {} as ClosetDataProviderRepository['care'],
+    createItem: vi.fn(),
+    updateItem: vi.fn(),
+    deleteItem: vi.fn(async () => undefined),
+    replaceItemImage: vi.fn(async () => undefined),
+    setItemRetired: vi.fn(async () => undefined),
+    updateItemSuitability: vi.fn(async () => undefined),
+    findMatchingOutfits: vi.fn(),
+    createOutfit: vi.fn(),
+    updateOutfit: vi.fn(),
+    deleteOutfit: vi.fn(async () => undefined),
+    setOutfitArchived: vi.fn(async () => undefined),
+    updateOutfitItemPlacement: vi.fn(async () => undefined),
+    saveDefaultWeatherLocation: vi.fn(),
+    fetchWeatherForecast: vi.fn(),
+    savePlaceHvacProfile: vi.fn(),
+    createWearLog: vi.fn(),
+    updateWearLog: vi.fn(),
+    updateWearLogFields: vi.fn(),
+    deleteWearLog: vi.fn(async () => undefined),
+    ...overrides,
+  }
 }
 
 function PositionProbe() {
@@ -104,35 +142,49 @@ function ArchiveOutfitProbe() {
   )
 }
 
-describe('DataProvider outfit placement updates', () => {
+function DataLoadingProbe() {
+  const { loading } = useClosetDataState()
+  return <span>{loading ? 'state-loading' : 'state-ready'}</span>
+}
+
+function ActionsRenderProbe({ onRender }: { onRender: () => void }) {
+  onRender()
+  const { refresh } = useClosetActions()
+  return (
+    <button type="button" onClick={() => void refresh()}>
+      refresh
+    </button>
+  )
+}
+
+function OutfitErrorProbe() {
+  const { error } = useClosetDataState()
+  const { createOutfit } = useClosetActions()
+
+  return (
+    <>
+      <span>{error ?? 'no-action-error'}</span>
+      <button
+        type="button"
+        onClick={() =>
+          void createOutfit({
+            id: 'failed-outfit',
+            displayName: null,
+            allowDuplicate: false,
+            items: [],
+          }).catch(() => undefined)
+        }
+      >
+        fail create
+      </button>
+    </>
+  )
+}
+
+describe('DataProvider actions and context boundaries', () => {
   it('updates the loaded outfit without reloading all app data', async () => {
     const user = userEvent.setup()
-    const repository: ClosetRepository = {
-      load: vi.fn(async () => structuredClone(appData)),
-      replacementLines: {} as ClosetRepository['replacementLines'],
-      purchases: {} as ClosetRepository['purchases'],
-      care: {} as ClosetRepository['care'],
-      createItem: vi.fn(),
-      updateItem: vi.fn(),
-      deleteItem: vi.fn(async () => undefined),
-      replaceItemImage: vi.fn(async () => undefined),
-      setItemRetired: vi.fn(async () => undefined),
-      updateItemSuitability: vi.fn(async () => undefined),
-      findMatchingOutfits: vi.fn(),
-      createOutfit: vi.fn(),
-      updateOutfit: vi.fn(),
-      cloneOutfit: vi.fn(),
-      deleteOutfit: vi.fn(async () => undefined),
-      setOutfitArchived: vi.fn(async () => undefined),
-      updateOutfitItemPlacement: vi.fn(async () => undefined),
-      saveDefaultWeatherLocation: vi.fn(),
-      fetchWeatherForecast: vi.fn(),
-      savePlaceHvacProfile: vi.fn(),
-      createWearLog: vi.fn(),
-      updateWearLog: vi.fn(),
-      updateWearLogFields: vi.fn(),
-      deleteWearLog: vi.fn(async () => undefined),
-    }
+    const repository = createRepository()
 
     render(
       <DataProvider repository={repository}>
@@ -169,32 +221,9 @@ describe('DataProvider outfit placement updates', () => {
       itemIds: [],
       itemPlacements: [],
     }
-    const repository: ClosetRepository = {
-      load: vi.fn(async () => structuredClone(appData)),
-      replacementLines: {} as ClosetRepository['replacementLines'],
-      purchases: {} as ClosetRepository['purchases'],
-      care: {} as ClosetRepository['care'],
-      createItem: vi.fn(),
-      updateItem: vi.fn(),
-      deleteItem: vi.fn(async () => undefined),
-      replaceItemImage: vi.fn(async () => undefined),
-      setItemRetired: vi.fn(async () => undefined),
-      updateItemSuitability: vi.fn(async () => undefined),
-      findMatchingOutfits: vi.fn(),
+    const repository = createRepository({
       createOutfit: vi.fn(async () => createdOutfit),
-      updateOutfit: vi.fn(),
-      cloneOutfit: vi.fn(),
-      deleteOutfit: vi.fn(async () => undefined),
-      setOutfitArchived: vi.fn(async () => undefined),
-      updateOutfitItemPlacement: vi.fn(async () => undefined),
-      saveDefaultWeatherLocation: vi.fn(),
-      fetchWeatherForecast: vi.fn(),
-      savePlaceHvacProfile: vi.fn(),
-      createWearLog: vi.fn(),
-      updateWearLog: vi.fn(),
-      updateWearLogFields: vi.fn(),
-      deleteWearLog: vi.fn(async () => undefined),
-    }
+    })
 
     render(
       <DataProvider repository={repository}>
@@ -212,32 +241,7 @@ describe('DataProvider outfit placement updates', () => {
 
   it('updates an Outfit archive state without reloading Wear Logs or relations', async () => {
     const user = userEvent.setup()
-    const repository: ClosetRepository = {
-      load: vi.fn(async () => structuredClone(appData)),
-      replacementLines: {} as ClosetRepository['replacementLines'],
-      purchases: {} as ClosetRepository['purchases'],
-      care: {} as ClosetRepository['care'],
-      createItem: vi.fn(),
-      updateItem: vi.fn(),
-      deleteItem: vi.fn(async () => undefined),
-      replaceItemImage: vi.fn(async () => undefined),
-      setItemRetired: vi.fn(async () => undefined),
-      updateItemSuitability: vi.fn(async () => undefined),
-      findMatchingOutfits: vi.fn(),
-      createOutfit: vi.fn(),
-      updateOutfit: vi.fn(),
-      cloneOutfit: vi.fn(),
-      deleteOutfit: vi.fn(async () => undefined),
-      setOutfitArchived: vi.fn(async () => undefined),
-      updateOutfitItemPlacement: vi.fn(async () => undefined),
-      saveDefaultWeatherLocation: vi.fn(),
-      fetchWeatherForecast: vi.fn(),
-      savePlaceHvacProfile: vi.fn(),
-      createWearLog: vi.fn(),
-      updateWearLog: vi.fn(),
-      updateWearLogFields: vi.fn(),
-      deleteWearLog: vi.fn(async () => undefined),
-    }
+    const repository = createRepository()
 
     render(
       <DataProvider repository={repository}>
@@ -251,5 +255,55 @@ describe('DataProvider outfit placement updates', () => {
     expect(await screen.findByText('archived')).toBeInTheDocument()
     expect(repository.setOutfitArchived).toHaveBeenCalledWith('outfit', true)
     expect(repository.load).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not re-render an actions-only consumer when data state refreshes', async () => {
+    const user = userEvent.setup()
+    const onRender = vi.fn()
+    const repository = createRepository()
+
+    render(
+      <DataProvider repository={repository}>
+        <DataLoadingProbe />
+        <ActionsRenderProbe onRender={onRender} />
+      </DataProvider>,
+    )
+
+    expect(await screen.findByText('state-ready')).toBeInTheDocument()
+    expect(onRender).toHaveBeenCalledTimes(1)
+
+    await user.click(screen.getByRole('button', { name: 'refresh' }))
+    await waitFor(() => expect(repository.load).toHaveBeenCalledTimes(2))
+
+    expect(screen.getByText('state-ready')).toBeInTheDocument()
+    expect(onRender).toHaveBeenCalledTimes(1)
+  })
+
+  it('preserves the Outfit fallback error when a non-Error rejection occurs', async () => {
+    const user = userEvent.setup()
+    const repository = createRepository({
+      createOutfit: vi.fn(async () => {
+        throw 'failed'
+      }),
+    })
+
+    render(
+      <DataProvider repository={repository}>
+        <OutfitErrorProbe />
+      </DataProvider>,
+    )
+
+    expect(await screen.findByText('no-action-error')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'fail create' }))
+
+    expect(
+      await screen.findByText('Outfit을 저장하지 못했습니다.'),
+    ).toBeInTheDocument()
+    expect(repository.createOutfit).toHaveBeenCalledWith({
+      id: 'failed-outfit',
+      displayName: null,
+      allowDuplicate: false,
+      items: [],
+    })
   })
 })
