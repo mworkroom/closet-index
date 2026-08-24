@@ -2,6 +2,7 @@
 
 - 날짜: 2026-07-26
 - 앱 버전: `0.1.0`
+- 2026-08-25 갱신: Notion → Supabase 일회성 migration은 완료 상태이며 active import writer와 package command를 제거했다.
 
 ## 실행
 
@@ -25,7 +26,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=...
 VITE_CLOSET_WORKSPACE_ID=00000000-0000-0000-0000-000000000003
 ```
 
-브라우저에는 publishable key만 둔다. `sb_secret_…` Secret key는 Git에서 제외된 `.env.supabase.local`에만 저장하고 Notion 이전을 실행하는 로컬 프로세스에서만 사용한다. 기존 JWT 기반 service role 키도 호환용으로만 지원한다.
+브라우저에는 publishable key만 둔다. 초기 Notion migration 당시 secret key는 Git에서 제외된 로컬 환경에서만 사용했다. 해당 import writer는 제거했으며 현재 앱과 active script는 이 migration 경로의 secret/service-role key를 사용하지 않는다.
 
 ## 구현된 흐름
 
@@ -59,7 +60,6 @@ HOME · CLOSET · LOOKBOOK · FAVORITE · MORE
 | `supabase/migrations` | schema·grant·RLS |
 | `supabase/tests` | pgTAP 계약 |
 | `scripts/extract-notion.mjs` | Notion snapshot |
-| `scripts/import-supabase.mjs` | dry-run·명시적 import |
 
 ## 검증 명령
 
@@ -68,7 +68,6 @@ npm test
 npm run typecheck
 npm run build
 node --check scripts/extract-notion.mjs
-node --check scripts/import-supabase.mjs
 ```
 
 ## 다음 활성화 순서

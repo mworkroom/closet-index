@@ -2,7 +2,7 @@
 
 - 작성일: 2026-08-05
 - 근거 문서: [`database-map.md`](./database-map.md)
-- 현재 단계: Outfit Preview subsystem과 Outfit clone RPC production cleanup 완료. clone client 선행 배포, 공개 자산 검증, exact RPC 제거, 데이터 무변경·활성 create/update 검증까지 마침.
+- 현재 단계: Outfit Preview subsystem과 Outfit clone RPC production cleanup 완료. Import Runs Wave 1은 production 2행 local-only export와 active import writer 제거까지 완료했으며, table cleanup migration과 contract test 정리가 남아 있다.
 
 ## 1. 목적과 원칙
 
@@ -26,23 +26,25 @@
 | Outfit clone RPC 결정 | 현재 복제 UX는 source-prefill 뒤 일반 create 경로를 사용한다. client dead code와 production RPC를 제거했으며, 일반 create가 공유하는 private helper는 유지 |
 | Line 색상 자동 분류 | 일회성 초기 제안으로만 사용하고 직접 지정 완료 후 제거 권장 |
 
-`closet_import_runs`는 DB FK·trigger·RPC dependency가 없지만, 아직 export하지 않았고 `scripts/import-supabase.mjs`가 쓰므로 “즉시 DROP”으로 분류하지 않는다.
+`closet_import_runs`는 DB FK·trigger·RPC dependency가 없고 2행 export와 active writer 제거까지 완료했다. production table은 아직 유지하며, exact cleanup migration과 contract test를 격리 검증한 뒤 별도 단계에서 제거한다.
 
 ## 3. Cleanup Wave 1 — Import Runs
 
 ### 대상
 
 - `public.closet_import_runs` 2행
-- `scripts/import-supabase.mjs`의 import run upsert
+- 제거한 `scripts/import-supabase.mjs`와 `notion:import` package command
 - 관련 schema test와 문서
 
 ### 선행 작업
 
-1. 두 row를 JSON 또는 CSV로 local-only export한다.
-2. export 파일에 row count 2, 정렬 기준, 생성 시각, SHA-256을 함께 기록한다.
-3. 현재 migration/import를 다시 실행할 일이 있는지 결정한다.
-4. `scripts/import-supabase.mjs`가 table을 쓰지 않도록 제거하거나, historical import 도구 전체를 archive한다.
-5. `rg`와 production catalog로 frontend, RPC, trigger, FK dependency가 0인지 재확인한다.
+1. [x] 두 row를 `data/local-exports/` 아래 JSON으로 local-only export했다.
+2. [x] row count 2, `started_at, id` 정렬, UTC 생성 시각, 파일 SHA-256 `a83f46581ecc7b6671cebc901d20a76b04f22549fe490a702a27d4ab88feaf5c`를 별도 manifest에 기록했다.
+3. [x] production이 snapshot 이후 증가했고 stable-ID upsert가 과거 값을 덮을 수 있어 historical import를 다시 실행하지 않기로 결정했다.
+4. [x] `scripts/import-supabase.mjs`와 `notion:import` package command를 제거했다. ignored 원본 snapshot은 삭제하지 않았다.
+5. [x] `rg`와 production catalog로 frontend, RPC, view, trigger, cron, publication, Edge Function dependency가 0인지 재확인했다.
+
+export와 manifest는 개인 데이터가 포함된 local-only 자료이므로 Git에 올리지 않는다. production table과 schema contract는 다음 cleanup migration 단계 전까지 유지한다.
 
 ### cleanup migration 초안 범위
 

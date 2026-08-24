@@ -12,6 +12,7 @@ docs/project specs/
 assets/private/
 data/notion-snapshot*.json
 data/notion-color-icons/
+data/local-exports/
 scripts/notion-source.json
 scripts/color-map.json
 Closet_Image_Batch/

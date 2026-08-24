@@ -75,7 +75,7 @@
 - 주요 columns: `id`, `display_name`, `display_hex`, `semantic_color`, timestamps.
 - foreign keys: 공통 `workspace_id` FK 외 업무 FK 없음. `closet_items.palette_id`가 이 table을 참조한다.
 - 읽기: `src/data/supabase/items.ts`, `src/data/supabase/snapshot.ts`의 Item join.
-- 쓰기: 현재 앱 repository에는 팔레트 자체 편집이 없고 `scripts/import-supabase.mjs`가 초기 값을 기록한다. Item 편집은 `palette_id`를 선택한다.
+- 쓰기: 현재 앱 repository에는 팔레트 자체 편집이 없다. 초기 값은 완료된 Notion migration에서 기록했으며 active import writer는 제거했다. Item 편집은 `palette_id`를 선택한다.
 - trigger/dependency: Item FK가 삭제를 막는다.
 - 유지 이유와 cleanup: 현재 Item 색상 이름과 HEX의 공통 사전이므로 유지한다. 다만 22개 팔레트 row는 현재 12개 Line category와 1:1로 같지 않으므로 Line category FK로 억지로 재사용하지 않는다. 기존 HEX는 직접 지정 UI의 제안·표시 자료로 활용할 수 있다.
 
@@ -84,9 +84,9 @@
 - 주요 columns: `source`, `status`, `source_snapshot_at`, `counts`, `report`, `started_at`, `completed_at`.
 - foreign keys: 공통 `workspace_id` FK만 있다.
 - 읽기: 현재 frontend/repository에서 읽지 않는다.
-- 쓰기: `scripts/import-supabase.mjs`의 초기 migration 기록 단계만 쓴다.
+- 쓰기: 없음. 초기 Notion migration writer와 package command는 2026-08-25에 제거했다.
 - trigger/dependency: FK, trigger, public Closet RPC dependency가 없다.
-- 유지 이유와 cleanup: 두 건 모두 `passed`인 초기 이력이다. DB 구조상 가장 독립적이지만, export와 import script 수정 전에는 제거하지 않는다. Wave 1 후보.
+- 유지 이유와 cleanup: 두 건 모두 `passed`인 초기 이력이다. local-only JSON·SHA-256 export와 writer 제거를 완료했으며, 현재는 cleanup migration과 contract test 정리 전까지만 유지하는 Wave 1 대상이다.
 
 ### 4.3 `closet_item_images`
 

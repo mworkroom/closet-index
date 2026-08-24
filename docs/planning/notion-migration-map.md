@@ -160,15 +160,9 @@ npm run notion:extract
 
 snapshot은 개인 데이터와 만료 가능한 Notion URL을 포함하므로 Git에서 제외한다.
 
-### 5.2 Supabase dry-run
+### 5.2 Supabase dry-run 이력
 
-```powershell
-Copy-Item scripts/color-map.example.json scripts/color-map.json
-$env:IMPORT_WORKSPACE_ID = "00000000-0000-0000-0000-000000000003"
-npm run notion:import
-```
-
-기본 동작은 읽기 전용 계획 출력이다. 다음은 적용 차단 항목이다.
+초기 migration 당시에는 local-only color map과 workspace ID를 사용한 dry-run으로 아래 적용 차단 항목을 검사했다.
 
 - Item 이름·카테고리 누락
 - 끊어진 Outfit–Item relation
@@ -179,20 +173,11 @@ npm run notion:import
 
 온도 누락, Item relation 없는 Outfit 1개, Replacement Line 일부 누락은 삭제하거나 추정하지 않고 warning으로 보존한다.
 
-### 5.3 실제 적용
+### 5.3 실제 적용 이력
 
-```powershell
-$env:SUPABASE_URL = "https://ddlwainwollvpaeccpty.supabase.co"
-$env:SUPABASE_SERVICE_ROLE_KEY = "로컬 이전 전용 키"
-$env:IMPORT_WORKSPACE_ID = "00000000-0000-0000-0000-000000000003"
-npm run notion:import -- --apply
-```
+Notion → Supabase 일회성 migration은 2026-07-26에 project-locked URL, local-only secret key, stable UUID upsert로 완료했다. 당시 도구는 기존 행을 자동 삭제하지 않았고 relation 제거도 자동 반영하지 않았다.
 
-- `--apply`가 없으면 외부 쓰기를 하지 않는다.
-- stable UUID와 upsert를 사용해 같은 snapshot 재실행 시 중복 행을 만들지 않는다.
-- 기존 행을 자동 삭제하지 않는다.
-- Notion relation 제거는 자동 반영하지 않으며 dry-run 대조 후 수동 처리한다.
-- service role 키는 브라우저 번들·Git·문서에 넣지 않는다.
+2026-08-25 기준 production 데이터가 snapshot 이후 증가했으므로 stable-ID upsert 재실행은 과거 값 덮어쓰기 위험이 있다. 이에 `notion:import` package command와 `scripts/import-supabase.mjs`를 제거했으며, 이 문서의 절차는 실행 가능한 운영 runbook이 아니라 migration 이력으로만 보존한다. secret/service-role key는 브라우저 번들·Git·문서에 저장하지 않는다.
 
 ## 6. 개발 중 추가 기록과 최종 전환
 

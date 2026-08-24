@@ -13,7 +13,6 @@
     "verify:pages": "node scripts/verify-pages-artifact.mjs dist /closet-index/",
     "supabase": "supabase",
     "notion:extract": "node scripts/extract-notion.mjs",
-    "notion:import": "node scripts/import-supabase.mjs",
     "audit:phase4": "node scripts/audit-phase4-baseline.mjs",
     "audit:phase5": "node scripts/audit-phase5-context.mjs",
     "test:phase5-audit": "node --test scripts/phase5-context-audit-core.node.mjs",
