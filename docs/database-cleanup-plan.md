@@ -2,7 +2,7 @@
 
 - 작성일: 2026-08-05
 - 근거 문서: [`database-map.md`](./database-map.md)
-- 현재 단계: Outfit Preview subsystem production cleanup 완료. Outfit clone client cleanup·배포와 공개 자산 검증을 마쳤고, 별도 RPC cleanup migration 전 live 기준선 재확인 대기 중.
+- 현재 단계: Outfit Preview subsystem production cleanup 완료. Outfit clone client cleanup·배포와 공개 자산 검증, RPC cleanup migration·rollback·격리 pgTAP 준비를 마쳤고 production 적용 대기 중.
 
 ## 1. 목적과 원칙
 
@@ -184,7 +184,7 @@ Lineage의 manual edge 편집, 시작점, 이동, 병합, 보관 기능은 유�
 
 ### production 기준선
 
-| 확인 항목 | 2026-08-24 결과 |
+| 확인 항목 | 2026-08-24 기준 / 2026-08-25 재확인 |
 |---|---|
 | live 함수 | OID 34723, `SECURITY DEFINER`, `search_path = ''`, definition MD5 `aec3ed94d2b11791cd7a4e10d5825b61` |
 | 권한 | `authenticated`, `postgres`, `service_role`에 EXECUTE. `anon`·`PUBLIC` grant 없음 |
@@ -195,6 +195,7 @@ Lineage의 manual edge 편집, 시작점, 이동, 병합, 보관 기능은 유�
 | 통계 보존 상태 | `pg_stat_statements_info.dealloc = 0`이라 측정 구간의 statement eviction 없음. `track_functions = none`이므로 함수 통계가 아니라 statement 통계를 근거로 사용 |
 | 최근 로그 보조 확인 | API·Postgres 최근 24시간 로그에서 clone/create/update RPC 이름의 exact match 0건. 이 결과는 24시간 범위의 보조 증거로만 사용 |
 | 공개 앱 산출물 | 2026-08-24 기준 두 문자열이 각각 1회 포함됐으나, 2026-08-25 client 배포 후 service worker가 참조하는 JavaScript 61개 전체에서 두 문자열 모두 0건. 일반 create RPC와 `source=` 경로는 유지됨 |
+| Security Advisor | clone RPC에 `authenticated_security_definer_function_executable` 경고 1건. 제거 대상 함수 자체에만 해당하며 production 제거 후 소멸 여부를 비교할 기준선으로 보존 |
 
 활성 `public.create_closet_outfit`도 `private.create_closet_outfit_record`를 사용한다. 따라서 clone RPC를 제거할 때 private helper는 함께 제거하거나 변경하지 않는다.
 
@@ -203,10 +204,10 @@ Lineage의 manual edge 편집, 시작점, 이동, 병합, 보관 기능은 유�
 이 함수는 독립적인 row를 소유하지 않으므로 table data export 대상은 없다. schema 복구 자료는 다음 세 곳에 이미 보존되어 있다.
 
 1. 적용된 migration `supabase/migrations/20260729000405_phase3_item_outfit_write_contract.sql`의 원본 definition·grant
-2. `supabase/rollback/phase3_remote_contract_rollback.sql`의 복구 definition
+2. `supabase/rollback/remove_outfit_clone_rpc_rollback.sql`의 2026-08-25 live definition·grant·COMMENT 복구 SQL
 3. 이 문서의 live signature·OID·권한·definition MD5 기준선
 
-cleanup migration 작성 직전에는 live `pg_get_functiondef`, ACL, COMMENT, MD5를 한 번 더 대조한다. migration 이력은 삭제하거나 고쳐 쓰지 않고 새 cleanup migration만 추가한다.
+2026-08-25 cleanup migration 작성 직전에 live `pg_get_functiondef`, ACL, COMMENT, MD5를 다시 대조해 이전 기준선과 동일함을 확인했다. migration 이력은 삭제하거나 고쳐 쓰지 않고 새 cleanup migration만 추가한다.
 
 ### 안전한 제거 순서
 
@@ -216,8 +217,9 @@ cleanup migration 작성 직전에는 live `pg_get_functiondef`, ACL, COMMENT, M
 4. [x] client cleanup을 먼저 commit·push·배포한다.
 5. [x] 공개 JavaScript에서 `clone_closet_outfit`과 clone 오류 문자열이 0건인지 확인한다.
 6. [ ] 로그인 세션에서 source-prefill → 일반 create 초안 복제 UX를 smoke test한다. production 데이터 저장은 별도 승인 없이 실행하지 않는다.
-7. [ ] 별도 cleanup migration에서 정확한 signature의 `public.clone_closet_outfit(uuid, uuid, uuid, text)`만 DROP하고 lifecycle 문서·database map을 갱신한다. `private.create_closet_outfit_record`는 유지한다.
-8. [ ] production migration 적용 후 함수·grant 부재, create/update RPC 정상 동작, advisor, 인증된 앱 저장 흐름을 검증한다.
+7. [x] 정확한 signature만 DROP하는 cleanup migration, live definition 복구 SQL, 함수 부재와 create helper 보존을 검증하는 pgTAP을 준비하고 격리 CI를 통과시킨다.
+8. [ ] production에 cleanup migration을 적용한 뒤 lifecycle 문서·database map을 제거 완료 상태로 갱신한다. `private.create_closet_outfit_record`는 유지한다.
+9. [ ] production 함수·grant 부재, create/update RPC 정상 동작, advisor, 인증된 앱 저장 흐름을 검증한다.
 
 ### client cleanup·배포 결과
 
@@ -229,6 +231,16 @@ cleanup migration 작성 직전에는 live `pg_get_functiondef`, ACL, COMMENT, M
 - GitHub Pages 조건 build와 SPA fallback 검증을 통과했다. 로컬 production JavaScript의 clone RPC·오류 문자열은 각각 0건이며 create RPC·source query는 각각 1건이다.
 - client cleanup commit `fa01da6`과 CI 안정화 commit `78846a4`를 배포했고, 공개 service worker가 참조하는 JavaScript 61개 전체에서 clone RPC·오류 문자열 0건을 확인했다.
 - 실제 공개 로그인 화면은 정상 렌더링됐고 console warning·error는 0건이었다. 사용할 수 있는 로그인 세션과 Chrome·Edge 연동이 없어 인증 후 source-prefill 상호작용은 실행하지 않았으며, 해당 동작은 통과한 `OutfitCreatorPage` 격리 테스트로만 확인된 상태다.
+
+### cleanup migration 준비 결과
+
+- 2026-08-25 production 재감사에서 exact overload 1개, OID `34723`, definition MD5 `aec3ed94d2b11791cd7a4e10d5825b61`, `SECURITY DEFINER`, 빈 `search_path`, ACL과 lifecycle COMMENT가 2026-08-24 기준선과 동일했다.
+- 직접 dependency는 언어·schema·반환형 3개뿐이고 역방향 dependency, 다른 routine·view·materialized view·rule·trigger·RLS policy, 활성 Edge Function 3개의 참조는 모두 0건이었다.
+- `pg_stat_statements`의 clone 관련 4회는 최초 `CREATE`, `REVOKE`, `GRANT`, `COMMENT` DDL뿐이었다. 2026-07-18 reset 이후 PostgREST/runtime clone은 0건이며 같은 구간 create 13건, update 43건이 확인됐다.
+- migration `20260824173632_remove_outfit_clone_rpc.sql`은 exact signature 1개만 `DROP`하고 `IF EXISTS`·`CASCADE`를 쓰지 않는다. 별도 rollback은 live definition·권한·COMMENT를 복원한다.
+- 첫 격리 run `32758052647`에서 새 cleanup pgTAP 6건은 통과했지만, 기존 Phase 3 assertion 1건이 현재 `rating NOT NULL DEFAULT 'ok'` 계약 대신 과거 NULL을 기대해 실패했다. 제품이나 migration을 바꾸지 않고 기대값만 현재 계약에 맞췄다.
+- 후속 run `32758392803`에서 빈 PostgreSQL 17 DB에 전체 migration을 적용한 뒤 6개 파일·97개 pgTAP이 모두 통과했고 컨테이너도 정리됐다. Pages run `32758376889`도 test·build·artifact·deploy를 통과했다.
+- production DB에는 cleanup migration을 아직 적용하지 않았다.
 
 ### 적용 중단 조건
 
