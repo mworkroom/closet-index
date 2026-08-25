@@ -29,11 +29,12 @@
 - production migration history: 66개
 - 그중 Closet Index 관련 remote migration: 44개
 - 현재 working tree와 Git의 Closet migration 파일: 46개
-- production에 있으나 Git에 없는 Closet migration: 0개
-- 이름 기준으로 local에만 있고 production history에 없는 Closet migration은 `p5b_place_profile_hvac`, `remove_wear_log_hvac_memo` 2개다. production에는 Place HVAC table이 존재하고 제거 대상 memo column이 부재하므로 schema 결과는 반영됐지만 migration history row는 없다. 별도 history reconciliation 전까지 자동 repair하지 않는다.
+- 이름과 timestamp가 모두 같은 Closet migration: 36개
+- 같은 이름이지만 local·remote timestamp가 다른 Closet migration: 8쌍
+- 이름 기준으로 local에만 있고 production history에 없는 Closet migration: `p5b_place_profile_hvac`, `remove_wear_log_hvac_memo` 2개
 - production project에는 Inventory Tracker·Pay Me Mom 계열 migration 22개도 함께 있다. 따라서 이 Supabase project의 전체 migration history는 Closet Index 저장소 하나만으로 재구성할 수 없다.
 
-같은 논리 이름이지만 timestamp가 다른 history가 4쌍 있다.
+같은 논리 이름이지만 timestamp가 다른 history가 8쌍 있다.
 
 | 논리 migration | local/Git version | production version |
 |---|---|---|
@@ -41,8 +42,18 @@
 | `phase3_item_image_upload_contract` | `20260729003410` | `20260729013547` |
 | `phase3_outfit_preview_cache` | `20260731200415` | `20260731220215` |
 | `add_safe_item_outfit_deletion` | `20260802013109` | `20260802015500` |
+| `p6_2_purchase_events` | `20260805170605` | `20260805202407` |
+| `p6_4_care_events` | `20260805191039` | `20260805202519` |
+| `p6_event_foreign_key_indexes` | `20260805202648` | `20260805203021` |
+| `preserve_quantity_for_general_purchase_events` | `20260805230843` | `20260805232501` |
 
-Import Runs cleanup 뒤 production catalog의 `public.closet_*` table 18개와 RLS 18개를 확인했다. 이번 후속 감사는 제거 대상, 핵심 table checksum, 활성 Outfit RPC와 migration history 차이에 집중했으며 아래 전체 RPC 목록은 최초 감사 이후 cleanup 기록을 누적한 문서다. 남은 history 차이는 기존 timestamp 불일치 4쌍과 history row가 없는 local migration 2개다. Supabase migration history 목록은 SQL checksum을 제공하지 않으므로, 이름이 같은 migration 본문의 byte 단위 동일성까지 확인한 결과로 해석하면 안 된다.
+2026-08-26 감사에서 두 local-only migration의 적용 경로를 원본 실행 기록까지 추적했다. 두 파일 모두 2026-08-10에 파일 본문을 읽어 `execute_sql`의 명시적 transaction으로 production에 적용됐고 `apply_migration`은 사용하지 않았다. 따라서 schema는 적용됐지만 `supabase_migrations.schema_migrations` row가 생기지 않은 원인이 확정됐다.
+
+현재 production은 두 migration의 최종 합성 결과와 일치한다. Wear Log HVAC mode·intensity column과 세 CHECK, Place kind column·CHECK·분류, Place HVAC Profile의 9개 column·9개 constraint·2개 index·RLS·policy 3개·접근 grant·COMMENT가 모두 존재하고, 후속 제거 대상인 `observed_hvac_memo` column·CHECK는 부재한다. Wear Log 808행, Place 25행, Profile 10행의 값 위반·고아 Profile·generic Place Profile은 0건이다. local SQL SHA-256은 P5B `c5d5d427bc662b09a170095ac8f752ccee3636524e83f52b8296c6aa739c7a3a`, memo cleanup `f4288bcf1712c00d3cf6118a81eba1d670e7916ffe331eaa2cd82b30a1628834`다.
+
+Supabase [Database Migrations 가이드](https://supabase.com/docs/guides/deployment/database-migrations)와 [migration repair CLI 문서](https://supabase.com/docs/reference/cli/supabase-migration-repair) 기준상 실제 schema가 이미 적용된 수동 migration은 SQL을 재실행하지 않고 `migration repair --status applied <timestamp>`로 tracking row만 보정할 수 있다. 두 migration은 이 조건을 충족하지만, 두 row만 보정해도 shared project의 remote-only 22개와 timestamp 불일치 8쌍은 남는다. 따라서 다음 단계의 두 row repair는 **적용 사실 보정**으로만 정의하며 전체 `db push` 호환 복구로 부르지 않는다. 전체 CLI 동기화가 필요하면 여러 저장소의 migration 통합과 8쌍의 본문 증거 감사부터 별도로 설계한다. Supabase migration history 목록은 SQL checksum을 제공하지 않으므로 이름 일치만으로 본문 동일성을 추정하지 않는다.
+
+Import Runs cleanup 뒤 production catalog의 `public.closet_*` table 18개와 RLS 18개를 확인했다. 아래 전체 RPC 목록은 최초 감사 이후 cleanup 기록을 누적한 문서다.
 
 ## 3. 공통 규칙
 
