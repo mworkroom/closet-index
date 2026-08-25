@@ -3,20 +3,22 @@
 - 감사 기준 시각: 2026-08-05 05:22 KST
 - production project ref: `ddlwainwollvpaeccpty`
 - 범위: `public.closet_*` table, Closet 관련 public RPC, 직접 dependency, 현재 repository/UI 호출 경로
-- 안전 경계: 최초 감사는 `SELECT`와 catalog 조회만 수행했다. 이후 J의 제거 결정과 production 전환 승인에 따라 Preview cleanup·Line color·COMMENT migration을 적용했다.
+- 안전 경계: 최초 감사는 `SELECT`와 catalog 조회만 수행했다. 이후 J의 제거 결정과 production 전환 승인에 따라 Preview cleanup·Line color·COMMENT, Outfit clone RPC와 Import Runs cleanup migration을 적용했다.
 
-> 2026-08-05 후속 적용: Preview-free frontend와 `closet-outfit-delete` Function을 먼저 배포한 뒤 `closet_outfit_previews`, Preview RPC 세 개와 stale trigger 두 개를 production에서 제거했다. 기존 Preview Storage file 2개와 Dashboard가 만든 빈 폴더 placeholder까지 삭제해 `/outfits/` object count 0을 확인했고, 구 `closet-outfit-preview` Function도 제거했다. 현재 Closet table은 16개, active Edge Function은 3개다.
+> 2026-08-05 후속 적용: Preview-free frontend와 `closet-outfit-delete` Function을 먼저 배포한 뒤 `closet_outfit_previews`, Preview RPC 세 개와 stale trigger 두 개를 production에서 제거했다. 기존 Preview Storage file 2개와 Dashboard가 만든 빈 폴더 placeholder까지 삭제해 `/outfits/` object count 0을 확인했고, 구 `closet-outfit-preview` Function도 제거했다. 당시 Closet table은 16개였다.
+
+> 2026-08-25 후속 감사: 이후 추가된 Purchase·Care·Place HVAC table을 inventory에 보충하고, 일회성 `closet_import_runs`를 remote migration `20260825021515_remove_closet_import_runs`로 제거했다. 현재 `public.closet_*` table은 18개이며 모두 RLS가 켜져 있다.
 
 ## 1. 한눈에 보기
 
 | 분류 | 수 | 의미 |
 |---|---:|---|
-| `LIVE_CORE` | 5 | 사용자가 직접 관리하는 핵심 기록 |
+| `LIVE_CORE` | 8 | 사용자가 직접 관리하는 핵심 기록 |
 | `LIVE_SUPPORT` | 8 | 핵심 기록을 구성·표시·보호하는 현재 사용 중인 구조 |
 | `DORMANT` | 0 | 현재 호출 경로가 없는 구조 |
-| `LEGACY_DROP_CANDIDATE` | 3 | 일회성 이전·검토를 위해 만들었고 선행 작업 뒤 제거를 검토할 구조 |
+| `LEGACY_DROP_CANDIDATE` | 2 | 검토 workflow를 위해 만들었고 선행 작업 뒤 제거를 검토할 구조 |
 | `UNKNOWN` | 0 | 용도나 호출 경로를 확인하지 못한 구조 |
-| **합계** | **16** | 모든 `public.closet_*` table |
+| **합계** | **18** | 모든 `public.closet_*` table |
 
 초기 감사 당시 `closet_outfit_previews`는 실제 호출 경로가 있어 `LIVE_SUPPORT`였다. 이후 J가 저장 Preview 기능을 사용하지 않기로 결정했고 frontend 선배포와 production cleanup을 거쳐 현재 table inventory에서 제거됐다.
 
@@ -24,12 +26,12 @@
 
 ## 2. Production migration history와 Git 비교
 
-- production migration history: 51개
-- 그중 Closet Index 관련 migration: 31개
-- 현재 working tree와 Git의 Closet migration 파일: 31개
+- production migration history: 66개
+- 그중 Closet Index 관련 remote migration: 44개
+- 현재 working tree와 Git의 Closet migration 파일: 46개
 - production에 있으나 Git에 없는 Closet migration: 0개
-- 이름 기준으로 production에만 있고 local에 없는 Closet migration은 없다.
-- production project에는 Inventory Tracker 계열 migration 20개도 함께 있다. 따라서 이 Supabase project의 전체 migration history는 Closet Index 저장소 하나만으로 재구성할 수 없다.
+- 이름 기준으로 local에만 있고 production history에 없는 Closet migration은 `p5b_place_profile_hvac`, `remove_wear_log_hvac_memo` 2개다. production에는 Place HVAC table이 존재하고 제거 대상 memo column이 부재하므로 schema 결과는 반영됐지만 migration history row는 없다. 별도 history reconciliation 전까지 자동 repair하지 않는다.
+- production project에는 Inventory Tracker·Pay Me Mom 계열 migration 22개도 함께 있다. 따라서 이 Supabase project의 전체 migration history는 Closet Index 저장소 하나만으로 재구성할 수 없다.
 
 같은 논리 이름이지만 timestamp가 다른 history가 4쌍 있다.
 
@@ -40,11 +42,11 @@
 | `phase3_outfit_preview_cache` | `20260731200415` | `20260731220215` |
 | `add_safe_item_outfit_deletion` | `20260802013109` | `20260802015500` |
 
-현재 production catalog의 16개 table, 주요 column, foreign key, 5개 trigger, 2개 통계 view, 28개 public Closet RPC는 적용 완료된 local migration의 최종 상태와 구조적으로 맞는다. 남은 history 차이는 위의 기존 timestamp 불일치 4쌍뿐이다. Supabase migration history 목록은 SQL checksum을 제공하지 않으므로, 이름이 같은 migration 본문의 byte 단위 동일성까지 확인한 결과로 해석하면 안 된다.
+Import Runs cleanup 뒤 production catalog의 `public.closet_*` table 18개와 RLS 18개를 확인했다. 이번 후속 감사는 제거 대상, 핵심 table checksum, 활성 Outfit RPC와 migration history 차이에 집중했으며 아래 전체 RPC 목록은 최초 감사 이후 cleanup 기록을 누적한 문서다. 남은 history 차이는 기존 timestamp 불일치 4쌍과 history row가 없는 local migration 2개다. Supabase migration history 목록은 SQL checksum을 제공하지 않으므로, 이름이 같은 migration 본문의 byte 단위 동일성까지 확인한 결과로 해석하면 안 된다.
 
 ## 3. 공통 규칙
 
-- 16개 table 모두 RLS가 켜져 있다.
+- 현재 18개 table 모두 RLS가 켜져 있다.
 - 모든 table의 `workspace_id`는 `public.workspaces(id)`를 참조한다.
 - 업무 데이터의 일반적인 source of truth는 table이다. Storage의 실제 이미지 binary는 `closet-images` bucket이 원본이고, 이미지 table은 소유권·상태·경로의 source of truth다.
 - `closet_item_stats`, `closet_outfit_stats`는 table이 아니라 계산 view다.
@@ -53,13 +55,15 @@
 
 | Table | 한국어 이름 | 상태 | Source of truth | Rows | Total size |
 |---|---|---|---|---:|---:|
+| `closet_care_events` | Item 관리 이력 | `LIVE_CORE` | 예: 수동 관리 기록 | 23 | 80 kB |
 | `closet_color_palette` | 색상 팔레트 | `LIVE_SUPPORT` | 예: 명명된 색상과 HEX | 22 | 80 kB |
-| `closet_import_runs` | 초기 가져오기 실행 기록 | `LEGACY_DROP_CANDIDATE` | 아니오: 일회성 실행 로그 | 2 | 48 kB |
 | `closet_item_images` | Item 이미지 메타데이터 | `LIVE_SUPPORT` | 예: 이미지 경로·상태 | 511 | 536 kB |
-| `closet_items` | 옷장 Item | `LIVE_CORE` | 예 | 448 | 616 kB |
-| `closet_outfit_items` | Outfit 구성 Item | `LIVE_SUPPORT` | 예: Outfit 구성과 배치 | 2,406 | 1,072 kB |
-| `closet_outfits` | Outfit | `LIVE_CORE` | 예 | 507 | 432 kB |
+| `closet_items` | 옷장 Item | `LIVE_CORE` | 예 | 455 | 616 kB |
+| `closet_outfit_items` | Outfit 구성 Item | `LIVE_SUPPORT` | 예: Outfit 구성과 배치 | 2,443 | 1,072 kB |
+| `closet_outfits` | Outfit | `LIVE_CORE` | 예 | 517 | 432 kB |
+| `closet_place_hvac_profiles` | 장소별 냉난방 프로필 | `LIVE_CORE` | 예: 수동 Place Profile | 10 | 48 kB |
 | `closet_places` | 장소 선택지 | `LIVE_SUPPORT` | 예 | 25 | 80 kB |
+| `closet_purchase_events` | Item 재구매 이력 | `LIVE_CORE` | 예: 수동 재구매 기록 | 11 | 72 kB |
 | `closet_replacement_legacy_link_revisions` | Legacy 판단 변경 이력 | `LEGACY_DROP_CANDIDATE` | 아니오: 감사 이력 | 51 | 96 kB |
 | `closet_replacement_legacy_links` | Notion Legacy 관계 검토본 | `LEGACY_DROP_CANDIDATE` | 과도기: 초기 판단 원본 | 49 | 192 kB |
 | `closet_replacement_line_edges` | 계보 방향 연결 | `LIVE_CORE` | 예: 현재 계보 연결 | 87 | 232 kB |
@@ -67,7 +71,7 @@
 | `closet_replacement_line_starts` | 명시적 계보 시작점 | `LIVE_SUPPORT` | 예 | 25 | 40 kB |
 | `closet_replacement_lines` | Replacement Line | `LIVE_CORE` | 예 | 53 | 160 kB |
 | `closet_transport_modes` | 교통수단 선택지 | `LIVE_SUPPORT` | 예 | 4 | 80 kB |
-| `closet_wear_logs` | 착용 기록 | `LIVE_CORE` | 예 | 783 | 1,048 kB |
+| `closet_wear_logs` | 착용 기록 | `LIVE_CORE` | 예 | 807 | 1,048 kB |
 | `closet_weather_locations` | 날씨 위치 | `LIVE_SUPPORT` | 예 | 1 | 96 kB |
 
 ### 4.1 `closet_color_palette`
@@ -79,14 +83,12 @@
 - trigger/dependency: Item FK가 삭제를 막는다.
 - 유지 이유와 cleanup: 현재 Item 색상 이름과 HEX의 공통 사전이므로 유지한다. 다만 22개 팔레트 row는 현재 12개 Line category와 1:1로 같지 않으므로 Line category FK로 억지로 재사용하지 않는다. 기존 HEX는 직접 지정 UI의 제안·표시 자료로 활용할 수 있다.
 
-### 4.2 `closet_import_runs`
+### 4.2 제거 기록 — `closet_import_runs`
 
-- 주요 columns: `source`, `status`, `source_snapshot_at`, `counts`, `report`, `started_at`, `completed_at`.
-- foreign keys: 공통 `workspace_id` FK만 있다.
-- 읽기: 현재 frontend/repository에서 읽지 않는다.
-- 쓰기: 없음. 초기 Notion migration writer와 package command는 2026-08-25에 제거했다.
-- trigger/dependency: FK, trigger, public Closet RPC dependency가 없다.
-- 유지 이유와 cleanup: 두 건 모두 `passed`인 초기 이력이다. local-only JSON·SHA-256 export, writer 제거, exact cleanup·rollback migration과 빈 PostgreSQL 17 contract 검증을 완료했으며, 현재는 production 적용 직전 재확인과 별도 적용까지만 유지하는 Wave 1 대상이다.
+- 2026-07-26 초기 Notion import의 성공 기록 2행을 담았고 현재 frontend·repository·RPC·trigger가 읽거나 쓰지 않았다.
+- 2026-08-25 local-only JSON export와 row fingerprint, schema rollback, 별도 data restore SQL을 준비하고 active import writer를 먼저 제거했다.
+- 외부 dependency와 활성 lock 0건을 재확인한 뒤 remote migration `20260825021515_remove_closet_import_runs`로 table·소유 index·RLS policy·grant를 제거했다.
+- 감사 기준선과 복구 절차는 [`database-cleanup-plan.md`](./database-cleanup-plan.md), `supabase/rollback/remove_closet_import_runs_rollback.sql`, ignored `data/local-exports/`에 보존한다.
 
 ### 4.3 `closet_item_images`
 
@@ -220,6 +222,27 @@
 - 쓰기: `revise_closet_replacement_legacy_link`; Legacy 기반 edge 방향 전환도 이 RPC를 통해 revision을 추가한다.
 - trigger/dependency: revise/reverse RPC가 의존한다.
 - 유지 이유와 cleanup: 51개 판단 이력의 export가 필요하다. Legacy subsystem과 함께 Wave 3에서 제거한다.
+
+### 4.18 `closet_purchase_events`
+
+- 주요 columns: `item_id`, `purchased_on`, `quantity`, timestamps.
+- 읽기·쓰기: `src/data/supabase/purchases.ts`와 Item 상세·통계가 이력을 읽고, 제한된 create RPC와 member-scoped update/delete가 기록을 관리한다.
+- dependency: Item 소유권 복합 FK와 날짜·수량 검증이 있으며 Item 삭제 시 함께 제거된다.
+- 유지 이유와 cleanup: 수동 재구매 사건의 source of truth이므로 유지한다.
+
+### 4.19 `closet_care_events`
+
+- 주요 columns: `item_id`, `cared_on`, `care_method`, timestamps.
+- 읽기·쓰기: `src/data/supabase/care.ts`와 Item 관리 UI가 이력을 직접 조회·생성·수정·삭제한다.
+- dependency: Item 소유권 복합 FK와 날짜·관리 방식 검증이 있으며 Item 삭제 시 함께 제거된다.
+- 유지 이유와 cleanup: 손세탁·드라이클리닝 사건의 source of truth이므로 유지한다.
+
+### 4.20 `closet_place_hvac_profiles`
+
+- 주요 columns: `place_id`, `season`, 예상 HVAC mode·intensity, `source`, `last_confirmed_on`.
+- 읽기·쓰기: snapshot·Place HVAC repository와 설정 화면이 specific venue의 계절별 예상값을 조회·관리한다.
+- dependency: Place 소유권 복합 FK, season·mode·intensity·source check와 member RLS가 있다.
+- 유지 이유와 cleanup: 수동 Place Profile의 source of truth이므로 유지한다.
 
 ## 5. Public Closet RPC inventory
 

@@ -1,5 +1,5 @@
 -- Emergency schema rollback for
--- 20260825014028_remove_closet_import_runs.sql.
+-- 20260825021515_remove_closet_import_runs.sql.
 --
 -- This recreates the audited 2026-08-25 schema, grants, RLS policy, and
 -- lifecycle comments. It intentionally does not embed the two production rows.

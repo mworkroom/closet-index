@@ -2,7 +2,7 @@
 
 - 작성일: 2026-08-05
 - 근거 문서: [`database-map.md`](./database-map.md)
-- 현재 단계: Outfit Preview subsystem과 Outfit clone RPC production cleanup 완료. Import Runs Wave 1은 production 2행 local-only export, active import writer 제거, exact cleanup migration·rollback·pgTAP 준비와 빈 PostgreSQL 17 격리 검증까지 완료했다. production table은 유지 중이며 적용 직전 재확인과 별도 적용이 남아 있다.
+- 현재 단계: Outfit Preview subsystem, Outfit clone RPC, Import Runs Wave 1 production cleanup 완료. 다음 cleanup 후보는 live dependency와 local/remote migration history 차이를 다시 inventory한 뒤 결정한다.
 
 ## 1. 목적과 원칙
 
@@ -20,13 +20,13 @@
 | 질문 | 결론 |
 |---|---|
 | 즉시 안전하게 제거 가능한 DB object | Preview subsystem은 frontend·DB·Storage·Edge Function까지 제거 완료. `clone_closet_outfit`도 client 선행 배포와 exact cleanup migration 검증 뒤 production에서 제거 완료 |
-| 가장 독립적인 후보 | `closet_import_runs` 2행 |
+| 가장 독립적인 후보 | `closet_import_runs` Wave 1 제거 완료. 다음 후보는 새 inventory 뒤 결정 |
 | 현재 dependency 때문에 제거할 수 없는 후보 | Legacy Link subsystem. Preview DB dependency는 제거 완료 |
 | Outfit Preview 결정 | J가 영구 제거를 확정. frontend·Function 전환과 DB cleanup 완료 |
 | Outfit clone RPC 결정 | 현재 복제 UX는 source-prefill 뒤 일반 create 경로를 사용한다. client dead code와 production RPC를 제거했으며, 일반 create가 공유하는 private helper는 유지 |
 | Line 색상 자동 분류 | 일회성 초기 제안으로만 사용하고 직접 지정 완료 후 제거 권장 |
 
-`closet_import_runs`는 DB FK·trigger·RPC dependency가 없고 2행 export와 active writer 제거까지 완료했다. exact cleanup migration, schema rollback, local-only data restore, cleanup·rollback contract도 준비했으며 빈 PostgreSQL 17에서 전체 migration 이력과 복구 계약을 통과시켰다. production table은 아직 유지하며, 적용 직전 기준선을 다시 읽은 뒤 별도 단계에서 제거한다.
+`closet_import_runs`는 DB FK·trigger·RPC dependency가 없음을 적용 직전에 다시 확인하고, 2행 fingerprint와 local-only export·restore를 대조한 뒤 production에서 제거했다. table·policy·index 부재, 핵심 데이터 checksum 불변, 활성 Outfit RPC와 Advisor 불변을 확인했으며 rollback 자료는 복구용으로 보존한다.
 
 ## 3. Cleanup Wave 1 — Import Runs
 
@@ -47,23 +47,26 @@
 7. [x] local-only data restore SQL을 만들고 2행·production row fingerprint를 transaction 안에서 검증하도록 했다. restore SQL SHA-256은 `9adc648c3a60a3d79a0c88ad6d215b3968f0b055f21c9a2db44cda35d07519c6`이다.
 8. [x] Phase 1 기대값을 retained schema에 맞추고 table 제거·활성 schema 보존·schema rollback을 검증하는 pgTAP을 작성했다.
 9. [x] 빈 PostgreSQL 17 환경에서 전체 migration 뒤 8개 파일·137개 pgTAP, schema rollback 뒤 1개 파일·14개 pgTAP을 run `32799664883`에서 통과시켰다.
-10. [ ] 적용 직전 production row fingerprint와 dependency를 다시 읽고 exact migration을 별도 승인 단계에서 적용한다.
+10. [x] 적용 직전 production row fingerprint와 dependency·lock을 다시 읽고 exact migration을 remote version `20260825021515`로 적용했다.
 
-export, manifest, data restore SQL은 개인 데이터가 포함된 local-only 자료이므로 Git에 올리지 않는다. schema rollback은 복구 가능한 구조를 코드로 검토할 수 있도록 추적한다. production table은 실제 cleanup migration 적용 전까지 유지한다.
+export, manifest, data restore SQL은 개인 데이터가 포함된 local-only 자료이므로 Git에 올리지 않는다. schema rollback은 복구 가능한 구조를 코드로 검토할 수 있도록 추적하며, production 제거 후에도 rollback 보존 기간 동안 함께 유지한다.
 
 ### cleanup migration 준비 범위
 
-- migration `20260825014028_remove_closet_import_runs.sql`은 `DROP TABLE public.closet_import_runs` 한 문장만 실행한다. table 소유 index·policy·grant·constraint는 PostgreSQL의 table 제거 경계 안에서 함께 제거된다.
+- migration `20260825021515_remove_closet_import_runs.sql`은 `DROP TABLE public.closet_import_runs` 한 문장만 실행했다. table 소유 index·policy·grant·constraint는 PostgreSQL의 table 제거 경계 안에서 함께 제거됐다.
 - `remove_closet_import_runs_rollback.sql`은 감사한 9개 column, constraint, index, grant, RLS policy와 lifecycle COMMENT를 복구한다. production 2행 복구는 별도 ignored restore SQL로 분리한다.
 - cleanup contract 5개 assertion은 제거 대상 부재와 active Item·Outfit·Wear Log table, 일반 Outfit create RPC 보존을 검증한다.
 - rollback contract 14개 assertion은 schema·권한·RLS·COMMENT 복구와 빈 data 경계를 검증한다.
 
 ### 완료 검증
 
-- 핵심 table row count와 checksum 불변
-- 앱 전체 test/build 통과
-- import script가 존재하지 않는 table을 호출하지 않음
-- Security/Performance Advisor에 새 오류 없음
+- [x] `closet_items` 455행, `closet_outfits` 517행, `closet_outfit_items` 2,443행, `closet_wear_logs` 807행과 각 전체-row SHA-256이 적용 전후 동일하다.
+- [x] table regclass, RLS policy, workspace/start index가 모두 부재한다.
+- [x] 일반 Outfit create/update RPC와 private helper의 definition MD5·권한이 적용 전후 동일하다.
+- [x] import script가 존재하지 않는 table을 호출하지 않는다.
+- [x] Security Advisor 47건, Performance Advisor 33건이 byte 단위로 동일하고 대상 관련 항목은 전후 0건이다.
+- [x] remote version과 맞춘 local migration 이력으로 앱 test 645개, production build와 Pages artifact 검증을 통과시켰다.
+- [ ] 빈 PostgreSQL 17 격리 pgTAP과 실제 Pages 배포를 다시 통과시킨다.
 
 ## 4. Cleanup Wave 2 — Outfit Preview subsystem
 
