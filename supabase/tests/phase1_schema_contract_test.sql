@@ -217,8 +217,8 @@ select is(
 );
 
 select ok(
-  not has_column_privilege('authenticated', 'public.closet_items', 'name', 'update'),
-  'authenticated users cannot update item names'
+  has_column_privilege('authenticated', 'public.closet_items', 'name', 'update'),
+  'authenticated users can update item names under the Phase 3 write contract'
 );
 
 select ok(
@@ -321,7 +321,7 @@ select is(
         'closet_item_images'
       ])
   ),
-  15,
+  17,
   'expected workspace member policies are installed'
 );
 
@@ -352,13 +352,15 @@ insert into public.closet_items (
   id,
   workspace_id,
   name,
-  category
+  category,
+  display_hex
 )
 values (
   '11000000-0000-0000-0000-000000000001',
   '30000000-0000-0000-0000-000000000001',
   'Contract item',
-  'Top'
+  'Top',
+  '#B8B8B4'
 );
 
 insert into public.closet_outfits (
