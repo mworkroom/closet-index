@@ -19,11 +19,10 @@ select is(
         'closet_wear_logs',
         'closet_replacement_lines',
         'closet_replacement_line_items',
-        'closet_item_images',
-        'closet_import_runs'
+        'closet_item_images'
       ])
   ),
-  11,
+  10,
   'all retained Phase 1 tables exist'
 );
 
@@ -43,12 +42,11 @@ select is(
         'closet_wear_logs',
         'closet_replacement_lines',
         'closet_replacement_line_items',
-        'closet_item_images',
-        'closet_import_runs'
+        'closet_item_images'
       ])
       and c.relrowsecurity
   ),
-  11,
+  10,
   'RLS is enabled on every retained Phase 1 table'
 );
 
@@ -320,11 +318,10 @@ select is(
         'closet_wear_logs',
         'closet_replacement_lines',
         'closet_replacement_line_items',
-        'closet_item_images',
-        'closet_import_runs'
+        'closet_item_images'
       ])
   ),
-  16,
+  15,
   'expected workspace member policies are installed'
 );
 

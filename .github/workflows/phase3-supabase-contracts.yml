@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/phase3-supabase-contracts.yml
       - supabase/migrations/**
+      - supabase/rollback/**
       - supabase/test-support/**
       - supabase/tests/**
   workflow_dispatch:
@@ -46,12 +47,24 @@ jobs:
       - name: Run Phase 3 database contract tests
         run: >-
           supabase test db --local
+          supabase/tests/phase1_schema_contract_test.sql
+          supabase/tests/import_runs_cleanup_contract_test.sql
           supabase/tests/phase3_item_outfit_write_contract_test.sql
           supabase/tests/outfit_clone_cleanup_contract_test.sql
           supabase/tests/phase3_item_image_upload_contract_test.sql
           supabase/tests/outfit_preview_cleanup_contract_test.sql
           supabase/tests/replacement_line_color_category_contract_test.sql
           supabase/tests/replacement_line_management_contract_test.sql
+
+      - name: Apply Import Runs schema rollback
+        run: >-
+          supabase db query --local
+          --file supabase/rollback/remove_closet_import_runs_rollback.sql
+
+      - name: Verify Import Runs schema rollback
+        run: >-
+          supabase test db --local
+          supabase/tests/import_runs_rollback_contract_test.sql
 
       - name: Stop isolated Supabase
         if: always()

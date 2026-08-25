@@ -2,7 +2,7 @@
 
 - 작성일: 2026-08-05
 - 근거 문서: [`database-map.md`](./database-map.md)
-- 현재 단계: Outfit Preview subsystem과 Outfit clone RPC production cleanup 완료. Import Runs Wave 1은 production 2행 local-only export와 active import writer 제거까지 완료했으며, table cleanup migration과 contract test 정리가 남아 있다.
+- 현재 단계: Outfit Preview subsystem과 Outfit clone RPC production cleanup 완료. Import Runs Wave 1은 production 2행 local-only export, active import writer 제거, exact cleanup migration·rollback·pgTAP 준비까지 완료했다. production table은 유지 중이며 빈 PostgreSQL 17 격리 검증과 별도 적용이 남아 있다.
 
 ## 1. 목적과 원칙
 
@@ -26,7 +26,7 @@
 | Outfit clone RPC 결정 | 현재 복제 UX는 source-prefill 뒤 일반 create 경로를 사용한다. client dead code와 production RPC를 제거했으며, 일반 create가 공유하는 private helper는 유지 |
 | Line 색상 자동 분류 | 일회성 초기 제안으로만 사용하고 직접 지정 완료 후 제거 권장 |
 
-`closet_import_runs`는 DB FK·trigger·RPC dependency가 없고 2행 export와 active writer 제거까지 완료했다. production table은 아직 유지하며, exact cleanup migration과 contract test를 격리 검증한 뒤 별도 단계에서 제거한다.
+`closet_import_runs`는 DB FK·trigger·RPC dependency가 없고 2행 export와 active writer 제거까지 완료했다. exact cleanup migration, schema rollback, local-only data restore, cleanup·rollback contract도 준비했다. production table은 아직 유지하며, 빈 PostgreSQL 17에서 전체 migration 이력과 복구 계약을 검증한 뒤 별도 단계에서 제거한다.
 
 ## 3. Cleanup Wave 1 — Import Runs
 
@@ -43,14 +43,20 @@
 3. [x] production이 snapshot 이후 증가했고 stable-ID upsert가 과거 값을 덮을 수 있어 historical import를 다시 실행하지 않기로 결정했다.
 4. [x] `scripts/import-supabase.mjs`와 `notion:import` package command를 제거했다. ignored 원본 snapshot은 삭제하지 않았다.
 5. [x] `rg`와 production catalog로 frontend, RPC, view, trigger, cron, publication, Edge Function dependency가 0인지 재확인했다.
+6. [x] exact `DROP TABLE` migration과 schema rollback SQL을 작성했다. drift와 예상하지 못한 dependency가 있으면 중단되도록 `IF EXISTS`와 `CASCADE`를 사용하지 않았다.
+7. [x] local-only data restore SQL을 만들고 2행·production row fingerprint를 transaction 안에서 검증하도록 했다. restore SQL SHA-256은 `9adc648c3a60a3d79a0c88ad6d215b3968f0b055f21c9a2db44cda35d07519c6`이다.
+8. [x] Phase 1 기대값을 retained schema에 맞추고 table 제거·활성 schema 보존·schema rollback을 검증하는 pgTAP을 작성했다.
+9. [ ] 빈 PostgreSQL 17 환경에서 전체 migration, cleanup contract, schema rollback contract를 통과시킨다.
+10. [ ] 적용 직전 production row fingerprint와 dependency를 다시 읽고 exact migration을 별도 승인 단계에서 적용한다.
 
-export와 manifest는 개인 데이터가 포함된 local-only 자료이므로 Git에 올리지 않는다. production table과 schema contract는 다음 cleanup migration 단계 전까지 유지한다.
+export, manifest, data restore SQL은 개인 데이터가 포함된 local-only 자료이므로 Git에 올리지 않는다. schema rollback은 복구 가능한 구조를 코드로 검토할 수 있도록 추적한다. production table은 실제 cleanup migration 적용 전까지 유지한다.
 
-### cleanup migration 초안 범위
+### cleanup migration 준비 범위
 
-- RLS policy와 grant 제거
-- `DROP TABLE public.closet_import_runs`
-- 관련 contract test 수정
+- migration `20260825014028_remove_closet_import_runs.sql`은 `DROP TABLE public.closet_import_runs` 한 문장만 실행한다. table 소유 index·policy·grant·constraint는 PostgreSQL의 table 제거 경계 안에서 함께 제거된다.
+- `remove_closet_import_runs_rollback.sql`은 감사한 9개 column, constraint, index, grant, RLS policy와 lifecycle COMMENT를 복구한다. production 2행 복구는 별도 ignored restore SQL로 분리한다.
+- cleanup contract 5개 assertion은 제거 대상 부재와 active Item·Outfit·Wear Log table, 일반 Outfit create RPC 보존을 검증한다.
+- rollback contract 14개 assertion은 schema·권한·RLS·COMMENT 복구와 빈 data 경계를 검증한다.
 
 ### 완료 검증
 
