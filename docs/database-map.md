@@ -86,7 +86,7 @@
 - 읽기: 현재 frontend/repository에서 읽지 않는다.
 - 쓰기: 없음. 초기 Notion migration writer와 package command는 2026-08-25에 제거했다.
 - trigger/dependency: FK, trigger, public Closet RPC dependency가 없다.
-- 유지 이유와 cleanup: 두 건 모두 `passed`인 초기 이력이다. local-only JSON·SHA-256 export와 writer 제거를 완료했으며, 현재는 cleanup migration과 contract test 정리 전까지만 유지하는 Wave 1 대상이다.
+- 유지 이유와 cleanup: 두 건 모두 `passed`인 초기 이력이다. local-only JSON·SHA-256 export, writer 제거, exact cleanup·rollback migration과 빈 PostgreSQL 17 contract 검증을 완료했으며, 현재는 production 적용 직전 재확인과 별도 적용까지만 유지하는 Wave 1 대상이다.
 
 ### 4.3 `closet_item_images`
 
