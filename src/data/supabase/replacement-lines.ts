@@ -1,11 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type {
-  ReplacementLegacyLink,
-  ReplacementLegacyLinkDecision,
-  ReplacementLegacyLinkReviewInput,
   ReplacementLineSnapshot,
   ReplacementLineEdge,
-  ReplacementLineEdgeConfirmationInput,
   ReplacementLineEdgeConnectionUpdateInput,
   ReplacementLineEdgeDisconnectInput,
   ReplacementLineEdgeDirectionUpdateInput,
@@ -42,24 +38,11 @@ interface ReplacementLineMembershipRow {
   item_id: string
 }
 
-interface ReplacementLegacyLinkRow {
-  id: string
-  item_a_id: string
-  item_b_id: string
-  review_status: 'pending' | 'reviewed'
-  review_decision: ReplacementLegacyLinkDecision | null
-  review_reason: string | null
-  reviewed_at: string | null
-  updated_at: string
-}
-
 interface ReplacementLineEdgeRow {
   id: string
   replacement_line_id: string
   predecessor_item_id: string
   successor_item_id: string
-  source_legacy_link_id: string | null
-  source_kind: ReplacementLineEdge['sourceKind']
   branch_name: string | null
   decision_reason: string
   status: ReplacementLineEdge['status']
@@ -73,27 +56,12 @@ interface ReplacementLineStartRow {
   designated_at: string
 }
 
-function toLegacyLink(row: ReplacementLegacyLinkRow): ReplacementLegacyLink {
-  return {
-    id: row.id,
-    itemAId: row.item_a_id,
-    itemBId: row.item_b_id,
-    reviewStatus: row.review_status,
-    reviewDecision: row.review_decision,
-    reviewReason: row.review_reason,
-    reviewedAt: row.reviewed_at,
-    updatedAt: row.updated_at,
-  }
-}
-
 function toLineEdge(row: ReplacementLineEdgeRow): ReplacementLineEdge {
   return {
     id: row.id,
     replacementLineId: row.replacement_line_id,
     predecessorItemId: row.predecessor_item_id,
     successorItemId: row.successor_item_id,
-    sourceLegacyLinkId: row.source_legacy_link_id,
-    sourceKind: row.source_kind,
     branchName: row.branch_name,
     decisionReason: row.decision_reason,
     status: row.status,
@@ -262,48 +230,11 @@ export class SupabaseReplacementLineRepository
     return data === true
   }
 
-  async loadLegacyLinks(): Promise<ReplacementLegacyLink[]> {
-    const result = await this.client
-      .from('closet_replacement_legacy_links')
-      .select(
-        'id,item_a_id,item_b_id,review_status,review_decision,review_reason,reviewed_at,updated_at',
-      )
-      .eq('workspace_id', this.workspaceId)
-      .order('review_status')
-      .order('created_at')
-      .order('id')
-
-    if (result.error) throw result.error
-    return ((result.data ?? []) as ReplacementLegacyLinkRow[]).map(toLegacyLink)
-  }
-
-  async reviewLegacyLink(
-    linkId: string,
-    input: ReplacementLegacyLinkReviewInput,
-  ): Promise<ReplacementLegacyLink> {
-    const { data, error } = await this.client.rpc(
-      'revise_closet_replacement_legacy_link',
-      {
-        p_workspace_id: this.workspaceId,
-        p_link_id: linkId,
-        p_expected_updated_at: input.expectedUpdatedAt,
-        p_decision: input.decision,
-        p_reason: input.reason,
-      },
-    )
-    if (error) throw error
-    const row = (Array.isArray(data) ? data[0] : data) as
-      | ReplacementLegacyLinkRow
-      | null
-    if (!row) throw new Error('저장된 Legacy Link를 확인하지 못했습니다.')
-    return toLegacyLink(row)
-  }
-
   async loadEdges(): Promise<ReplacementLineEdge[]> {
     const result = await this.client
       .from('closet_replacement_line_edges')
       .select(
-        'id,replacement_line_id,predecessor_item_id,successor_item_id,source_legacy_link_id,source_kind,branch_name,decision_reason,status,confirmed_at,updated_at',
+        'id,replacement_line_id,predecessor_item_id,successor_item_id,branch_name,decision_reason,status,confirmed_at,updated_at',
       )
       .eq('workspace_id', this.workspaceId)
       .order('confirmed_at')
@@ -311,26 +242,6 @@ export class SupabaseReplacementLineRepository
 
     if (result.error) throw result.error
     return ((result.data ?? []) as ReplacementLineEdgeRow[]).map(toLineEdge)
-  }
-
-  async confirmEdges(
-    inputs: ReplacementLineEdgeConfirmationInput[],
-  ): Promise<ReplacementLineEdge[]> {
-    const { data, error } = await this.client.rpc(
-      'confirm_closet_replacement_line_edges',
-      {
-        p_workspace_id: this.workspaceId,
-        p_candidates: inputs.map((input) => ({
-          replacement_line_id: input.replacementLineId,
-          source_legacy_link_id: input.sourceLegacyLinkId,
-          expected_legacy_updated_at: input.expectedLegacyUpdatedAt,
-          branch_name: input.branchName,
-          decision_reason: input.decisionReason,
-        })),
-      },
-    )
-    if (error) throw error
-    return ((data ?? []) as ReplacementLineEdgeRow[]).map(toLineEdge)
   }
 
   async updateEdgeConnection(

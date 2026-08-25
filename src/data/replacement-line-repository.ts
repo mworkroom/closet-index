@@ -1,13 +1,10 @@
 import type {
-  ReplacementLegacyLink,
-  ReplacementLegacyLinkReviewInput,
   ReplacementLineArchiveInput,
   ReplacementLineColorUpdateInput,
   ReplacementLineCreateInput,
   ReplacementLineDeleteInput,
   ReplacementLineDetailsUpdateInput,
   ReplacementLineEdge,
-  ReplacementLineEdgeConfirmationInput,
   ReplacementLineEdgeConnectionUpdateInput,
   ReplacementLineEdgeDirectionUpdateInput,
   ReplacementLineEdgeDisconnectInput,
@@ -24,15 +21,7 @@ import type {
 
 export interface ReplacementLineRepository {
   load(): Promise<ReplacementLineSnapshot>
-  loadLegacyLinks(): Promise<ReplacementLegacyLink[]>
-  reviewLegacyLink(
-    linkId: string,
-    input: ReplacementLegacyLinkReviewInput,
-  ): Promise<ReplacementLegacyLink>
   loadEdges(): Promise<ReplacementLineEdge[]>
-  confirmEdges(
-    inputs: ReplacementLineEdgeConfirmationInput[],
-  ): Promise<ReplacementLineEdge[]>
   updateEdgeConnection(
     edgeId: string,
     input: ReplacementLineEdgeConnectionUpdateInput,

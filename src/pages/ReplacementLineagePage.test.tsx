@@ -12,8 +12,6 @@ const savedEdge: ReplacementLineEdge = {
   replacementLineId: 'line-soft-layer',
   predecessorItemId: 'item-cardigan',
   successorItemId: 'item-knit',
-  sourceLegacyLinkId: 'legacy-layer',
-  sourceKind: 'legacy_link',
   branchName: null,
   decisionReason: '구매일이 아니라 확인한 대체 관계',
   status: 'confirmed',
@@ -34,20 +32,29 @@ describe('ReplacementLineagePage', () => {
       'closet-index-demo-lineage-edges:v1',
       JSON.stringify([savedEdge]),
     )
-    window.localStorage.setItem(
-      'closet-index-demo-legacy-link-reviews:v1',
-      JSON.stringify({
-        'legacy-layer': {
-          reviewStatus: 'reviewed',
-          reviewDecision: 'a_to_b',
-          reviewReason: '구매일이 아니라 확인한 대체 관계',
-          reviewedAt: '2026-08-03T00:00:00.000Z',
-          updatedAt: '2026-08-03T00:00:00.000Z',
-        },
-      }),
-    )
   })
   afterEach(cleanup)
+
+  it('returns an unknown Line URL to the app home route', async () => {
+    render(
+      <MemoryRouter initialEntries={['/replacement-lines/unknown-line']}>
+        <DataProvider repository={new DemoRepository()}>
+          <Routes>
+            <Route path="/" element={<p>앱 홈 도착</p>} />
+            <Route
+              path="/replacement-lines/:lineId"
+              element={<ReplacementLineagePage />}
+            />
+          </Routes>
+        </DataProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('앱 홈 도착')).toBeInTheDocument()
+    expect(
+      screen.queryByText('Replacement Line을 찾을 수 없습니다.'),
+    ).not.toBeInTheDocument()
+  })
 
   it('hides Line details and exposes only the management buttons when opened', async () => {
     const user = userEvent.setup()
@@ -153,8 +160,6 @@ describe('ReplacementLineagePage', () => {
         id: 'edge-layer',
         decisionReason: '온도 세분화',
         branchName: '여유로운 핏',
-        sourceLegacyLinkId: null,
-        sourceKind: 'manual',
       }),
     ])
 
@@ -270,12 +275,6 @@ describe('ReplacementLineagePage', () => {
         successorItemId: 'item-cardigan',
       }),
     ])
-    expect(
-      JSON.parse(
-        window.localStorage.getItem('closet-index-demo-legacy-link-reviews:v1') ??
-          '{}',
-      )['legacy-layer'],
-    ).toEqual(expect.objectContaining({ reviewDecision: 'b_to_a' }))
   })
 
   it('moves a standalone member into G0 when it is explicitly designated as a start', async () => {
@@ -359,8 +358,6 @@ describe('ReplacementLineagePage', () => {
           replacementLineId: 'line-everyday-shoes',
           predecessorItemId: 'item-loafers',
           successorItemId: 'item-shoes',
-          sourceLegacyLinkId: null,
-          sourceKind: 'manual',
           decisionReason: '대체 시도',
         }),
       ]),

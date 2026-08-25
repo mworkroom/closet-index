@@ -61,20 +61,6 @@ const ReplacementLinesPage = lazy(() =>
     default: ReplacementLinesPage,
   })),
 )
-const ReplacementLegacyLinkReviewPage = lazy(() =>
-  import('./pages/ReplacementLegacyLinkReviewPage').then(
-    ({ ReplacementLegacyLinkReviewPage }) => ({
-      default: ReplacementLegacyLinkReviewPage,
-    }),
-  ),
-)
-const ReplacementLineageEdgePreviewPage = lazy(() =>
-  import('./pages/ReplacementLineageEdgePreviewPage').then(
-    ({ ReplacementLineageEdgePreviewPage }) => ({
-      default: ReplacementLineageEdgePreviewPage,
-    }),
-  ),
-)
 const ReplacementLineagePage = lazy(() =>
   import('./pages/ReplacementLineagePage').then(({ ReplacementLineagePage }) => ({
     default: ReplacementLineagePage,
@@ -184,30 +170,12 @@ function AuthenticatedApp() {
               element={<ReplacementLinesPage />}
             />
             <Route
-              path="/replacement-lines/review"
-              element={<ReplacementLegacyLinkReviewPage />}
-            />
-            <Route
-              path="/replacement-lines/edges/preview"
-              element={<ReplacementLineageEdgePreviewPage />}
-            />
-            <Route
               path="/replacement-lines/:lineId"
               element={<ReplacementLineagePage />}
             />
             <Route
               path="/statistics/replacement-lines"
               element={<Navigate to="/replacement-lines" replace />}
-            />
-            <Route
-              path="/statistics/replacement-lines/review"
-              element={<Navigate to="/replacement-lines/review" replace />}
-            />
-            <Route
-              path="/statistics/replacement-lines/edges/preview"
-              element={
-                <Navigate to="/replacement-lines/edges/preview" replace />
-              }
             />
             <Route
               path="/statistics/items"

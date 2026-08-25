@@ -119,12 +119,12 @@ export, manifest, data restore SQL은 개인 데이터가 포함된 local-only �
 - 현재 confirmed edge 119개 중 manual 101개, `source_kind = legacy_link` 18개다. 18개 모두 source contract, Link 존재·workspace, reviewed directional 판단, predecessor/successor 방향이 일치하고 `needs_review` edge는 0개다.
 - reviewed directional Link는 45개다. 이 중 18개만 현재 Legacy 출처 edge를 가지며 27개는 가지지 않는다. 45개 모두 두 Item이 공유하는 Line이 정확히 1개라 과거 preview 계산에서는 `ready`이고, 비방향 판단 4개는 `excluded`다.
 - edge preview는 active edge가 하나라도 있으면 초기 일괄 확정을 잠근다. 현재 active edge가 119개이므로 저장 경로는 항상 차단되며, 27개를 현재 graph에 자동 추가해야 할 미완료 queue로 해석하지 않는다.
-- `/replacement-lines/review`, `/replacement-lines/edges/preview`와 구 Statistics redirect 두 개는 코드에 남아 있으나 현재 메뉴나 Replacement Lines 화면에서 들어가는 링크는 없다. review 화면 내부에서만 preview로 이동할 수 있다.
-- 숨은 review 화면은 여전히 49개 판단을 revise할 수 있고, 연결된 18개 판단을 바꾸면 `mark_legacy_link_edge_needs_review` trigger가 edge를 `needs_review`로 바꾼다. Lineage의 reverse RPC도 Legacy 출처 edge에서는 판단과 revision을 함께 갱신한다.
+- 2026-08-26 client-first cleanup에서 `/replacement-lines/review`, `/replacement-lines/edges/preview`, 구 Statistics redirect 두 개와 review/preview UI·repository 계약·importer를 제거했다. 현재 frontend는 Legacy table과 review/confirm RPC를 읽거나 호출하지 않는다.
+- production DB에는 연결된 18개 판단을 바꾸면 `mark_legacy_link_edge_needs_review` trigger가 edge를 `needs_review`로 바꾸는 계약이 남아 있다. Lineage의 reverse RPC도 Legacy 출처 edge에서는 판단과 revision을 함께 갱신한다.
 - production에는 Legacy와 직접 연결된 `SECURITY DEFINER` 함수 7개, Legacy table trigger 1개, edge validation trigger/function 1개, edge source FK·두 source column·관련 constraint/index가 남아 있다. Legacy table 두 개의 RLS와 authenticated SELECT도 유지된다.
 - `track_functions = none`이므로 함수 호출 누적치는 얻을 수 없다. 최근 24시간 API·Postgres 로그의 관련 table/RPC exact match는 0건이지만, 짧은 관측 구간의 보조 증거일 뿐 미사용의 단독 근거로 삼지 않는다.
 
-현재 결론은 **초기 review/preview client workflow는 역할이 끝났지만 DB subsystem은 아직 제거할 수 없다**는 것이다. 먼저 public client에서 이관 전용 호출을 없애고 배포한 뒤, export와 18개 edge 전환을 별도 단계로 수행한다.
+현재 결론은 **초기 review/preview client workflow 제거는 끝났지만 DB subsystem은 아직 제거할 수 없다**는 것이다. 공개 bundle에서 제거 상태를 확인한 뒤 export와 18개 edge 전환을 별도 단계로 수행한다.
 
 ### 선행 export
 
@@ -146,23 +146,23 @@ export, manifest, data restore SQL은 개인 데이터가 포함된 local-only �
 4. 모든 edge가 Legacy table 없이 reverse/edit/disconnect 가능한지 인증 fixture로 확인한다.
 5. reverse RPC에서 Legacy decision/revision 갱신 분기를 제거하고 edge 자체만 안전하게 반전하도록 단순화한다.
 
-이 단계는 `UPDATE` backfill이므로 현재 문서화 작업에서는 수행하지 않는다.
+이 단계는 production `UPDATE` backfill이므로 client-first cleanup에서는 수행하지 않는다.
 
 ### UI와 code 제거
 
-- `/replacement-lines/review`
-- `/replacement-lines/edges/preview`
-- `/statistics/replacement-lines/review`, `/statistics/replacement-lines/edges/preview` compatibility redirect
-- `ReplacementLegacyLinkReviewPage`
-- `ReplacementLineageEdgePreviewPage`
-- Legacy status/progress UI와 관련 CSS
-- repository의 `loadLegacyLinks`, `reviewLegacyLink`, `confirmEdges`
-- edge client model의 `sourceLegacyLinkId`, `sourceKind`와 Supabase SELECT mapping
-- Legacy 전용 types, feature helpers, tests, `import:legacy-links` command와 importer script
+- [x] `/replacement-lines/review`
+- [x] `/replacement-lines/edges/preview`
+- [x] `/statistics/replacement-lines/review`, `/statistics/replacement-lines/edges/preview` compatibility redirect
+- [x] `ReplacementLegacyLinkReviewPage`
+- [x] `ReplacementLineageEdgePreviewPage`
+- [x] Legacy status/progress UI와 관련 CSS
+- [x] repository의 `loadLegacyLinks`, `reviewLegacyLink`, `confirmEdges`
+- [x] edge client model의 `sourceLegacyLinkId`, `sourceKind`와 Supabase SELECT mapping
+- [x] Legacy 전용 types, feature helpers, tests, `import:legacy-links` command와 importer script
 
 Lineage의 manual edge 편집, 시작점, 이동, 병합, 보관 기능은 유지한다.
 
-이 client cleanup은 DB보다 먼저 배포한다. 현재 Lineage reverse 호출은 edge ID와 optimistic-lock timestamp만 RPC에 보내므로 client가 source column을 읽지 않아도 production DB의 18개 Legacy 분기는 계속 동작한다. 공개 JavaScript에서 두 route와 review/confirm RPC 문자열이 0건인지 확인하기 전에는 DB 전환을 시작하지 않는다.
+client source cleanup은 완료했고 DB보다 먼저 배포한다. 현재 Lineage reverse 호출은 edge ID와 optimistic-lock timestamp만 RPC에 보내므로 client가 source column을 읽지 않아도 production DB의 18개 Legacy 분기는 계속 동작한다. 공개 JavaScript에서 두 route와 review/confirm RPC 문자열이 0건인지 확인하기 전에는 DB 전환을 시작하지 않는다.
 
 ### DB 제거 순서
 
@@ -311,8 +311,6 @@ client cleanup 단계에서는 production DB를 변경하지 않았고, 이후 �
 - `src/pages/OutfitCreatorPage.tsx`
 - `src/pages/LookbookPage.tsx`
 - `src/pages/ReplacementLinesPage.tsx`
-- `src/pages/ReplacementLegacyLinkReviewPage.tsx`
-- `src/pages/ReplacementLineageEdgePreviewPage.tsx`
 - `src/App.tsx`
 - `src/lib/types.ts`
 - 관련 tests, scripts, CSS, pgTAP contract tests

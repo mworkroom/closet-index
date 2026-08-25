@@ -33,8 +33,6 @@ function edge(
     replacementLineId: 'line',
     predecessorItemId,
     successorItemId,
-    sourceLegacyLinkId: null,
-    sourceKind: 'manual',
     branchName: null,
     decisionReason: `${id} 이유`,
     status,

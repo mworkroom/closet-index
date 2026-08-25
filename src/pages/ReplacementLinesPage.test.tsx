@@ -13,7 +13,6 @@ describe('ReplacementLinesPage', () => {
   it('opens with a compact color index instead of the full Line and Item list', async () => {
     const repository = new DemoRepository()
     const loadReplacementLines = vi.spyOn(repository.replacementLines, 'load')
-    const loadLegacyLinks = vi.spyOn(repository.replacementLines, 'loadLegacyLinks')
     render(
       <MemoryRouter initialEntries={['/replacement-lines']}>
         <DataProvider repository={repository}>
@@ -30,7 +29,6 @@ describe('ReplacementLinesPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Color' })).toBeInTheDocument()
     expect(loadReplacementLines).toHaveBeenCalledTimes(1)
-    expect(loadLegacyLinks).not.toHaveBeenCalled()
     expect(screen.getByRole('heading', { name: 'Line 관리 현황' })).toBeInTheDocument()
     expect(screen.getByText('고유 Item')).toBeInTheDocument()
     expect(screen.getByText('Active / Retired')).toBeInTheDocument()

@@ -30,6 +30,7 @@ export function useReplacementLineage(lineId: string) {
   const [snapshot, setSnapshot] = useState<ReplacementLineSnapshot | null>(null)
   const [edges, setEdges] = useState<ReplacementLineEdge[] | null>(null)
   const [starts, setStarts] = useState<ReplacementLineStart[] | null>(null)
+  const [resolvedLineId, setResolvedLineId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -45,7 +46,9 @@ export function useReplacementLineage(lineId: string) {
       setSnapshot(nextSnapshot)
       setEdges(nextEdges)
       setStarts(nextStarts)
+      setResolvedLineId(lineId)
     } catch (cause) {
+      setResolvedLineId(lineId)
       setError(
         cause instanceof Error
           ? cause.message
@@ -255,6 +258,7 @@ export function useReplacementLineage(lineId: string) {
     snapshot,
     edges,
     starts,
+    resolvedLineId,
     loading,
     error,
     reload,

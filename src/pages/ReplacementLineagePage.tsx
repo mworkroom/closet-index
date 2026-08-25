@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useParams } from 'react-router-dom'
+import { Navigate, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import {
@@ -25,6 +25,7 @@ export function ReplacementLineagePage() {
     snapshot,
     edges,
     starts,
+    resolvedLineId,
     loading,
     error,
     reload,
@@ -104,6 +105,11 @@ export function ReplacementLineagePage() {
     lineage?.line.name ??
     snapshot?.lines.find((line) => line.id === lineId)?.name ??
     'Item Lineage'
+  const resolvingCurrentLine = loading || resolvedLineId !== lineId
+
+  if (!resolvingCurrentLine && !error && data && snapshot && edges && starts && !lineage) {
+    return <Navigate to="/" replace />
+  }
 
   return (
     <AppShell
@@ -119,14 +125,12 @@ export function ReplacementLineagePage() {
       back
       hideNavigation
     >
-      {loading || (!data && !error) ? (
+      {resolvingCurrentLine || (!data && !error) ? (
         <LoadingState label="Replacement Lineage를 불러오는 중" />
       ) : null}
-      {error ? <ErrorState message={error} onRetry={() => void reload()} /> : null}
-      {!loading && !error && data && snapshot && edges && starts && !lineage ? (
-        <ErrorState message="Replacement Line을 찾을 수 없습니다." />
+      {!resolvingCurrentLine && error ? (
+        <ErrorState message={error} onRetry={() => void reload()} />
       ) : null}
-
       {lineage ? (
         <>
           {lineage.needsReviewEdgeCount > 0 ? (

@@ -16,7 +16,6 @@
     "audit:phase4": "node scripts/audit-phase4-baseline.mjs",
     "audit:phase5": "node scripts/audit-phase5-context.mjs",
     "test:phase5-audit": "node --test scripts/phase5-context-audit-core.node.mjs",
-    "import:legacy-links": "node scripts/import-replacement-legacy-links.mjs",
     "images:prepare": "node scripts/prepare-image-upload.mjs",
     "images:bulk": "node scripts/image-bulk-tool.mjs",
     "weather:capture": "node scripts/capture-kma-forecast.mjs"

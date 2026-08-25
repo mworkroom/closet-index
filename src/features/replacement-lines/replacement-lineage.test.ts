@@ -30,8 +30,6 @@ const edge = (
   replacementLineId: 'line-a',
   predecessorItemId,
   successorItemId,
-  sourceLegacyLinkId: `source-${id}`,
-  sourceKind: 'legacy_link',
   branchName: null,
   decisionReason: `reason-${id}`,
   status,

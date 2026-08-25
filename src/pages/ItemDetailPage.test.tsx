@@ -18,8 +18,6 @@ function edge(
     replacementLineId: 'line-detail-test',
     predecessorItemId,
     successorItemId,
-    sourceLegacyLinkId: null,
-    sourceKind: 'manual',
     branchName: null,
     decisionReason,
     status: 'confirmed',
