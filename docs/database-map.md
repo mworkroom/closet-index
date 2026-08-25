@@ -26,12 +26,12 @@
 
 ## 2. Production migration history와 Git 비교
 
-- production migration history: 66개
-- 그중 Closet Index 관련 remote migration: 44개
+- production migration history: 68개
+- 그중 Closet Index 관련 remote migration: 46개
 - 현재 working tree와 Git의 Closet migration 파일: 46개
-- 이름과 timestamp가 모두 같은 Closet migration: 36개
+- 이름과 timestamp가 모두 같은 Closet migration: 38개
 - 같은 이름이지만 local·remote timestamp가 다른 Closet migration: 8쌍
-- 이름 기준으로 local에만 있고 production history에 없는 Closet migration: `p5b_place_profile_hvac`, `remove_wear_log_hvac_memo` 2개
+- 이름 기준으로 local에만 있고 production history에 없는 Closet migration: 0개
 - production project에는 Inventory Tracker·Pay Me Mom 계열 migration 22개도 함께 있다. 따라서 이 Supabase project의 전체 migration history는 Closet Index 저장소 하나만으로 재구성할 수 없다.
 
 같은 논리 이름이지만 timestamp가 다른 history가 8쌍 있다.
@@ -47,11 +47,15 @@
 | `p6_event_foreign_key_indexes` | `20260805202648` | `20260805203021` |
 | `preserve_quantity_for_general_purchase_events` | `20260805230843` | `20260805232501` |
 
-2026-08-26 감사에서 두 local-only migration의 적용 경로를 원본 실행 기록까지 추적했다. 두 파일 모두 2026-08-10에 파일 본문을 읽어 `execute_sql`의 명시적 transaction으로 production에 적용됐고 `apply_migration`은 사용하지 않았다. 따라서 schema는 적용됐지만 `supabase_migrations.schema_migrations` row가 생기지 않은 원인이 확정됐다.
+2026-08-26 감사에서 당시 local-only였던 두 migration의 적용 경로를 원본 실행 기록까지 추적했다. 두 파일 모두 2026-08-10에 파일 본문을 읽어 `execute_sql`의 명시적 transaction으로 production에 적용됐고 `apply_migration`은 사용하지 않았다. 따라서 schema는 적용됐지만 `supabase_migrations.schema_migrations` row가 생기지 않은 원인이 확정됐다.
 
 현재 production은 두 migration의 최종 합성 결과와 일치한다. Wear Log HVAC mode·intensity column과 세 CHECK, Place kind column·CHECK·분류, Place HVAC Profile의 9개 column·9개 constraint·2개 index·RLS·policy 3개·접근 grant·COMMENT가 모두 존재하고, 후속 제거 대상인 `observed_hvac_memo` column·CHECK는 부재한다. Wear Log 808행, Place 25행, Profile 10행의 값 위반·고아 Profile·generic Place Profile은 0건이다. local SQL SHA-256은 P5B `c5d5d427bc662b09a170095ac8f752ccee3636524e83f52b8296c6aa739c7a3a`, memo cleanup `f4288bcf1712c00d3cf6118a81eba1d670e7916ffe331eaa2cd82b30a1628834`다.
 
-Supabase [Database Migrations 가이드](https://supabase.com/docs/guides/deployment/database-migrations)와 [migration repair CLI 문서](https://supabase.com/docs/reference/cli/supabase-migration-repair) 기준상 실제 schema가 이미 적용된 수동 migration은 SQL을 재실행하지 않고 `migration repair --status applied <timestamp>`로 tracking row만 보정할 수 있다. 두 migration은 이 조건을 충족하지만, 두 row만 보정해도 shared project의 remote-only 22개와 timestamp 불일치 8쌍은 남는다. 따라서 다음 단계의 두 row repair는 **적용 사실 보정**으로만 정의하며 전체 `db push` 호환 복구로 부르지 않는다. 전체 CLI 동기화가 필요하면 여러 저장소의 migration 통합과 8쌍의 본문 증거 감사부터 별도로 설계한다. Supabase migration history 목록은 SQL checksum을 제공하지 않으므로 이름 일치만으로 본문 동일성을 추정하지 않는다.
+Supabase [Database Migrations 가이드](https://supabase.com/docs/guides/deployment/database-migrations)와 [migration repair CLI 문서](https://supabase.com/docs/reference/cli/supabase-migration-repair) 기준상 실제 schema가 이미 적용된 수동 migration은 SQL을 재실행하지 않고 `migration repair --status applied <timestamp>`로 tracking row만 보정할 수 있다. 두 migration은 이 조건을 충족했고, 2026-08-26 후속 작업에서 `20260809200608_p5b_place_profile_hvac`와 `20260809211440_remove_wear_log_hvac_memo` tracking row를 추가했다.
+
+작업 세션에는 Supabase CLI access token이 없어 CLI 2.109.1을 production에 직접 연결하지 않았다. 대신 같은 버전의 공식 구현이 수행하는 `version`, `name`, 분리된 `statements` 기록 방식을 원본 소스로 확인한 뒤, 이미 인증된 Supabase 연결에서 history table을 잠그고 사전 기준선이 동일할 때만 두 row를 한 transaction으로 삽입했다. migration SQL은 재실행하지 않았다. repair 뒤 전체 history는 68개가 됐고 대상 row의 statement 수는 각각 25개와 1개다. 기존 66개 history fingerprint, Wear Log 808행·Place 25행·Profile 10행의 값 fingerprint, 관련 constraint·index·policy catalog fingerprint, Security Advisor 47건과 Performance Advisor 33건은 전후 동일했다.
+
+이번 repair는 **적용 사실 보정**만 완료했다. shared project의 다른 앱 remote migration 22개와 timestamp 불일치 8쌍은 그대로이므로 전체 `db push` 호환 복구로 부르지 않는다. 전체 CLI 동기화가 필요하면 여러 저장소의 migration 통합과 8쌍의 본문 증거 감사부터 별도로 설계한다. Supabase migration history 목록은 SQL checksum을 제공하지 않으므로 이름 일치만으로 본문 동일성을 추정하지 않는다.
 
 Import Runs cleanup 뒤 production catalog의 `public.closet_*` table 18개와 RLS 18개를 확인했다. 아래 전체 RPC 목록은 최초 감사 이후 cleanup 기록을 누적한 문서다.
 
