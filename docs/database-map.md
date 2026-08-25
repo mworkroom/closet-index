@@ -1,6 +1,7 @@
 # Closet Index Database Map
 
-- 감사 기준 시각: 2026-08-05 05:22 KST
+- 최초 전수 감사 기준 시각: 2026-08-05 05:22 KST
+- 최신 Replacement Line·Legacy Link 재감사: 2026-08-26
 - production project ref: `ddlwainwollvpaeccpty`
 - 범위: `public.closet_*` table, Closet 관련 public RPC, 직접 dependency, 현재 repository/UI 호출 경로
 - 안전 경계: 최초 감사는 `SELECT`와 catalog 조회만 수행했다. 이후 J의 제거 결정과 production 전환 승인에 따라 Preview cleanup·Line color·COMMENT, Outfit clone RPC와 Import Runs cleanup migration을 적용했다.
@@ -8,6 +9,8 @@
 > 2026-08-05 후속 적용: Preview-free frontend와 `closet-outfit-delete` Function을 먼저 배포한 뒤 `closet_outfit_previews`, Preview RPC 세 개와 stale trigger 두 개를 production에서 제거했다. 기존 Preview Storage file 2개와 Dashboard가 만든 빈 폴더 placeholder까지 삭제해 `/outfits/` object count 0을 확인했고, 구 `closet-outfit-preview` Function도 제거했다. 당시 Closet table은 16개였다.
 
 > 2026-08-25 후속 감사: 이후 추가된 Purchase·Care·Place HVAC table을 inventory에 보충하고, 일회성 `closet_import_runs`를 remote migration `20260825021515_remove_closet_import_runs`로 제거했다. 현재 `public.closet_*` table은 18개이며 모두 RLS가 켜져 있다.
+
+> 2026-08-26 Legacy Link 후속 감사: Replacement subsystem은 Line 66개, membership 194개, start 50개, confirmed edge 119개다. edge는 manual 101개·Legacy 출처 18개이며 Legacy Link 49개와 revision 51개는 그대로다. 초기 review/preview client workflow는 역할이 끝났지만 18개 edge와 reverse·validation DB 계약이 남아 있어 client 선행 제거 뒤 별도 전환한다.
 
 ## 1. 한눈에 보기
 
@@ -89,12 +92,12 @@ Import Runs cleanup 뒤 production catalog의 `public.closet_*` table 18개와 R
 | `closet_purchase_events` | Item 재구매 이력 | `LIVE_CORE` | 예: 수동 재구매 기록 | 11 | 72 kB |
 | `closet_replacement_legacy_link_revisions` | Legacy 판단 변경 이력 | `LEGACY_DROP_CANDIDATE` | 아니오: 감사 이력 | 51 | 96 kB |
 | `closet_replacement_legacy_links` | Notion Legacy 관계 검토본 | `LEGACY_DROP_CANDIDATE` | 과도기: 초기 판단 원본 | 49 | 192 kB |
-| `closet_replacement_line_edges` | 계보 방향 연결 | `LIVE_CORE` | 예: 현재 계보 연결 | 87 | 232 kB |
-| `closet_replacement_line_items` | Line membership | `LIVE_SUPPORT` | 예 | 165 | 200 kB |
-| `closet_replacement_line_starts` | 명시적 계보 시작점 | `LIVE_SUPPORT` | 예 | 25 | 40 kB |
-| `closet_replacement_lines` | Replacement Line | `LIVE_CORE` | 예 | 53 | 160 kB |
+| `closet_replacement_line_edges` | 계보 방향 연결 | `LIVE_CORE` | 예: 현재 계보 연결 | 119 | 280 kB |
+| `closet_replacement_line_items` | Line membership | `LIVE_SUPPORT` | 예 | 194 | 200 kB |
+| `closet_replacement_line_starts` | 명시적 계보 시작점 | `LIVE_SUPPORT` | 예 | 50 | 72 kB |
+| `closet_replacement_lines` | Replacement Line | `LIVE_CORE` | 예 | 66 | 168 kB |
 | `closet_transport_modes` | 교통수단 선택지 | `LIVE_SUPPORT` | 예 | 4 | 80 kB |
-| `closet_wear_logs` | 착용 기록 | `LIVE_CORE` | 예 | 807 | 1,048 kB |
+| `closet_wear_logs` | 착용 기록 | `LIVE_CORE` | 예 | 808 | 1,048 kB |
 | `closet_weather_locations` | 날씨 위치 | `LIVE_SUPPORT` | 예 | 1 | 96 kB |
 
 ### 4.1 `closet_color_palette`
@@ -214,10 +217,10 @@ Import Runs cleanup 뒤 production catalog의 `public.closet_*` table 18개와 R
 
 - 주요 columns: predecessor/successor Item, `source_kind`, `source_legacy_link_id`, `branch_name`, `decision_reason`, `status`, confirmation metadata.
 - foreign keys: predecessor·successor는 같은 Line membership을 참조한다. `source_legacy_link_id`는 Legacy Link를 `ON DELETE RESTRICT`로 참조한다.
-- 읽기: `src/data/supabase/replacement-lines.ts`, Lineage·edge preview 화면.
+- 읽기: `src/data/supabase/replacement-lines.ts`, Lineage 화면과 숨은 초기 edge preview route.
 - 쓰기: confirm, manual create, detail/connection edit, disconnect, reverse, move/merge RPC.
-- trigger/dependency: `require_active_closet_replacement_line_edge`, `validate_closet_replacement_line_edge`. 현재 87개 중 62개는 manual, 25개는 Legacy Link FK를 유지한다.
-- 유지 이유와 cleanup: 현재 계보의 source of truth다. table 자체는 유지하며 Wave 3에서 25개 Legacy 출처 edge만 독립 manual edge로 전환한다.
+- trigger/dependency: `require_active_closet_replacement_line_edge`, `validate_closet_replacement_line_edge`. 현재 119개 모두 confirmed이고 manual 101개, Legacy Link FK 18개다. source contract·Link 상태·방향 불일치는 모두 0개다.
+- 유지 이유와 cleanup: 현재 계보의 source of truth다. table 자체는 유지하며 Wave 3에서 18개 Legacy 출처 edge의 ID·방향·Line·설명·확정 metadata를 보존한 채 독립 manual edge로 전환한다.
 
 ### 4.15 `closet_replacement_line_starts`
 
@@ -231,11 +234,11 @@ Import Runs cleanup 뒤 production catalog의 `public.closet_*` table 18개와 R
 ### 4.16 `closet_replacement_legacy_links`
 
 - 주요 columns: Item A/B, source Notion IDs, review status/decision/reason, reviewer와 timestamps.
-- foreign keys: Item A/B `ON DELETE RESTRICT`, reviewer `auth.users`; revisions와 25개 edge가 이 table을 참조한다.
-- 읽기: `src/data/supabase/replacement-lines.ts`, Replacement Line 목록, Legacy review·edge preview 화면.
+- foreign keys: Item A/B `ON DELETE RESTRICT`, reviewer `auth.users`; revisions와 18개 edge가 이 table을 참조한다.
+- 읽기: `src/data/supabase/replacement-lines.ts`의 전용 method와 숨은 Legacy review·edge preview route. 현재 메뉴나 Replacement Lines 화면에는 진입 링크가 없다.
 - 쓰기: revise/review RPC, edge 확인·방향 전환 RPC. `mark_legacy_link_edge_needs_review` trigger가 연결된 edge를 갱신한다.
-- 현재 상태: 49개 모두 `reviewed`다.
-- 유지 이유와 cleanup: 현재 UI와 25개 edge가 아직 의존한다. export, edge 전환, reverse RPC 단순화, review UI 제거 뒤 Wave 3에서 제거한다.
+- 현재 상태: 49개 모두 `reviewed`이고 판단은 `a_to_b` 8개, `b_to_a` 37개, `parallel` 1개, `not_replacement` 3개다. directional 45개 중 현재 Legacy 출처 edge를 가진 것은 18개다.
+- 유지 이유와 cleanup: 숨은 review UI와 18개 edge가 아직 의존한다. client route·repository·importer 선행 제거와 공개 자산 확인 뒤 export, edge 전환, reverse·validation RPC 단순화를 거쳐 Wave 3에서 제거한다.
 
 ### 4.17 `closet_replacement_legacy_link_revisions`
 
@@ -244,7 +247,8 @@ Import Runs cleanup 뒤 production catalog의 `public.closet_*` table 18개와 R
 - 읽기: 현재 frontend repository는 revision table을 직접 읽지 않는다.
 - 쓰기: `revise_closet_replacement_legacy_link`; Legacy 기반 edge 방향 전환도 이 RPC를 통해 revision을 추가한다.
 - trigger/dependency: revise/reverse RPC가 의존한다.
-- 유지 이유와 cleanup: 51개 판단 이력의 export가 필요하다. Legacy subsystem과 함께 Wave 3에서 제거한다.
+- 현재 상태: 51개이며 49개 Link 모두 이력이 있고 orphan은 0개다. 여러 revision을 가진 Link는 1개, 최대 revision number는 3이다.
+- 유지 이유와 cleanup: 51개 판단 이력의 local-only export가 필요하다. Legacy subsystem과 함께 Wave 3에서 제거한다.
 
 ### 4.18 `closet_purchase_events`
 
@@ -283,10 +287,10 @@ Import Runs cleanup 뒤 production catalog의 `public.closet_*` table 18개와 R
 | `find_matching_closet_outfits(workspace, item_ids[])` | `SupabaseOutfitRepository.findMatching`; 생성 중 중복 확인 | outfits, outfit_items | 읽기 함수이며 동일 item set 계산을 서버에서 고정 | 필요 |
 | `delete_closet_item_if_unreferenced(user, workspace, item)` | `closet-item-image` Edge Function; Item 삭제 UI | items, images, outfit_items, line_items | 참조 재확인·row 삭제·storage 경로 반환 | 필요 |
 | `delete_closet_outfit_if_unworn(user, workspace, outfit)` | `closet-outfit-delete` Edge Function; Outfit 삭제 UI | outfits, wear_logs | Wear Log 차단과 삭제를 한 transaction에서 처리 | 필요 |
-| `review_closet_replacement_legacy_link(workspace, link, decision, reason)` | 현재 repository가 직접 호출하지 않음; revise RPC의 최초 검토 wrapper | legacy_links | pending 상태 확인 뒤 revision 저장 RPC 호출 | Wave 3 후보, 현재 legacy workflow 보조 |
-| `revise_closet_replacement_legacy_link(workspace, link, expected_updated_at, decision, reason)` | `reviewLegacyLink`; Legacy review UI와 reverse RPC | legacy_links, revisions | optimistic lock·현재 판단·append-only revision 동시 저장 | Wave 3 후보, 현재 필요 |
-| `confirm_closet_replacement_line_edge(workspace, line, legacy_link, expected_updated_at, branch, reason)` | bulk confirm RPC 내부; UI 직접 호출 없음 | legacy_links, edges | 검토 결과 재검증과 단일 edge 확정 | Wave 3 후보, 현재 bulk helper |
-| `confirm_closet_replacement_line_edges(workspace, candidates jsonb)` | `confirmEdges`; edge preview UI | edges, singular confirm을 통한 legacy_links | 후보 하나가 실패하면 batch 전체 rollback | Wave 3 후보, 현재 review 완료 흐름에 남음 |
+| `review_closet_replacement_legacy_link(workspace, link, decision, reason)` | 현재 repository가 직접 호출하지 않음; revise RPC의 최초 검토 wrapper | legacy_links | pending 상태 확인 뒤 revision 저장 RPC 호출 | Wave 3 후보; pending 0개라 신규 검토 역할 종료 |
+| `revise_closet_replacement_legacy_link(workspace, link, expected_updated_at, decision, reason)` | `reviewLegacyLink`; 숨은 Legacy review UI와 reverse RPC | legacy_links, revisions | optimistic lock·현재 판단·append-only revision 동시 저장 | client 선행 제거 뒤 reverse Legacy 분기와 함께 제거 |
+| `confirm_closet_replacement_line_edge(workspace, line, legacy_link, expected_updated_at, branch, reason)` | bulk confirm RPC 내부; UI 직접 호출 없음 | legacy_links, edges | 검토 결과 재검증과 단일 edge 확정 | Wave 3 후보; 초기 일괄 확정 역할 종료 |
+| `confirm_closet_replacement_line_edges(workspace, candidates jsonb)` | `confirmEdges`; 숨은 edge preview UI | edges, singular confirm을 통한 legacy_links | 후보 하나가 실패하면 batch 전체 rollback | active edge 119개로 UI 저장이 항상 차단됨; client와 함께 선행 제거 |
 | `create_closet_replacement_manual_edge(workspace, line, predecessor, successor, branch, reason)` | `createManualEdge`; Lineage UI | edges | membership·start·cycle 검증과 edge 생성 | 필요 |
 | `create_closet_replacement_line(workspace, name, style_identity, color_category)` | `create`; Replacement Lines 상단 신규 Line UI | lines | 인증된 workspace에 사람이 지정한 metadata로 active·빈 Line 생성 | 필요 |
 | `revise_closet_replacement_line_edge_details(workspace, edge, expected_updated_at, branch, reason)` | 현재 frontend public port·adapter·production UI caller 없음; DB RPC와 migration만 보존 | edges | optimistic lock과 설명 변경 | frontend-unused; DB 계약 보존 |

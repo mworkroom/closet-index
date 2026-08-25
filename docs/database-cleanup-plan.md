@@ -20,8 +20,8 @@
 | 질문 | 결론 |
 |---|---|
 | 즉시 안전하게 제거 가능한 DB object | Preview subsystem은 frontend·DB·Storage·Edge Function까지 제거 완료. `clone_closet_outfit`도 client 선행 배포와 exact cleanup migration 검증 뒤 production에서 제거 완료 |
-| 가장 독립적인 후보 | `closet_import_runs` Wave 1 제거 완료. 다음 후보는 새 inventory 뒤 결정 |
-| 현재 dependency 때문에 제거할 수 없는 후보 | Legacy Link subsystem. Preview DB dependency는 제거 완료 |
+| 가장 독립적인 후보 | `closet_import_runs` Wave 1 제거 완료. 다음 단위는 Legacy Link의 초기 이관용 client surface와 importer 제거 |
+| 현재 dependency 때문에 제거할 수 없는 후보 | Legacy Link DB subsystem. confirmed edge 18개와 reverse·validation 계약이 아직 의존한다. Preview DB dependency는 제거 완료 |
 | Outfit Preview 결정 | J가 영구 제거를 확정. frontend·Function 전환과 DB cleanup 완료 |
 | Outfit clone RPC 결정 | 현재 복제 UX는 source-prefill 뒤 일반 create 경로를 사용한다. client dead code와 production RPC를 제거했으며, 일반 create가 공유하는 private helper는 유지 |
 | Line 색상 자동 분류 | 일회성 초기 제안으로만 사용하고 직접 지정 완료 후 제거 권장 |
@@ -114,12 +114,17 @@ export, manifest, data restore SQL은 개인 데이터가 포함된 local-only �
 
 ### 현재 사실
 
-- Legacy Link 49개는 모두 reviewed.
-- revision 51개가 있다.
-- 현재 edge 87개 중 manual 62개, `source_kind = legacy_link` 25개다.
-- 25개 edge가 `source_legacy_link_id` FK로 Legacy Link를 `ON DELETE RESTRICT` 참조한다.
-- reverse RPC는 Legacy 출처 edge의 방향을 바꿀 때 Legacy 판단과 revision도 함께 변경한다.
-- Legacy review/edge preview UI, trigger, 여러 RPC가 여전히 접근 가능하다.
+- 2026-08-26 production 재감사에서 Legacy Link 49개는 모두 reviewed다. 판단은 `a_to_b` 8개, `b_to_a` 37개, `parallel` 1개, `not_replacement` 3개다.
+- revision은 51개이고 49개 Link 모두 이력이 있다. 여러 revision을 가진 Link는 1개이며 최대 revision number는 3이다. orphan revision은 0개다.
+- 현재 confirmed edge 119개 중 manual 101개, `source_kind = legacy_link` 18개다. 18개 모두 source contract, Link 존재·workspace, reviewed directional 판단, predecessor/successor 방향이 일치하고 `needs_review` edge는 0개다.
+- reviewed directional Link는 45개다. 이 중 18개만 현재 Legacy 출처 edge를 가지며 27개는 가지지 않는다. 45개 모두 두 Item이 공유하는 Line이 정확히 1개라 과거 preview 계산에서는 `ready`이고, 비방향 판단 4개는 `excluded`다.
+- edge preview는 active edge가 하나라도 있으면 초기 일괄 확정을 잠근다. 현재 active edge가 119개이므로 저장 경로는 항상 차단되며, 27개를 현재 graph에 자동 추가해야 할 미완료 queue로 해석하지 않는다.
+- `/replacement-lines/review`, `/replacement-lines/edges/preview`와 구 Statistics redirect 두 개는 코드에 남아 있으나 현재 메뉴나 Replacement Lines 화면에서 들어가는 링크는 없다. review 화면 내부에서만 preview로 이동할 수 있다.
+- 숨은 review 화면은 여전히 49개 판단을 revise할 수 있고, 연결된 18개 판단을 바꾸면 `mark_legacy_link_edge_needs_review` trigger가 edge를 `needs_review`로 바꾼다. Lineage의 reverse RPC도 Legacy 출처 edge에서는 판단과 revision을 함께 갱신한다.
+- production에는 Legacy와 직접 연결된 `SECURITY DEFINER` 함수 7개, Legacy table trigger 1개, edge validation trigger/function 1개, edge source FK·두 source column·관련 constraint/index가 남아 있다. Legacy table 두 개의 RLS와 authenticated SELECT도 유지된다.
+- `track_functions = none`이므로 함수 호출 누적치는 얻을 수 없다. 최근 24시간 API·Postgres 로그의 관련 table/RPC exact match는 0건이지만, 짧은 관측 구간의 보조 증거일 뿐 미사용의 단독 근거로 삼지 않는다.
+
+현재 결론은 **초기 review/preview client workflow는 역할이 끝났지만 DB subsystem은 아직 제거할 수 없다**는 것이다. 먼저 public client에서 이관 전용 호출을 없애고 배포한 뒤, export와 18개 edge 전환을 별도 단계로 수행한다.
 
 ### 선행 export
 
@@ -127,15 +132,17 @@ export, manifest, data restore SQL은 개인 데이터가 포함된 local-only �
 
 1. Legacy Link 49개 전체
 2. revision 51개 전체
-3. Legacy 출처 edge 25개와 연결된 Line·Item 이름 lookup
+3. Legacy 출처 edge 18개와 연결된 Line·Item 이름 lookup
 
 각 export에는 row count, 정렬 기준, timestamp, SHA-256을 기록한다. 사람 읽기용 CSV와 관계 보존용 JSON을 함께 두는 편이 안전하다.
 
+2026-08-26 읽기 전용 기준선에서 source field를 제외한 현재 계보 의미 SHA-256은 전체 119개 edge `cd7fb6c8edc608828193c9f9d3a4bea1f5814978b1c61b73b3ec8ece52caea83`, Legacy 출처 18개 `2b68666896b01001b8a1b3ec1e8c9964222aa3bdd368ca2bca580e24c8164018`이다. 실제 export 직전에는 같은 정렬·column 계약으로 다시 계산한다.
+
 ### Legacy edge 전환
 
-1. 25개 edge마다 predecessor, successor, Line, branch, decision reason이 현재 UI와 일치하는지 확인한다.
+1. 18개 edge마다 predecessor, successor, Line, branch, decision reason이 현재 UI와 일치하는지 확인한다.
 2. 별도 migration에서 `source_kind = 'manual'`, `source_legacy_link_id = null`로 전환한다.
-3. 전환 전후 25개 edge의 ID·방향·설명·Line checksum이 동일한지 검증한다.
+3. 전환 전후 18개 edge의 ID·방향·설명·Line·확정 metadata checksum이 동일한지 검증한다.
 4. 모든 edge가 Legacy table 없이 reverse/edit/disconnect 가능한지 인증 fixture로 확인한다.
 5. reverse RPC에서 Legacy decision/revision 갱신 분기를 제거하고 edge 자체만 안전하게 반전하도록 단순화한다.
 
@@ -145,13 +152,17 @@ export, manifest, data restore SQL은 개인 데이터가 포함된 local-only �
 
 - `/replacement-lines/review`
 - `/replacement-lines/edges/preview`
+- `/statistics/replacement-lines/review`, `/statistics/replacement-lines/edges/preview` compatibility redirect
 - `ReplacementLegacyLinkReviewPage`
 - `ReplacementLineageEdgePreviewPage`
 - Legacy status/progress UI와 관련 CSS
-- repository의 `loadReplacementLegacyLinks`, `reviewReplacementLegacyLink`, `confirmReplacementLineEdges`
-- Legacy 전용 types, feature helpers, tests, importer script
+- repository의 `loadLegacyLinks`, `reviewLegacyLink`, `confirmEdges`
+- edge client model의 `sourceLegacyLinkId`, `sourceKind`와 Supabase SELECT mapping
+- Legacy 전용 types, feature helpers, tests, `import:legacy-links` command와 importer script
 
 Lineage의 manual edge 편집, 시작점, 이동, 병합, 보관 기능은 유지한다.
+
+이 client cleanup은 DB보다 먼저 배포한다. 현재 Lineage reverse 호출은 edge ID와 optimistic-lock timestamp만 RPC에 보내므로 client가 source column을 읽지 않아도 production DB의 18개 Legacy 분기는 계속 동작한다. 공개 JavaScript에서 두 route와 review/confirm RPC 문자열이 0건인지 확인하기 전에는 DB 전환을 시작하지 않는다.
 
 ### DB 제거 순서
 
@@ -162,6 +173,8 @@ Lineage의 manual edge 편집, 시작점, 이동, 병합, 보관 기능은 유�
 5. revision table 제거
 6. Legacy Link table 제거
 7. policies, grants, contract tests 정리
+
+`source_kind`와 `source_legacy_link_id`는 전환 뒤 모든 edge가 manual이므로 단순히 nullable history field로 보존하지 않는다. client 선행 배포와 18개 의미 checksum 검증을 통과한 뒤 FK·source 전용 constraint/index와 함께 제거한다.
 
 ### 완료 검증
 
