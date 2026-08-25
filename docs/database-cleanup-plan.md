@@ -66,7 +66,8 @@ export, manifest, data restore SQL은 개인 데이터가 포함된 local-only �
 - [x] import script가 존재하지 않는 table을 호출하지 않는다.
 - [x] Security Advisor 47건, Performance Advisor 33건이 byte 단위로 동일하고 대상 관련 항목은 전후 0건이다.
 - [x] remote version과 맞춘 local migration 이력으로 앱 test 645개, production build와 Pages artifact 검증을 통과시켰다.
-- [ ] 빈 PostgreSQL 17 격리 pgTAP과 실제 Pages 배포를 다시 통과시킨다.
+- [x] 빈 PostgreSQL 17에서 cleanup 8개 파일·137 assertions와 schema rollback 1개 파일·14 assertions를 run `32801422031`로 통과시켰다.
+- [x] Pages build·deploy run `32801409718`을 통과시키고 공개 URL의 HTTP 200과 앱 shell을 확인했다.
 
 ## 4. Cleanup Wave 2 — Outfit Preview subsystem
 
