@@ -36,16 +36,22 @@
 
 같은 논리 이름이지만 timestamp가 다른 history가 8쌍 있다.
 
-| 논리 migration | local/Git version | production version |
-|---|---|---|
-| `phase3_item_outfit_write_contract` | `20260729000405` | `20260729013427` |
-| `phase3_item_image_upload_contract` | `20260729003410` | `20260729013547` |
-| `phase3_outfit_preview_cache` | `20260731200415` | `20260731220215` |
-| `add_safe_item_outfit_deletion` | `20260802013109` | `20260802015500` |
-| `p6_2_purchase_events` | `20260805170605` | `20260805202407` |
-| `p6_4_care_events` | `20260805191039` | `20260805202519` |
-| `p6_event_foreign_key_indexes` | `20260805202648` | `20260805203021` |
-| `preserve_quantity_for_general_purchase_events` | `20260805230843` | `20260805232501` |
+| 논리 migration | local/Git version | production version | production 본문 감사 |
+|---|---|---|---|
+| `phase3_item_outfit_write_contract` | `20260729000405` | `20260729013427` | 정규화 일치, 1 statement |
+| `phase3_item_image_upload_contract` | `20260729003410` | `20260729013547` | 정규화 일치, 1 statement |
+| `phase3_outfit_preview_cache` | `20260731200415` | `20260731220215` | 정규화 일치, 1 statement |
+| `add_safe_item_outfit_deletion` | `20260802013109` | `20260802015500` | 정규화 일치, 1 statement |
+| `p6_2_purchase_events` | `20260805170605` | `20260805202407` | 정규화 일치, 1 statement |
+| `p6_4_care_events` | `20260805191039` | `20260805202519` | 정규화 일치, 1 statement |
+| `p6_event_foreign_key_indexes` | `20260805202648` | `20260805203021` | 정규화 일치, 1 statement |
+| `preserve_quantity_for_general_purchase_events` | `20260805230843` | `20260805232501` | 정규화 일치, 1 statement |
+
+2026-08-26 읽기 전용 후속 감사에서 production `schema_migrations.statements`와 local SQL 파일 본문을 8쌍 모두 직접 대조했다. 각 논리 이름은 production에 정확히 1행만 있고 각 행의 `statements` cardinality도 1이며, local version은 부재하고 위 production version만 존재한다. 전체 history 68개 기준선도 유지됐다.
+
+비교 정규화는 UTF-8 BOM 제거, CRLF·CR을 LF로 통일, 파일 경계의 공백 제거로만 제한했다. 대상 local·production 본문에는 BOM이 없었고, 8쌍 모두 이 정규화 뒤 문자 단위와 독립 SHA-256이 각각 일치했다. raw 문자열 차이는 줄바꿈 형식과 파일 끝 newline뿐이므로 SQL 의미나 객체 정의가 다른 drift가 아니다. Git 이력과 당시 개발 로그에도 local 파일 version과 위 별도 production 적용 version이 각각 기록돼 있어, 8쌍은 **본문이 같은 timestamp-only history drift**로 확정한다. 이번 감사에서는 migration SQL이나 history DML을 실행하지 않았다.
+
+이 결과는 다음 history 정렬 단계의 전제를 충족하지만 repair 자체를 승인하거나 실행한 것은 아니다. 후속 repair는 같은 논리 이름의 row를 추가해 중복시키지 않고, 정확한 8쌍·전체 68행 기준선을 잠근 transaction 안에서 production version을 local/Git version으로 교체한 뒤 전체 행 수와 기존 history fingerprint가 유지되는지 검증해야 한다.
 
 2026-08-26 감사에서 당시 local-only였던 두 migration의 적용 경로를 원본 실행 기록까지 추적했다. 두 파일 모두 2026-08-10에 파일 본문을 읽어 `execute_sql`의 명시적 transaction으로 production에 적용됐고 `apply_migration`은 사용하지 않았다. 따라서 schema는 적용됐지만 `supabase_migrations.schema_migrations` row가 생기지 않은 원인이 확정됐다.
 
@@ -55,7 +61,7 @@ Supabase [Database Migrations 가이드](https://supabase.com/docs/guides/deploy
 
 작업 세션에는 Supabase CLI access token이 없어 CLI 2.109.1을 production에 직접 연결하지 않았다. 대신 같은 버전의 공식 구현이 수행하는 `version`, `name`, 분리된 `statements` 기록 방식을 원본 소스로 확인한 뒤, 이미 인증된 Supabase 연결에서 history table을 잠그고 사전 기준선이 동일할 때만 두 row를 한 transaction으로 삽입했다. migration SQL은 재실행하지 않았다. repair 뒤 전체 history는 68개가 됐고 대상 row의 statement 수는 각각 25개와 1개다. 기존 66개 history fingerprint, Wear Log 808행·Place 25행·Profile 10행의 값 fingerprint, 관련 constraint·index·policy catalog fingerprint, Security Advisor 47건과 Performance Advisor 33건은 전후 동일했다.
 
-이번 repair는 **적용 사실 보정**만 완료했다. shared project의 다른 앱 remote migration 22개와 timestamp 불일치 8쌍은 그대로이므로 전체 `db push` 호환 복구로 부르지 않는다. 전체 CLI 동기화가 필요하면 여러 저장소의 migration 통합과 8쌍의 본문 증거 감사부터 별도로 설계한다. Supabase migration history 목록은 SQL checksum을 제공하지 않으므로 이름 일치만으로 본문 동일성을 추정하지 않는다.
+이번 repair는 **적용 사실 보정**만 완료했다. shared project의 다른 앱 remote migration 22개와 timestamp 불일치 8쌍은 그대로이므로 전체 `db push` 호환 복구로 부르지 않는다. 8쌍의 본문 증거 감사는 완료돼 모두 timestamp-only drift로 확정됐지만 history version 교체는 아직 실행하지 않았다. 전체 CLI 동기화가 필요하면 여러 저장소의 migration 통합과 targeted history 정렬을 별도로 설계한다. Supabase migration history 목록은 SQL checksum을 제공하지 않으므로 이번처럼 실제 `statements` 본문을 확인하지 않고 이름 일치만으로 동일성을 추정하지 않는다.
 
 Import Runs cleanup 뒤 production catalog의 `public.closet_*` table 18개와 RLS 18개를 확인했다. 아래 전체 RPC 목록은 최초 감사 이후 cleanup 기록을 누적한 문서다.
 
