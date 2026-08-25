@@ -58,8 +58,10 @@ jobs:
 
       - name: Apply Import Runs schema rollback
         run: >-
-          supabase db query --local
-          --file supabase/rollback/remove_closet_import_runs_rollback.sql
+          docker exec --interactive supabase_db_closet-index
+          psql --no-psqlrc --set ON_ERROR_STOP=on
+          --username postgres --dbname postgres
+          < supabase/rollback/remove_closet_import_runs_rollback.sql
 
       - name: Verify Import Runs schema rollback
         run: >-
