@@ -2,7 +2,7 @@
 
 - 작성일: 2026-08-05
 - 근거 문서: [`database-map.md`](./database-map.md)
-- 현재 단계: Outfit Preview subsystem, Outfit clone RPC, Import Runs Wave 1 production cleanup 완료. 다음 cleanup 후보는 live dependency와 local/remote migration history 차이를 다시 inventory한 뒤 결정한다.
+- 현재 단계: Outfit Preview subsystem, Outfit clone RPC, Import Runs Wave 1 production cleanup 완료. Legacy Link Wave 3 cleanup·rollback·local-only data restore는 격리 검증을 통과했고 production 적용 전 재감사 단계다.
 
 ## 1. 목적과 원칙
 
@@ -20,8 +20,8 @@
 | 질문 | 결론 |
 |---|---|
 | 즉시 안전하게 제거 가능한 DB object | Preview subsystem은 frontend·DB·Storage·Edge Function까지 제거 완료. `clone_closet_outfit`도 client 선행 배포와 exact cleanup migration 검증 뒤 production에서 제거 완료 |
-| 가장 독립적인 후보 | `closet_import_runs` Wave 1 제거 완료. 다음 단위는 Legacy Link의 초기 이관용 client surface와 importer 제거 |
-| 현재 dependency 때문에 제거할 수 없는 후보 | Legacy Link DB subsystem. confirmed edge 18개와 reverse·validation 계약이 아직 의존한다. Preview DB dependency는 제거 완료 |
+| 가장 독립적인 후보 | `closet_import_runs` Wave 1 제거 완료. Legacy Link client surface·importer 제거와 local-only export도 완료 |
+| 현재 dependency 때문에 제거할 수 없는 후보 | production Legacy Link DB subsystem은 confirmed edge 18개와 reverse·validation 계약이 아직 의존한다. 이를 한 transaction에서 해소하는 cleanup migration은 격리 검증 완료, production 미적용 |
 | Outfit Preview 결정 | J가 영구 제거를 확정. frontend·Function 전환과 DB cleanup 완료 |
 | Outfit clone RPC 결정 | 현재 복제 UX는 source-prefill 뒤 일반 create 경로를 사용한다. client dead code와 production RPC를 제거했으며, 일반 create가 공유하는 private helper는 유지 |
 | Line 색상 자동 분류 | 일회성 초기 제안으로만 사용하고 직접 지정 완료 후 제거 권장 |
@@ -124,7 +124,7 @@ export, manifest, data restore SQL은 개인 데이터가 포함된 local-only �
 - production에는 Legacy와 직접 연결된 `SECURITY DEFINER` 함수 7개, Legacy table trigger 1개, edge validation trigger/function 1개, edge source FK·두 source column·관련 constraint/index가 남아 있다. Legacy table 두 개의 RLS와 authenticated SELECT도 유지된다.
 - `track_functions = none`이므로 함수 호출 누적치는 얻을 수 없다. 최근 24시간 API·Postgres 로그의 관련 table/RPC exact match는 0건이지만, 짧은 관측 구간의 보조 증거일 뿐 미사용의 단독 근거로 삼지 않는다.
 
-현재 결론은 **초기 review/preview client workflow 제거·선행 배포와 제거 전 local-only export까지 끝났지만 DB subsystem은 아직 제거할 수 없다**는 것이다. 다음 단계에서 18개 edge 의미를 보존하는 전환 migration과 Legacy 의존성이 없는 reverse·validation 계약을 먼저 준비한다.
+현재 결론은 **초기 review/preview client workflow 제거·선행 배포, local-only export, 전환 migration·rollback·복구 SQL의 격리 검증까지 완료됐지만 production DB subsystem은 아직 그대로다**라는 것이다. 다음 단계는 같은 production 기준선을 다시 읽어 drift와 lock을 확인한 뒤 검증된 migration을 적용하는 것이다.
 
 ### 선행 export
 
@@ -148,13 +148,15 @@ source field를 제외한 계보 의미 SHA-256은 export 직전과 직후 모�
 
 ### Legacy edge 전환
 
-1. 18개 edge마다 predecessor, successor, Line, branch, decision reason이 현재 UI와 일치하는지 확인한다.
-2. 별도 migration에서 `source_kind = 'manual'`, `source_legacy_link_id = null`로 전환한다.
-3. 전환 전후 18개 edge의 ID·방향·설명·Line·확정 metadata checksum이 동일한지 검증한다.
-4. 모든 edge가 Legacy table 없이 reverse/edit/disconnect 가능한지 인증 fixture로 확인한다.
-5. reverse RPC에서 Legacy decision/revision 갱신 분기를 제거하고 edge 자체만 안전하게 반전하도록 단순화한다.
+1. [x] migration preflight에서 모든 Legacy edge가 confirmed·active Line이고 reviewed directional Link와 workspace·방향이 일치하는지 검사한다.
+2. [x] 전환 대상 12개 의미 field를 JSONB로 고정한 뒤 `source_kind = 'manual'`, `source_legacy_link_id = null`만 갱신한다.
+3. [x] 전환 row 수와 전후 ID·Line·방향·설명·확정 metadata가 정확히 같은지 같은 transaction 안에서 검증한다.
+4. [x] Legacy table 없이 reverse/edit/disconnect/start와 현재 Line 관리 pgTAP이 통과하는지 인증 fixture로 확인한다.
+5. [x] reverse RPC에서 Legacy decision/revision 갱신 분기를 제거하고 edge 자체만 안전하게 반전하도록 단순화한다.
+6. [ ] production 적용 직전 Link 49개·revision 51개·Legacy edge 18개와 두 계보 의미 checksum을 다시 확인한다.
+7. [ ] 검증된 migration을 production에 적용하고 전체 119개 edge 의미 checksum을 재확인한다.
 
-이 단계는 production `UPDATE` backfill이므로 client-first cleanup에서는 수행하지 않는다.
+production `UPDATE`와 `DROP`은 아직 수행하지 않았다.
 
 ### UI와 code 제거
 
@@ -174,15 +176,25 @@ client source cleanup은 DB보다 먼저 배포했다. 현재 Lineage reverse �
 
 ### DB 제거 순서
 
-1. `mark_legacy_link_edge_needs_review` trigger와 private helper 제거
-2. confirm/review/revise Legacy RPC 제거
-3. `reverse_closet_replacement_line_edge`의 Legacy dependency가 없는 새 버전 적용
-4. edge의 Legacy source FK와 불필요한 source column/index 정리
-5. revision table 제거
-6. Legacy Link table 제거
-7. policies, grants, contract tests 정리
+`20260826160924_remove_replacement_legacy_link_subsystem.sql`은 다음 순서를 하나의 명시적 transaction으로 고정한다.
+
+1. 5초 lock timeout으로 Line·edge·Legacy 두 table lock을 먼저 확보하고 drift preflight 실행
+2. 18개 edge의 12개 의미 field 고정, source 두 field만 manual 전환, row count·의미 동일성 재검증
+3. `mark_legacy_link_edge_needs_review` trigger/helper와 confirm·review RPC 제거
+4. edge validator와 trigger를 Legacy-free graph 계약으로 교체
+5. manual create·connection update·reverse RPC를 source column 없는 구현으로 교체
+6. revise RPC, source FK·constraint·index·column, revision table, Legacy Link table 순으로 제거
+7. reverse RPC lifecycle comment를 현재 edge source of truth에 맞게 갱신
 
 `source_kind`와 `source_legacy_link_id`는 전환 뒤 모든 edge가 manual이므로 단순히 nullable history field로 보존하지 않는다. client 선행 배포와 18개 의미 checksum 검증을 통과한 뒤 FK·source 전용 constraint/index와 함께 제거한다.
+
+### 준비·격리 검증
+
+- schema rollback `supabase/rollback/remove_replacement_legacy_link_subsystem_rollback.sql`은 Legacy 두 table, RLS·grant·index·constraint·comment, source 두 column, validator·trigger와 review/revise/confirm/manual/edit/reverse RPC를 복구한다. 기존 post-cleanup edge는 먼저 manual로 안전하게 초기화하고 historic default를 다시 설정한다.
+- 개인 데이터 복구는 Git에 넣지 않은 `data/local-exports/legacy-link-wave3-20260826T002847Z/restore-after-schema-rollback.sql`로 분리했다. 실행 전에 빈 Legacy table과 18개 edge의 12개 의미 field를 확인하고 Link 49개·revision 51개를 넣은 뒤 source association 18개만 되살린다. 파일 SHA-256은 `21efde1462be54ad224110d1dae87a7f1e5e6565cfd751fa58a32b00144e383d`다.
+- synthetic pre-cleanup fixture는 Legacy edge 1개와 manual edge 1개를 만들고 cleanup 뒤 두 edge 의미 보존, removed object 부재, active RPC 권한·`search_path`, reverse/edit/create/cycle/start/disconnect를 검증한다.
+- GitHub Actions run `32989627364`에서 cleanup 후 6개 파일·101개 pgTAP, schema rollback과 synthetic data 재연결 39개 pgTAP이 통과했다. 병렬 baseline job의 기존 Phase 3 8개 파일·137개와 Import Runs rollback 14개도 통과했다.
+- 과거 Legacy table·review·confirm을 현재 상태로 요구하던 Phase 4 pgTAP 세 개는 삭제하고 cleanup·rollback 계약으로 교체했다. 적용된 과거 migration 파일은 보존한다.
 
 ### 완료 검증
 
