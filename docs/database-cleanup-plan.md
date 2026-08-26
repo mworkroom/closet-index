@@ -124,7 +124,7 @@ export, manifest, data restore SQL은 개인 데이터가 포함된 local-only �
 - production에는 Legacy와 직접 연결된 `SECURITY DEFINER` 함수 7개, Legacy table trigger 1개, edge validation trigger/function 1개, edge source FK·두 source column·관련 constraint/index가 남아 있다. Legacy table 두 개의 RLS와 authenticated SELECT도 유지된다.
 - `track_functions = none`이므로 함수 호출 누적치는 얻을 수 없다. 최근 24시간 API·Postgres 로그의 관련 table/RPC exact match는 0건이지만, 짧은 관측 구간의 보조 증거일 뿐 미사용의 단독 근거로 삼지 않는다.
 
-현재 결론은 **초기 review/preview client workflow 제거는 끝났지만 DB subsystem은 아직 제거할 수 없다**는 것이다. 공개 bundle에서 제거 상태를 확인한 뒤 export와 18개 edge 전환을 별도 단계로 수행한다.
+현재 결론은 **초기 review/preview client workflow 제거와 선행 배포는 끝났지만 DB subsystem은 아직 제거할 수 없다**는 것이다. 공개 bundle 제거 상태도 확인했으므로 다음에는 export와 18개 edge 전환을 별도 단계로 수행한다.
 
 ### 선행 export
 
@@ -162,7 +162,7 @@ export, manifest, data restore SQL은 개인 데이터가 포함된 local-only �
 
 Lineage의 manual edge 편집, 시작점, 이동, 병합, 보관 기능은 유지한다.
 
-client source cleanup은 완료했고 DB보다 먼저 배포한다. 현재 Lineage reverse 호출은 edge ID와 optimistic-lock timestamp만 RPC에 보내므로 client가 source column을 읽지 않아도 production DB의 18개 Legacy 분기는 계속 동작한다. 공개 JavaScript에서 두 route와 review/confirm RPC 문자열이 0건인지 확인하기 전에는 DB 전환을 시작하지 않는다.
+client source cleanup은 DB보다 먼저 배포했다. 현재 Lineage reverse 호출은 edge ID와 optimistic-lock timestamp만 RPC에 보내므로 client가 source column을 읽지 않아도 production DB의 18개 Legacy 분기는 계속 동작한다. Pages 실행 `32913195592` 성공 뒤 service worker가 가리키는 공개 JavaScript 58개 전체에서 두 route, Legacy table, review/confirm RPC, source column 문자열 7종이 모두 0건이고 reverse/manual edge RPC는 유지됨을 확인했다.
 
 ### DB 제거 순서
 

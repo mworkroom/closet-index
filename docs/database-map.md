@@ -10,7 +10,7 @@
 
 > 2026-08-25 후속 감사: 이후 추가된 Purchase·Care·Place HVAC table을 inventory에 보충하고, 일회성 `closet_import_runs`를 remote migration `20260825021515_remove_closet_import_runs`로 제거했다. 현재 `public.closet_*` table은 18개이며 모두 RLS가 켜져 있다.
 
-> 2026-08-26 Legacy Link 후속 작업: Replacement subsystem은 Line 66개, membership 194개, start 50개, confirmed edge 119개다. edge는 manual 101개·Legacy 출처 18개이며 Legacy Link 49개와 revision 51개는 그대로다. 초기 review/preview client workflow와 source field mapping은 제거했고, 18개 edge와 reverse·validation DB 계약은 별도 전환 전까지 유지한다.
+> 2026-08-26 Legacy Link 후속 작업: Replacement subsystem은 Line 66개, membership 194개, start 50개, confirmed edge 119개다. edge는 manual 101개·Legacy 출처 18개이며 Legacy Link 49개와 revision 51개는 그대로다. 초기 review/preview client workflow와 source field mapping은 제거·선행 배포했고 공개 JavaScript 58개에서 관련 route·table·review/confirm RPC·source column 문자열 0건을 확인했다. 18개 edge와 reverse·validation DB 계약은 별도 전환 전까지 유지한다.
 
 ## 1. 한눈에 보기
 
