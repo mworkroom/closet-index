@@ -986,12 +986,7 @@ begin
       message = 'workspace membership is required';
   end if;
 
-  if normalized_reason not in (
-    '대체 시도',
-    '온도 세분화',
-    '기능 세분화',
-    '계승 👑'
-  ) then
+  if normalized_reason not in ('대체 시도', '온도 세분화', '기능 세분화', '계승 👑') then
     raise exception using
       errcode = '22023',
       message = 'a supported edge decision reason is required';
