@@ -124,19 +124,27 @@ export, manifest, data restore SQL은 개인 데이터가 포함된 local-only �
 - production에는 Legacy와 직접 연결된 `SECURITY DEFINER` 함수 7개, Legacy table trigger 1개, edge validation trigger/function 1개, edge source FK·두 source column·관련 constraint/index가 남아 있다. Legacy table 두 개의 RLS와 authenticated SELECT도 유지된다.
 - `track_functions = none`이므로 함수 호출 누적치는 얻을 수 없다. 최근 24시간 API·Postgres 로그의 관련 table/RPC exact match는 0건이지만, 짧은 관측 구간의 보조 증거일 뿐 미사용의 단독 근거로 삼지 않는다.
 
-현재 결론은 **초기 review/preview client workflow 제거와 선행 배포는 끝났지만 DB subsystem은 아직 제거할 수 없다**는 것이다. 공개 bundle 제거 상태도 확인했으므로 다음에는 export와 18개 edge 전환을 별도 단계로 수행한다.
+현재 결론은 **초기 review/preview client workflow 제거·선행 배포와 제거 전 local-only export까지 끝났지만 DB subsystem은 아직 제거할 수 없다**는 것이다. 다음 단계에서 18개 edge 의미를 보존하는 전환 migration과 Legacy 의존성이 없는 reverse·validation 계약을 먼저 준비한다.
 
 ### 선행 export
 
-다음 세 자료를 같은 snapshot 시각으로 local-only export한다.
+2026-08-26 00:28:47.967307 UTC의 단일 SQL statement snapshot에서 다음 자료를 `data/local-exports/legacy-link-wave3-20260826T002847Z/`에 export했다. 이 경로는 개인 데이터가 포함된 Git ignore 대상이며 production write는 0건이다.
 
-1. Legacy Link 49개 전체
-2. revision 51개 전체
-3. Legacy 출처 edge 18개와 연결된 Line·Item 이름 lookup
+1. [x] Legacy Link 49개 전체
+2. [x] revision 51개 전체
+3. [x] Legacy 출처 edge 18개와 연결된 Line·predecessor Item·successor Item 이름 lookup
 
-각 export에는 row count, 정렬 기준, timestamp, SHA-256을 기록한다. 사람 읽기용 CSV와 관계 보존용 JSON을 함께 두는 편이 안전하다.
+관계와 원본 값을 보존하는 JSON, 사람이 읽는 UTF-8 CSV를 각각 만들었다. CSV는 spreadsheet formula 실행을 막기 위해 위험한 선두 문자를 중립화하고 JSON은 DB 값을 그대로 보존한다. 각 파일의 row count·정렬·snapshot·DB rows JSONB SHA-256은 JSON과 manifest에 기록했다.
 
-2026-08-26 읽기 전용 기준선에서 source field를 제외한 현재 계보 의미 SHA-256은 전체 119개 edge `cd7fb6c8edc608828193c9f9d3a4bea1f5814978b1c61b73b3ec8ece52caea83`, Legacy 출처 18개 `2b68666896b01001b8a1b3ec1e8c9964222aa3bdd368ca2bca580e24c8164018`이다. 실제 export 직전에는 같은 정렬·column 계약으로 다시 계산한다.
+| dataset | 행 | 정렬 | JSON 파일 SHA-256 | CSV 파일 SHA-256 |
+|---|---:|---|---|---|
+| Legacy Link | 49 | `created_at`, `id` | `dd2c7c2a34366ed5b62c468e93969089f778348e355fcfa9249e8bfdb5563917` | `2ed8bbacba4ae859884db1a7b1013e63d4d6f2e515d8a681570ebb0643c4ef1d` |
+| revision | 51 | `legacy_link_id`, `revision_number`, `id` | `c552d4309aa6a2ae19c368f921c7637f101be9743437df2871b3f267ac08bcab` | `0e14d665f100aa83833d1b9c34003ed44a17fd82b19098df078184076017568a` |
+| Legacy 출처 edge + 이름 lookup | 18 | `replacement_line_id`, `predecessor_item_id`, `successor_item_id`, `id` | `bd9a0d858e03d675e2360f52f32d23605a11bcb334ce65820e478a7295668158` | `b028ae1c870d5c6307d3022b76d5c4164088a379d9115d4678a63fa66d95e119` |
+
+DB rows JSONB SHA-256은 Link `c126997a23dcc8c5b431e9ccafe2decd733e7d23bcb1e9331867cc267921e26b`, revision `b3467cec5ae9584fe214dbc8a426ceffad581c7b9c2b34b37d4fa41752878bd6`, edge lookup `14e41a938ffc7f0cb36789071218f30c76b05525b753622a36bf36ea22a1880d`다. `manifest.json` 파일 SHA-256은 `0fe7fa432ea4d8f6b97c088e7df39522861cf48897495f2c7facf8f65783d115`이며 `SHA256SUMS.txt`의 7개 항목을 디스크에서 다시 계산해 모두 일치함을 확인했다.
+
+source field를 제외한 계보 의미 SHA-256은 export 직전과 직후 모두 전체 119개 edge `cd7fb6c8edc608828193c9f9d3a4bea1f5814978b1c61b73b3ec8ece52caea83`, Legacy 출처 18개 `2b68666896b01001b8a1b3ec1e8c9964222aa3bdd368ca2bca580e24c8164018`로 기존 읽기 전용 기준선과 같다. orphan revision, 중복 revision number, source Link 누락, workspace·방향 불일치, non-confirmed edge, 이름 lookup 누락은 모두 0개다.
 
 ### Legacy edge 전환
 

@@ -12,6 +12,8 @@
 
 > 2026-08-26 Legacy Link 후속 작업: Replacement subsystem은 Line 66개, membership 194개, start 50개, confirmed edge 119개다. edge는 manual 101개·Legacy 출처 18개이며 Legacy Link 49개와 revision 51개는 그대로다. 초기 review/preview client workflow와 source field mapping은 제거·선행 배포했고 공개 JavaScript 58개에서 관련 route·table·review/confirm RPC·source column 문자열 0건을 확인했다. 18개 edge와 reverse·validation DB 계약은 별도 전환 전까지 유지한다.
 
+> 같은 날 00:28:47.967307 UTC의 단일 read-only snapshot에서 Legacy Link 49개, revision 51개, Legacy 출처 edge 18개와 Line·Item 이름 lookup을 local-only CSV·JSON으로 export했다. 디스크 checksum, JSON·CSV row count, 관계 정합성, 직후 production 재조회 hash가 모두 일치했으며 production write는 0건이다.
+
 ## 1. 한눈에 보기
 
 | 분류 | 수 | 의미 |
@@ -238,7 +240,7 @@ Import Runs cleanup 뒤 production catalog의 `public.closet_*` table 18개와 R
 - 읽기: 현재 frontend caller는 없다. client-first cleanup에서 전용 repository method와 숨은 Legacy review·edge preview route를 제거했다.
 - 쓰기: revise/review RPC, edge 확인·방향 전환 RPC. `mark_legacy_link_edge_needs_review` trigger가 연결된 edge를 갱신한다.
 - 현재 상태: 49개 모두 `reviewed`이고 판단은 `a_to_b` 8개, `b_to_a` 37개, `parallel` 1개, `not_replacement` 3개다. directional 45개 중 현재 Legacy 출처 edge를 가진 것은 18개다.
-- 유지 이유와 cleanup: client dependency는 제거됐지만 18개 edge와 reverse·validation DB 계약이 아직 의존한다. 공개 자산 확인 뒤 export, edge 전환, reverse·validation RPC 단순화를 거쳐 Wave 3에서 제거한다.
+- 유지 이유와 cleanup: client dependency 제거와 제거 전 local-only export는 완료됐지만 18개 edge와 reverse·validation DB 계약이 아직 의존한다. edge 전환과 reverse·validation RPC 단순화를 먼저 검증한 뒤 Wave 3에서 제거한다.
 
 ### 4.17 `closet_replacement_legacy_link_revisions`
 
@@ -248,7 +250,7 @@ Import Runs cleanup 뒤 production catalog의 `public.closet_*` table 18개와 R
 - 쓰기: `revise_closet_replacement_legacy_link`; Legacy 기반 edge 방향 전환도 이 RPC를 통해 revision을 추가한다.
 - trigger/dependency: revise/reverse RPC가 의존한다.
 - 현재 상태: 51개이며 49개 Link 모두 이력이 있고 orphan은 0개다. 여러 revision을 가진 Link는 1개, 최대 revision number는 3이다.
-- 유지 이유와 cleanup: 51개 판단 이력의 local-only export가 필요하다. Legacy subsystem과 함께 Wave 3에서 제거한다.
+- 유지 이유와 cleanup: 51개 판단 이력은 같은 snapshot의 local-only JSON·CSV로 export했다. reverse의 Legacy revision 의존성을 제거한 뒤 Legacy subsystem과 함께 Wave 3에서 제거한다.
 
 ### 4.18 `closet_purchase_events`
 
