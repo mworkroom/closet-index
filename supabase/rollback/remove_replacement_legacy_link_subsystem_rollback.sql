@@ -1,5 +1,5 @@
 -- Emergency schema rollback for
--- 20260826160924_remove_replacement_legacy_link_subsystem.sql.
+-- 20260827122033_remove_replacement_legacy_link_subsystem.sql.
 --
 -- This recreates the audited Legacy Link schema, constraints, indexes, RLS,
 -- grants, triggers, and RPC behavior. It intentionally does not embed

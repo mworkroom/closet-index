@@ -4,7 +4,7 @@
 
 이 문서는 2026-08-05 B안 리팩터링 이후의 frontend source of truth를 설명한다. 목표는 Replacement Line 변경 시 여러 façade와 page를 함께 수정하던 비용을 줄이는 것이다.
 
-2026-08-26 client-first cleanup에서 초기 Legacy review·edge preview workflow와 repository 계약은 제거했다. 2026-08-27에는 edge-only DB cleanup과 rollback을 격리 검증했지만 production DB 적용은 아직 하지 않았다.
+2026-08-26 client-first cleanup에서 초기 Legacy review·edge preview workflow와 repository 계약을 제거했다. 2026-08-27에는 edge-only DB cleanup을 production에 적용해 Legacy table·source column·RPC·trigger를 제거했고, rollback과 local-only data restore는 긴급 복구 자료로 보존한다.
 
 현재 유지하는 계약은 다음과 같다.
 
@@ -134,11 +134,11 @@ Demo는 `src/lib/supabase.ts`에서 `VITE_DEMO_MODE === 'true'`, Supabase URL �
 | `acknowledge_closet_replacement_line_review` | `acknowledgeReview` | `LineReviewAlert` | `acknowledgeReview` | adapter, demo, lineage, `replacement_line_management_contract_test.sql` | active |
 | `update_closet_replacement_line_details` | `updateDetails` | `LineManagementPanel` 정보 수정 | `updateDetails` | adapter, demo, lineage, `replacement_line_management_contract_test.sql` | active |
 | `delete_empty_closet_replacement_line` | `deleteEmpty` | `LineManagementPanel` 빈 Line 삭제 | `deleteEmpty` | adapter, demo, lineage, `replacement_line_management_contract_test.sql` | active |
-| `update_closet_replacement_line_edge_connection` | `updateEdgeConnection` | `LineageGeneration` 연결 수정 | `updateEdgeConnection` | adapter, demo, lineage, `replacement_legacy_link_cleanup_contract_test.sql` | active; source-column-free 구현 격리 검증 |
+| `update_closet_replacement_line_edge_connection` | `updateEdgeConnection` | `LineageGeneration` 연결 수정 | `updateEdgeConnection` | adapter, demo, lineage, `replacement_legacy_link_cleanup_contract_test.sql` | active; source-column-free production 구현 |
 | `disconnect_closet_replacement_line_edge` | `disconnectEdge` | `LineageGeneration` 연결 해제 | `disconnectEdge` | adapter, demo, lineage, cleanup contract | active |
-| `reverse_closet_replacement_line_edge` | `reverseEdge` | `LineageGeneration` 방향 변경 | `reverseEdge` | adapter, demo, lineage, cleanup·rollback contract | active; Legacy-free 구현 격리 검증 |
+| `reverse_closet_replacement_line_edge` | `reverseEdge` | `LineageGeneration` 방향 변경 | `reverseEdge` | adapter, demo, lineage, cleanup·rollback contract | active; Legacy-free production 구현 |
 | `set_closet_replacement_line_start` | `setStart` | `LineageGeneration`, `UnconnectedLineageItem` | `setStart` | adapter, demo, lineage | active |
-| `create_closet_replacement_manual_edge` | `createManualEdge` | `UnconnectedLineageItem` | `createManualEdge` | adapter, demo, lineage, cleanup·rollback contract | active; source-column-free 구현 격리 검증 |
+| `create_closet_replacement_manual_edge` | `createManualEdge` | `UnconnectedLineageItem` | `createManualEdge` | adapter, demo, lineage, cleanup·rollback contract | active; source-column-free production 구현 |
 | `move_closet_replacement_line_item` | `moveItem` | `UnconnectedLineageItem` | `moveItem` | adapter, demo, lineage, `replacement_line_item_membership_contract_test.sql` | active |
 | `add_closet_replacement_line_item` | `addItem` | `LineManagementPanel` Item 추가 | `addItem` | adapter, demo, lineage, `replacement_line_item_membership_contract_test.sql` | active |
 | `remove_closet_replacement_line_item` | `removeItem` | 계보 Item의 Line에서 빼기 | `removeItem` | adapter, demo, lineage, `replacement_line_item_membership_contract_test.sql` | active |
@@ -146,7 +146,7 @@ Demo는 `src/lib/supabase.ts`에서 `VITE_DEMO_MODE === 'true'`, Supabase URL �
 | `set_closet_replacement_line_archived` | `setArchived` | `LineManagementPanel` 보관·복원 | `setArchived` | adapter, demo, lineage | active |
 | `revise_closet_replacement_line_edge_details` | 없음 | 없음 | 없음 | migration 보존; 전용 frontend test 없음 | frontend-unused |
 
-Legacy review/revise와 singular·batch confirm RPC 네 개는 frontend caller·Demo method가 이미 없고, Wave 3 cleanup migration에서 제거하도록 검증했다. production 적용 전까지는 DB에만 남아 있다.
+Legacy review/revise와 singular·batch confirm RPC 네 개는 frontend caller·Demo method를 먼저 제거한 뒤 Wave 3 production migration에서 DB 함수까지 제거했다.
 
 ## 테스트 gate
 
@@ -155,6 +155,7 @@ Legacy review/revise와 singular·batch confirm RPC 네 개는 frontend caller·
 - run `32989627364`: 기존 Phase 3 8개 파일·137개와 Import Runs rollback 14개 통과.
 - 같은 run의 Wave 3 job: pre-cleanup synthetic fixture, cleanup 뒤 6개 파일·101개, schema rollback·synthetic data restore 39개 pgTAP 통과.
 - 삭제된 Legacy table·RPC를 현재 계약으로 요구하던 Phase 4 pgTAP 세 개는 cleanup·rollback 계약으로 교체했다. 과거 migration 이력은 유지한다.
+- production remote migration `20260827122033` 적용 뒤 edge 119개의 의미 checksum, Line 66개·membership 194개·start 50개, Legacy object 부재와 유지 함수 4개의 권한·빈 `search_path`를 확인했다.
 
 ## 실제 변경 파일 수
 

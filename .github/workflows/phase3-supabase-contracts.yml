@@ -89,8 +89,8 @@ jobs:
       - name: Withhold cleanup migration for the pre-cleanup fixture
         run: >-
           mv
-          supabase/migrations/20260826160924_remove_replacement_legacy_link_subsystem.sql
-          /tmp/20260826160924_remove_replacement_legacy_link_subsystem.sql
+          supabase/migrations/20260827122033_remove_replacement_legacy_link_subsystem.sql
+          /tmp/20260827122033_remove_replacement_legacy_link_subsystem.sql
 
       - name: Add shared workspace contract fixture
         run: >-
@@ -114,7 +114,7 @@ jobs:
           docker exec --interactive supabase_db_closet-index
           psql --no-psqlrc --set ON_ERROR_STOP=on
           --username postgres --dbname postgres
-          < /tmp/20260826160924_remove_replacement_legacy_link_subsystem.sql
+          < /tmp/20260827122033_remove_replacement_legacy_link_subsystem.sql
 
       - name: Verify cleanup and retained Lineage contracts
         run: >-
