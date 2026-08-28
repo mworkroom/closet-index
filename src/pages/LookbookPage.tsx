@@ -221,14 +221,6 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
           <label className="check-row">
             <input
               type="checkbox"
-              checked={notWornRecently}
-              onChange={(event) => setNotWornRecently(event.target.checked)}
-            />
-            최근 90일 미착용
-          </label>
-          <label className="check-row">
-            <input
-              type="checkbox"
               checked={includeUnavailable}
               onChange={(event) => setIncludeUnavailable(event.target.checked)}
             />

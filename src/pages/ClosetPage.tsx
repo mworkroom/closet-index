@@ -353,21 +353,7 @@ export function ClosetPage() {
             </span>
           </label>
         </div>
-        {hasInvalidTemperature ? (
-          <p className="closet-temperature-filter__summary closet-temperature-filter__summary--error" role="alert">
-            오늘 온도는 -50~60°C 사이로 입력해주세요.
-          </p>
-        ) : targetTemperature !== null && temperatureSummary ? (
-          <p className="closet-temperature-filter__summary" role="status">
-            {targetTemperature}°C 근거 {items.length}개 · 온도 근거 없음{' '}
-            {temperatureSummary.unknown}개 · 다른 온도 근거{' '}
-            {temperatureSummary.otherTemperature}개
-          </p>
-        ) : (
-          <p className="closet-temperature-filter__summary">
-            완성 착장의 OK 관측을 기준으로 모든 카테고리에 온도 근거를 표시합니다.
-          </p>
-        )}
+
         <div className="check-stack">
           <label className="check-row">
             <input
