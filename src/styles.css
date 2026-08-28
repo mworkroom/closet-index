@@ -1238,6 +1238,51 @@ button:disabled {
   min-width: 0;
 }
 
+.closet-temperature-filter {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.closet-temperature-filter > svg {
+  color: var(--muted);
+}
+
+.closet-temperature-filter__field {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #4f4f4b;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.closet-temperature-filter__input {
+  display: grid;
+  grid-template-columns: minmax(0, 108px) auto;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+}
+
+.closet-temperature-filter__input input {
+  min-width: 0;
+}
+
+.closet-temperature-filter__summary {
+  margin: -4px 0 0 28px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.closet-temperature-filter__summary--error {
+  color: var(--danger);
+}
+
 .item-list {
   overflow: hidden;
   border-top: 1px solid var(--line);
@@ -1302,7 +1347,7 @@ button:disabled {
 
 .item-card__summary {
   display: grid;
-  min-height: 50px;
+  min-height: 64px;
   align-items: center;
   gap: 6px;
   padding: 7px 8px;
@@ -3600,6 +3645,10 @@ a.item-detail-lineage__item:focus-visible {
   gap: 5px;
 }
 
+.item-card__temperature--unknown {
+  color: #8a8984;
+}
+
 .history-card__memo {
   margin: 10px 0 0;
   color: var(--ink);
@@ -4772,7 +4821,7 @@ a.item-detail-lineage__item:focus-visible {
 
   .item-card__summary,
   .outfit-card__grid-summary {
-    min-height: 46px;
+    min-height: 58px;
     padding: 6px;
     font-size: 0.61rem;
   }

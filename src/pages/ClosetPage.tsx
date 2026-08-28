@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react'
+import { Search, Thermometer } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
@@ -22,6 +22,10 @@ import {
   type ItemCategoryFilterGroupId,
 } from '../lib/item-categories'
 import { isWishItem, sortItems, type ItemSort } from '../lib/items'
+import {
+  buildItemTemperatureEvidenceIndex,
+  itemHasTemperatureEvidenceNear,
+} from '../lib/item-temperature-evidence'
 import { getItemStats } from '../lib/outfits'
 import { itemMatchesSeasonScope } from '../lib/seasons'
 import { COLLECTION_BATCH_SIZE } from '../lib/collection-pagination'
@@ -37,6 +41,7 @@ interface StoredClosetFilters {
   madeOnly: boolean
   unwornOnly: boolean
   wishOnly: boolean
+  temperature: string
   sort: ItemSort
 }
 
@@ -47,7 +52,16 @@ const defaultFilters: StoredClosetFilters = {
   madeOnly: false,
   unwornOnly: false,
   wishOnly: false,
+  temperature: '',
   sort: defaultSort,
+}
+
+function parseTargetTemperature(value: string) {
+  if (value.trim() === '') return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed >= -50 && parsed <= 60
+    ? parsed
+    : null
 }
 
 function readStoredFilters(): StoredClosetFilters {
@@ -72,6 +86,8 @@ function readStoredFilters(): StoredClosetFilters {
       unwornOnly:
         typeof parsed.unwornOnly === 'boolean' ? parsed.unwornOnly : false,
       wishOnly: typeof parsed.wishOnly === 'boolean' ? parsed.wishOnly : false,
+      temperature:
+        typeof parsed.temperature === 'string' ? parsed.temperature : '',
       sort: validSorts.includes(parsed.sort as ItemSort)
         ? (parsed.sort as ItemSort)
         : defaultSort,
@@ -96,6 +112,7 @@ export function ClosetPage() {
   const [madeOnly, setMadeOnly] = useState(initialFilters.madeOnly)
   const [unwornOnly, setUnwornOnly] = useState(initialFilters.unwornOnly)
   const [wishOnly, setWishOnly] = useState(initialFilters.wishOnly)
+  const [temperature, setTemperature] = useState(initialFilters.temperature)
   const [sort, setSort] = useState<ItemSort>(initialFilters.sort)
   const [visibleItemCount, setVisibleItemCount] = useState(COLLECTION_BATCH_SIZE)
   const today = todayInKorea()
@@ -108,6 +125,7 @@ export function ClosetPage() {
       madeOnly,
       unwornOnly,
       wishOnly,
+      temperature,
       sort,
     }
     try {
@@ -118,7 +136,7 @@ export function ClosetPage() {
     } catch {
       // Storage can be unavailable in private browsing; filters still work in memory.
     }
-  }, [categoryGroup, color, includeRetired, madeOnly, sort, unwornOnly, wishOnly])
+  }, [categoryGroup, color, includeRetired, madeOnly, sort, temperature, unwornOnly, wishOnly])
 
   useEffect(() => {
     setVisibleItemCount(COLLECTION_BATCH_SIZE)
@@ -130,6 +148,7 @@ export function ClosetPage() {
     madeOnly,
     query,
     sort,
+    temperature,
     unwornOnly,
     wishOnly,
   ])
@@ -139,6 +158,13 @@ export function ClosetPage() {
     [data],
   )
   const colors = COLOR_CATEGORIES
+  const targetTemperature = parseTargetTemperature(temperature)
+  const hasInvalidTemperature =
+    temperature.trim() !== '' && targetTemperature === null
+  const temperatureEvidence = useMemo(
+    () => (data ? buildItemTemperatureEvidenceIndex(data) : new Map()),
+    [data],
+  )
   const wornItemIds = useMemo(() => {
     if (!data) return new Set<string>()
     const wornOutfitIds = new Set(data.wearLogs.map((log) => log.outfitId))
@@ -148,7 +174,7 @@ export function ClosetPage() {
       ),
     )
   }, [data])
-  const items = useMemo(() => {
+  const candidateItems = useMemo(() => {
     if (!data) return []
     const normalized = query.trim().toLocaleLowerCase('ko')
     return sortItems(
@@ -182,6 +208,34 @@ export function ClosetPage() {
     wishOnly,
     wornItemIds,
   ])
+  const items = useMemo(
+    () =>
+      targetTemperature === null
+        ? candidateItems
+        : candidateItems.filter((item) => {
+            const evidence = temperatureEvidence.get(item.id)
+            return (
+              evidence !== undefined &&
+              itemHasTemperatureEvidenceNear(evidence, targetTemperature)
+            )
+          }),
+    [candidateItems, targetTemperature, temperatureEvidence],
+  )
+  const temperatureSummary = useMemo(() => {
+    if (targetTemperature === null) return null
+
+    let unknown = 0
+    let otherTemperature = 0
+    for (const item of candidateItems) {
+      const evidence = temperatureEvidence.get(item.id)
+      if (!evidence) unknown += 1
+      else if (!itemHasTemperatureEvidenceNear(evidence, targetTemperature)) {
+        otherTemperature += 1
+      }
+    }
+
+    return { unknown, otherTemperature }
+  }, [candidateItems, targetTemperature, temperatureEvidence])
   const visibleItems = items.slice(0, visibleItemCount)
   const visibleItemIds = useMemo(
     () => visibleItems.map((item) => item.id),
@@ -215,6 +269,7 @@ export function ClosetPage() {
     setMadeOnly(false)
     setUnwornOnly(false)
     setWishOnly(false)
+    setTemperature('')
     setSort(defaultSort)
   }
 
@@ -277,6 +332,42 @@ export function ClosetPage() {
             <option value="name">이름순</option>
           </select>
         </div>
+        <div className="closet-temperature-filter">
+          <Thermometer size={18} aria-hidden="true" />
+          <label className="closet-temperature-filter__field">
+            <span>오늘 온도</span>
+            <span className="closet-temperature-filter__input">
+              <input
+                type="number"
+                inputMode="numeric"
+                min="-50"
+                max="60"
+                step="1"
+                value={temperature}
+                placeholder="선택 안 함"
+                aria-label="오늘 온도"
+                aria-invalid={hasInvalidTemperature}
+                onChange={(event) => setTemperature(event.target.value)}
+              />
+              <span aria-hidden="true">°C</span>
+            </span>
+          </label>
+        </div>
+        {hasInvalidTemperature ? (
+          <p className="closet-temperature-filter__summary closet-temperature-filter__summary--error" role="alert">
+            오늘 온도는 -50~60°C 사이로 입력해주세요.
+          </p>
+        ) : targetTemperature !== null && temperatureSummary ? (
+          <p className="closet-temperature-filter__summary" role="status">
+            {targetTemperature}°C 근거 {items.length}개 · 온도 근거 없음{' '}
+            {temperatureSummary.unknown}개 · 다른 온도 근거{' '}
+            {temperatureSummary.otherTemperature}개
+          </p>
+        ) : (
+          <p className="closet-temperature-filter__summary">
+            완성 착장의 OK 관측을 기준으로 모든 카테고리에 온도 근거를 표시합니다.
+          </p>
+        )}
         <div className="check-stack">
           <label className="check-row">
             <input
@@ -343,6 +434,10 @@ export function ClosetPage() {
               <div className="item-grid">
                 {visibleItems.map((item) => {
                   const stats = getItemStats(item.id, data.outfits, data.wearLogs)
+                  const evidence = temperatureEvidence.get(item.id)
+                  const evidenceLabel = evidence
+                    ? `${evidence.okRange.min}~${evidence.okRange.max}°C · OK 관측 ${evidence.okObservationCount}개`
+                    : '온도 근거 없음'
                   const maintenanceSignal = maintenanceSignals.get(item.id)
                   const wish = isWishItem(item)
                   const badge = wish
@@ -359,7 +454,7 @@ export function ClosetPage() {
                       className="item-card"
                       to={`/closet/${item.id}`}
                       key={item.id}
-                      aria-label={`${item.name} 아이템 상세 보기${badge ? `, ${wish ? '구매 상태' : '관리 상태'} ${badge}` : ''}`}
+                      aria-label={`${item.name} 아이템 상세 보기${badge ? `, ${wish ? '구매 상태' : '관리 상태'} ${badge}` : ''}${targetTemperature !== null ? `, ${evidenceLabel}` : ''}`}
                     >
                       <div className="item-card__visual">
                         <ItemVisual item={item} className="item-visual--grid" />
@@ -378,6 +473,9 @@ export function ClosetPage() {
                             {stats.lastWornOn
                               ? `최근 ${formatMonthDayYear(stats.lastWornOn)}`
                               : '최근 기록 없음'}
+                          </span>
+                          <span className={evidence ? undefined : 'item-card__temperature--unknown'}>
+                            {evidenceLabel}
                           </span>
                         </span>
                       </span>

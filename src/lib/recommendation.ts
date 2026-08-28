@@ -20,10 +20,10 @@ import {
 } from './context-evidence'
 import { calculateTransportThermalEvidence } from './transport-thermal-evidence.mjs'
 import { simulateTransportThermalPolicy } from './transport-thermal-policy.mjs'
-import {
-  getItemCategoryGroupId,
-  isLongWalkSuitabilityCategory,
-} from './item-categories'
+import { isLongWalkSuitabilityCategory } from './item-categories'
+import { isCompleteRecommendationOutfit } from './complete-outfit'
+
+export { isCompleteRecommendationOutfit } from './complete-outfit'
 
 interface Observation {
   temp: number
@@ -66,19 +66,6 @@ const recentPurchaseExcludedCategories = new Set([
 
 function countsAsRecentPurchase(item: Item) {
   return !recentPurchaseExcludedCategories.has(item.category.trim().toLowerCase())
-}
-
-export function isCompleteRecommendationOutfit(
-  items: ReadonlyArray<Pick<Item, 'category'>>,
-) {
-  const categoryGroups = new Set(
-    items.map((item) => getItemCategoryGroupId(item.category)),
-  )
-  const hasShoes = categoryGroups.has('shoes')
-  const hasDress = categoryGroups.has('dress')
-  const hasSeparates = categoryGroups.has('top') && categoryGroups.has('bottom')
-
-  return hasShoes && (hasDress || hasSeparates)
 }
 
 function thermalWeight(item: Item) {
