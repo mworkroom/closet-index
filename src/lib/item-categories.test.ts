@@ -4,6 +4,7 @@ import {
   getItemCategoryGroupId,
   getItemCategoryStatistics,
   isMadeItemCategory,
+  isLongWalkSuitabilityCategory,
   isItemVisibleInWardrobeSelection,
   itemMatchesCategoryGroup,
   sortItemsForOutfitDisplay,
@@ -117,6 +118,13 @@ describe('item category groups', () => {
       { id: 'acc', label: 'Acc' },
       { id: 'innerwear', label: 'Innerwear' },
     ])
+  })
+
+  it('marks Shoes and Bags as long-walk suitability categories', () => {
+    expect(isLongWalkSuitabilityCategory('Shoes')).toBe(true)
+    expect(isLongWalkSuitabilityCategory('Bags')).toBe(true)
+    expect(isLongWalkSuitabilityCategory('Bags-made')).toBe(true)
+    expect(isLongWalkSuitabilityCategory('Outer-Cardigan')).toBe(false)
   })
 
   it('filters by upper group without changing the detailed category', () => {

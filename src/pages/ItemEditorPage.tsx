@@ -9,6 +9,7 @@ import { ItemReplenishmentSection } from '../features/replenishment/components/I
 import { getPurchaseReplacementRule } from '../features/replenishment/purchase-replenishment'
 import { useItemPurchaseEvents } from '../features/replenishment/useItemPurchaseEvents'
 import { todayInKorea } from '../lib/date'
+import { isLongWalkSuitabilityCategory } from '../lib/item-categories'
 import { COLOR_CATEGORIES } from '../lib/types'
 import type { ItemWriteInput } from '../lib/types'
 
@@ -108,7 +109,7 @@ export function ItemEditorPage() {
         normalizeComparable(item.category) === category,
     )
   }, [data, form.category, form.name, itemId])
-  const isShoes = form.category.toLocaleLowerCase().includes('shoe')
+  const hasLongWalkSuitability = isLongWalkSuitabilityCategory(form.category)
   const linkedOutfitCount = itemId
     ? (data?.outfits.filter((outfit) => outfit.itemIds.includes(itemId)).length ?? 0)
     : 0
@@ -146,7 +147,7 @@ export function ItemEditorPage() {
       category,
       semanticColor: form.semanticColor?.trim() || null,
       displayHex: form.displayHex.toUpperCase(),
-      longWalkOk: isShoes ? form.longWalkOk : true,
+      longWalkOk: hasLongWalkSuitability ? form.longWalkOk : true,
       memo: form.memo?.trim() || null,
     }
 
@@ -361,7 +362,7 @@ export function ItemEditorPage() {
               onChange={(event) => updateField('rainOk', event.target.checked)}
             />
           </label>
-          {isShoes && (
+          {hasLongWalkSuitability ? (
             <label className="field field--checkbox">
               <span>장거리 걷기 가능</span>
               <input
@@ -372,7 +373,7 @@ export function ItemEditorPage() {
                 }
               />
             </label>
-          )}
+          ) : null}
         </section>
 
         {!itemId && (

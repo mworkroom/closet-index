@@ -112,6 +112,30 @@ describe('Outfit clone and archive management', () => {
     ).toHaveLength(1)
   })
 
+  it('메모가 있는 착용 기록에만 메모를 표시한다', async () => {
+    const repository = new DemoRepository()
+    const data = await repository.load()
+    const emptyMemoLog = data.wearLogs.find((log) => log.id === 'log-1')
+    if (!emptyMemoLog) throw new Error('fixture missing')
+    emptyMemoLog.memo = '   '
+    vi.spyOn(repository, 'load').mockResolvedValue(data)
+
+    renderOutfitRoutes(repository, '/outfits/outfit-favorite')
+
+    const emptyMemoCard = (await screen.findByText('2026-04-12')).closest<HTMLElement>(
+      '.history-card',
+    )
+    const filledMemoCard = screen
+      .getByText('2026-05-03')
+      .closest<HTMLElement>('.history-card')
+
+    expect(emptyMemoCard).toBeInTheDocument()
+    expect(filledMemoCard).toBeInTheDocument()
+    expect(within(emptyMemoCard!).queryByText('메모')).not.toBeInTheDocument()
+    expect(within(filledMemoCard!).getByText('메모')).toBeInTheDocument()
+    expect(within(filledMemoCard!).getByText('전체적으로 만족')).toBeInTheDocument()
+  })
+
   it('착용 기록이 없는 Outfit은 확인 뒤 영구 삭제한다', async () => {
     const user = userEvent.setup()
     const repository = new DemoRepository()

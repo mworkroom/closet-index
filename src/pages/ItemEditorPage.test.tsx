@@ -129,6 +129,41 @@ describe('Item editor', () => {
     )
   })
 
+  it('가방은 장거리 걷기 조건을 표시하고 저장한다', async () => {
+    const user = userEvent.setup()
+    const repository = new DemoRepository()
+    await repository.createItem({
+      id: 'item-bag-editor',
+      name: '데일리 백',
+      category: 'Bags',
+      semanticColor: 'Black',
+      paletteId: null,
+      displayHex: '#222222',
+      seasons: ['Spring'],
+      rainOk: true,
+      longWalkOk: false,
+      memo: null,
+      acquiredOn: null,
+    })
+    const updateItem = vi.spyOn(repository, 'updateItem')
+
+    renderEditor(repository, '/closet/item-bag-editor/edit')
+
+    const longWalk = await screen.findByRole('checkbox', {
+      name: '장거리 걷기 가능',
+    })
+    expect(longWalk).not.toBeChecked()
+
+    await user.click(longWalk)
+    await user.click(screen.getByRole('button', { name: '변경 저장' }))
+
+    expect(await screen.findByText('저장 완료')).toBeInTheDocument()
+    expect(updateItem).toHaveBeenCalledWith(
+      'item-bag-editor',
+      expect.objectContaining({ longWalkOk: true }),
+    )
+  })
+
   it('정보 수정 화면 최하단에서 삭제 가능 여부와 Retired 전환·해제를 제공한다', async () => {
     const user = userEvent.setup()
     const repository = new DemoRepository()

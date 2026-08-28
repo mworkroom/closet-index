@@ -20,7 +20,10 @@ import {
 } from './context-evidence'
 import { calculateTransportThermalEvidence } from './transport-thermal-evidence.mjs'
 import { simulateTransportThermalPolicy } from './transport-thermal-policy.mjs'
-import { getItemCategoryGroupId } from './item-categories'
+import {
+  getItemCategoryGroupId,
+  isLongWalkSuitabilityCategory,
+} from './item-categories'
 
 interface Observation {
   temp: number
@@ -380,7 +383,8 @@ function conditionWarnings(
 
   if (input.longWalkCondition === 'yes') {
     const unsuitable = items.filter(
-      (item) => item.category.toLowerCase().includes('shoe') && !item.longWalkOk,
+      (item) =>
+        isLongWalkSuitabilityCategory(item.category) && !item.longWalkOk,
     )
     if (unsuitable.length > 0) {
       warnings.push(`오래 걷기 부적합: ${unsuitable.map((item) => item.name).join(', ')}`)

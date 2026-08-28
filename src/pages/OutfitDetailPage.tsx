@@ -431,6 +431,11 @@ export function OutfitDetailPage() {
                         걷기 {log.longWalkCondition === 'yes' ? '해당' : '해당 없음'}
                       </span>
                     </div>
+                    {log.memo?.trim() ? (
+                      <p className="history-card__memo">
+                        <strong>메모</strong> {log.memo.trim()}
+                      </p>
+                    ) : null}
                     {deleteLogConfirmingId === log.id && (
                       <div className="history-card__confirmation" role="alert">
                         <strong>이 착용 기록을 삭제할까요?</strong>

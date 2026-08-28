@@ -519,11 +519,22 @@ describe('recommendOutfits', () => {
     expect(blockedResult?.warnings).toContain('비에 부적합: 블루 가디건')
   })
 
-  it('장거리 걷기는 신발의 불가 여부만 검사한다', () => {
+  it('장거리 걷기는 신발과 가방의 불가 여부를 검사한다', () => {
     const data: AppData = structuredClone(demoData)
     const cardigan = data.items.find((item) => item.id === 'item-cardigan')
     const shoes = data.items.find((item) => item.id === 'item-shoes')
     if (!cardigan || !shoes) throw new Error('fixture missing')
+    const bag = {
+      ...cardigan,
+      id: 'item-bag',
+      name: '데일리 백',
+      category: 'Bags',
+      longWalkOk: true,
+    }
+    data.items.push(bag)
+    const favorite = data.outfits.find((outfit) => outfit.id === 'outfit-favorite')
+    if (!favorite) throw new Error('fixture missing')
+    favorite.itemIds.push(bag.id)
     cardigan.longWalkOk = false
     shoes.longWalkOk = true
 
@@ -536,6 +547,16 @@ describe('recommendOutfits', () => {
       expect.stringContaining('오래 걷기 부적합'),
     )
 
+    bag.longWalkOk = false
+    const blockedBag = recommendOutfits(data, {
+      ...baseInput,
+      longWalkCondition: 'yes',
+    }).find((entry) => entry.outfit.id === 'outfit-favorite')
+
+    expect(blockedBag?.level).toBe('caution')
+    expect(blockedBag?.warnings).toContain('오래 걷기 부적합: 데일리 백')
+
+    bag.longWalkOk = true
     shoes.longWalkOk = false
     const blocked = recommendOutfits(data, {
       ...baseInput,

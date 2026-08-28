@@ -107,6 +107,11 @@ export function getItemCategoryGroupId(
   return 'other'
 }
 
+export function isLongWalkSuitabilityCategory(category: string) {
+  const groupId = getItemCategoryGroupId(category)
+  return groupId === 'shoes' || groupId === 'bag'
+}
+
 export function itemMatchesCategoryGroup(
   item: Pick<Item, 'category'>,
   groupId: ItemCategoryFilterGroupId | '',

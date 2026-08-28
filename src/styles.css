@@ -3600,6 +3600,19 @@ a.item-detail-lineage__item:focus-visible {
   gap: 5px;
 }
 
+.history-card__memo {
+  margin: 10px 0 0;
+  color: var(--ink);
+  font-size: 0.76rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.history-card__memo strong {
+  color: var(--muted);
+  font-weight: 750;
+}
+
 .sticky-action {
   position: sticky;
   z-index: 5;
