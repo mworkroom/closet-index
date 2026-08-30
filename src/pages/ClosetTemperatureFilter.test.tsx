@@ -87,9 +87,7 @@ describe('Closet 오늘 온도 필터', () => {
     expect(
       within(grid!).getByRole('link', { name: /네이비 티셔츠.*24~28°C/ }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent(
-      '26°C 근거 1개 · 온도 근거 없음 0개 · 다른 온도 근거 0개',
-    )
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
 
     first.unmount()
     renderCloset()

@@ -20,6 +20,7 @@ import {
 } from '../features/replenishment/purchase-replenishment'
 import { useItemPurchaseEvents } from '../features/replenishment/useItemPurchaseEvents'
 import { formatMonthDayYear, todayInKorea } from '../lib/date'
+import { buildItemTemperatureEvidenceIndex } from '../lib/item-temperature-evidence'
 import { isWishItem } from '../lib/items'
 import { getItemStats, getOutfitStats } from '../lib/outfits'
 
@@ -60,6 +61,13 @@ export function ItemDetailPage() {
   const visibleIncludedOutfits = includedOutfits.slice(0, visibleOutfitCount)
   const stats =
     data && item ? getItemStats(item.id, data.outfits, data.wearLogs) : null
+  const temperatureEvidence = useMemo(
+    () =>
+      data
+        ? buildItemTemperatureEvidenceIndex(data).get(itemId) ?? null
+        : null,
+    [data, itemId],
+  )
   const maintenanceSignals = useMemo(
     () =>
       data && item
@@ -123,8 +131,12 @@ export function ItemDetailPage() {
                 <dd>{item.category}</dd>
               </div>
               <div>
-                <dt>색상 카테고리</dt>
-                <dd>{item.semanticColor ?? '미입력'}</dd>
+                <dt>착용 온도</dt>
+                <dd>
+                  {temperatureEvidence
+                    ? `${temperatureEvidence.okRange.min} ~ ${temperatureEvidence.okRange.max}°C`
+                    : '근거 없음'}
+                </dd>
               </div>
               <div>
                 <dt>상태</dt>

@@ -237,7 +237,9 @@ describe('Phase 1B screen visuals', () => {
     expect(image.closest('.item-visual--detail')).toBeInTheDocument()
     const basicInfo = screen.getByLabelText('아이템 기본 정보')
     expect(within(basicInfo).getByText('Outer-Cardigan')).toBeInTheDocument()
-    expect(within(basicInfo).getByText('Blue')).toBeInTheDocument()
+    expect(within(basicInfo).getByText('착용 온도')).toBeInTheDocument()
+    expect(within(basicInfo).getByText('16 ~ 22°C')).toBeInTheDocument()
+    expect(within(basicInfo).queryByText('색상 카테고리')).not.toBeInTheDocument()
     expect(within(basicInfo).getByText('사용 중')).toBeInTheDocument()
     expect(screen.queryByText('#6F8FAF')).not.toBeInTheDocument()
 
@@ -271,6 +273,17 @@ describe('Phase 1B screen visuals', () => {
         link.classList.contains('outfit-card--grid'),
       ),
     ).toBe(true)
+  })
+
+  it('Item 상세의 색상 자리에는 OK 횟수 없이 착용 온도 범위만 표시한다', async () => {
+    renderRoute('/closet/item-tee', '/closet/:itemId', <ItemDetailPage />)
+
+    await screen.findByRole('heading', { name: '네이비 티셔츠' })
+    const basicInfo = screen.getByLabelText('아이템 기본 정보')
+    expect(within(basicInfo).getByText('착용 온도')).toBeInTheDocument()
+    expect(within(basicInfo).getByText('24 ~ 28°C')).toBeInTheDocument()
+    expect(within(basicInfo).queryByText(/OK 관측/)).not.toBeInTheDocument()
+    expect(within(basicInfo).queryByText('색상 카테고리')).not.toBeInTheDocument()
   })
 
   it('Item 상세의 포함 Outfit을 최근 순으로 9개씩 더 보여준다', async () => {

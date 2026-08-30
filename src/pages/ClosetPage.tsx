@@ -422,7 +422,7 @@ export function ClosetPage() {
                   const stats = getItemStats(item.id, data.outfits, data.wearLogs)
                   const evidence = temperatureEvidence.get(item.id)
                   const evidenceLabel = evidence
-                    ? `${evidence.okRange.min}~${evidence.okRange.max}°C · OK 관측 ${evidence.okObservationCount}개`
+                    ? `${evidence.okRange.min}~${evidence.okRange.max}°C`
                     : '온도 근거 없음'
                   const maintenanceSignal = maintenanceSignals.get(item.id)
                   const wish = isWishItem(item)
