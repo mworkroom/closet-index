@@ -50,7 +50,8 @@ describe('Closet 오늘 온도 필터', () => {
     const bag = await screen.findByRole('link', {
       name: '여름 가방 아이템 상세 보기',
     })
-    expect(within(bag).getByText('24~28°C · OK 관측 1개')).toBeInTheDocument()
+    expect(within(bag).getByText('24~28°C')).toBeInTheDocument()
+    expect(within(bag).queryByText(/OK 관측/)).not.toBeInTheDocument()
     const unknown = screen.getByRole('link', {
       name: /버건디 벨트 아이템 상세 보기/,
     })
