@@ -7,7 +7,7 @@ import { SeasonScopeSummary } from '../components/SeasonScopeSummary'
 import { EmptyState, ErrorState, LoadingState } from '../components/States'
 import { useClosetData } from '../context/DataContext'
 import { useSeasonScope } from '../context/SeasonScopeContext'
-import { getOutfitStats, outfitLabel } from '../lib/outfits'
+import { outfitLabel } from '../lib/outfits'
 import { sortPlacesForSelection } from '../lib/place-options'
 import { outfitMatchesSeasonScope } from '../lib/seasons'
 import { COLLECTION_BATCH_SIZE } from '../lib/collection-pagination'
@@ -22,7 +22,6 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
   const [query, setQuery] = useState('')
   const [favorite, setFavorite] = useState(false)
   const [unwornOnly, setUnwornOnly] = useState(false)
-  const [notWornRecently, setNotWornRecently] = useState(false)
   const [minimumTemp, setMinimumTemp] = useState('')
   const [maximumTemp, setMaximumTemp] = useState('')
   const [placeId, setPlaceId] = useState('')
@@ -38,7 +37,6 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
     includeUnavailable,
     maximumTemp,
     minimumTemp,
-    notWornRecently,
     placeId,
     query,
     unwornOnly,
@@ -49,9 +47,6 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
     const normalized = query.trim().toLocaleLowerCase('ko')
     const minTemp = parseOptionalNumber(minimumTemp)
     const maxTemp = parseOptionalNumber(maximumTemp)
-    const cutoff = new Date()
-    cutoff.setDate(cutoff.getDate() - 90)
-    const cutoffDate = cutoff.toISOString().slice(0, 10)
     const lastWornOnByOutfit = new Map<string, string>()
     for (const log of data.wearLogs) {
       const current = lastWornOnByOutfit.get(log.outfitId)
@@ -86,10 +81,6 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
         const logs = data.wearLogs.filter((log) => log.outfitId === outfit.id)
         if (unwornOnly && logs.length > 0) return false
         if (placeId && !logs.some((log) => log.placeId === placeId)) return false
-        if (notWornRecently) {
-          const last = getOutfitStats(outfit.id, data.wearLogs).lastWornOn
-          if (last && last > cutoffDate) return false
-        }
         if (minTemp !== null || maxTemp !== null) {
           const okTemps = logs.flatMap((log) => [
             ...(log.feelingOut === 'ok' && log.tempOut !== null ? [log.tempOut] : []),
@@ -117,7 +108,6 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
     includeUnavailable,
     maximumTemp,
     minimumTemp,
-    notWornRecently,
     placeId,
     query,
     unwornOnly,
@@ -127,7 +117,6 @@ export function LookbookPage({ favoriteOnly = false }: { favoriteOnly?: boolean 
     setQuery('')
     setFavorite(false)
     setUnwornOnly(false)
-    setNotWornRecently(false)
     setMinimumTemp('')
     setMaximumTemp('')
     setPlaceId('')

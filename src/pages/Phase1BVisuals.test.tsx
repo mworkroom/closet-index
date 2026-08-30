@@ -96,6 +96,7 @@ describe('Phase 1B screen visuals', () => {
     renderRoute('/lookbook', '/lookbook', <LookbookPage />)
 
     await screen.findByRole('heading', { name: '착장' })
+    expect(screen.queryByText('최근 90일 미착용')).not.toBeInTheDocument()
     await user.click(screen.getByRole('checkbox', { name: 'Unworn' }))
 
     const grid = document.querySelector<HTMLElement>('.outfit-grid')
