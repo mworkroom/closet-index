@@ -343,6 +343,100 @@ describe('recommendOutfits', () => {
     )
   })
 
+  it('Top-T-shirts-innerwear는 새 Outfit의 추천 근거에서 제외한다', () => {
+    const data: AppData = structuredClone(demoData)
+    const template = data.items[0]
+    const item = (id: string, name: string, category: string) => ({
+      ...template,
+      id,
+      name,
+      category,
+      acquiredOn: null,
+    })
+
+    data.items = [
+      item('target-innerwear', '무탠다드 슬리브리스', 'Top-T-shirts-innerwear'),
+      item('target-outer', '카디건', 'Outer-Cardigan'),
+      item('target-bottom', '새 하의', 'Bottom-Pants'),
+      item('target-shoes', '새 신발', 'Shoes'),
+      item('innerwear-history-bottom', '이너웨어 기록 하의', 'Bottom-Pants'),
+      item('innerwear-history-shoes', '이너웨어 기록 신발', 'Shoes'),
+      item('outer-history-top', '카디건 기록 상의', 'Top-T-shirts'),
+      item('outer-history-bottom', '카디건 기록 하의', 'Bottom-Pants'),
+      item('outer-history-shoes', '카디건 기록 신발', 'Shoes'),
+    ]
+    data.outfits = [
+      {
+        id: 'innerwear-history',
+        displayName: null,
+        rating: 'ok',
+        itemIds: [
+          'target-innerwear',
+          'innerwear-history-bottom',
+          'innerwear-history-shoes',
+        ],
+      },
+      {
+        id: 'outer-history',
+        displayName: null,
+        rating: 'ok',
+        itemIds: [
+          'target-outer',
+          'outer-history-top',
+          'outer-history-bottom',
+          'outer-history-shoes',
+        ],
+      },
+      {
+        id: 'new-combination',
+        displayName: null,
+        rating: null,
+        itemIds: [
+          'target-innerwear',
+          'target-outer',
+          'target-bottom',
+          'target-shoes',
+        ],
+      },
+    ]
+    data.wearLogs = [
+      {
+        ...wearLog('innerwear-log', 'innerwear-history', '2026-06-01'),
+        tempOut: 20,
+        tempBack: null,
+        feelingOut: 'ok',
+        feelingBack: null,
+      },
+      {
+        ...wearLog('outer-log', 'outer-history', '2026-06-02'),
+        tempOut: 20,
+        tempBack: null,
+        feelingOut: 'ok',
+        feelingBack: null,
+      },
+    ]
+
+    const results = recommendOutfits(data, baseInput)
+    const result = results.find(
+      (entry) => entry.outfit.id === 'new-combination',
+    )
+    const groups = partitionRecommendations(results, 10)
+
+    expect(result?.similarEvidence?.itemEvidence).toEqual([
+      expect.objectContaining({ itemId: 'target-outer' }),
+    ])
+    expect(result?.similarEvidence?.matches).toHaveLength(0)
+    expect(result?.similarEvidence?.knownItemCount).toBe(1)
+    expect(result?.similarEvidence?.totalItemCount).toBe(3)
+    expect(result?.similarEvidence?.supportedCoreItemCount).toBe(1)
+    expect(result?.similarEvidence?.totalCoreItemCount).toBe(2)
+    expect(result?.similarEvidence?.aggregateOkRange).toBeNull()
+    expect(result?.reasons[0]).toBe('핵심 Item 1/2개에 일부 온도 근거')
+    expect(
+      groups.trialRecommendations.map((entry) => entry.outfit.id),
+    ).not.toContain('new-combination')
+  })
+
   it('가방과 액세서리만 겹치는 과거 Outfit은 온도 근거로 쓰지 않는다', () => {
     const data: AppData = structuredClone(demoData)
     const template = data.items[0]

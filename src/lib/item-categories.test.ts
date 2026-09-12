@@ -5,6 +5,7 @@ import {
   getItemCategoryStatistics,
   isMadeItemCategory,
   isLongWalkSuitabilityCategory,
+  isRecommendationEvidenceExcludedItem,
   isItemVisibleInWardrobeSelection,
   itemMatchesCategoryGroup,
   sortItemsForOutfitDisplay,
@@ -125,6 +126,23 @@ describe('item category groups', () => {
     expect(isLongWalkSuitabilityCategory('Bags')).toBe(true)
     expect(isLongWalkSuitabilityCategory('Bags-made')).toBe(true)
     expect(isLongWalkSuitabilityCategory('Outer-Cardigan')).toBe(false)
+  })
+
+  it('추천 근거에서는 Top-T-shirts-innerwear만 정확히 제외한다', () => {
+    expect(
+      isRecommendationEvidenceExcludedItem({
+        category: ' Top-T-shirts-innerwear ',
+      }),
+    ).toBe(true)
+    expect(
+      isRecommendationEvidenceExcludedItem({ category: 'TOP-T-SHIRTS-INNERWEAR' }),
+    ).toBe(true)
+    expect(
+      isRecommendationEvidenceExcludedItem({ category: 'Top-T-shirts' }),
+    ).toBe(false)
+    expect(
+      isRecommendationEvidenceExcludedItem({ category: 'Innerwear' }),
+    ).toBe(false)
   })
 
   it('filters by upper group without changing the detailed category', () => {

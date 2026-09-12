@@ -296,7 +296,7 @@ describe('Outfit creator', () => {
     expect(savedOutfit?.rating).toBe('error')
   })
 
-  it('실시간 미리보기 없이 배치 조정을 Item 추가 목록보다 먼저 표시한다', async () => {
+  it('배치 조정과 저장 검토를 Item 추가 목록보다 먼저 표시한다', async () => {
     const repository = new DemoRepository()
 
     renderCreator(repository, '/outfits/outfit-favorite/edit')
@@ -304,12 +304,19 @@ describe('Outfit creator', () => {
     const placementHeading = await screen.findByRole('heading', {
       name: 'Item별 배치 조정',
     })
+    const reviewHeading = screen.getByRole('heading', {
+      name: '이름과 저장 검토',
+    })
     const itemAddHeading = screen.getByRole('heading', { name: 'Item 추가' })
     expect(
       screen.queryByRole('heading', { name: '실시간 미리보기' }),
     ).not.toBeInTheDocument()
     expect(
       placementHeading.compareDocumentPosition(itemAddHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(
+      reviewHeading.compareDocumentPosition(itemAddHeading) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
     expect(screen.getByRole('button', { name: '변경 저장' })).toHaveClass(

@@ -20,7 +20,10 @@ import {
 } from './context-evidence'
 import { calculateTransportThermalEvidence } from './transport-thermal-evidence.mjs'
 import { simulateTransportThermalPolicy } from './transport-thermal-policy.mjs'
-import { isLongWalkSuitabilityCategory } from './item-categories'
+import {
+  isLongWalkSuitabilityCategory,
+  isRecommendationEvidenceExcludedItem,
+} from './item-categories'
 import { isCompleteRecommendationOutfit } from './complete-outfit'
 
 export { isCompleteRecommendationOutfit } from './complete-outfit'
@@ -167,7 +170,10 @@ function similarOutfitEvidence(
   const targetItems = target.itemIds
     .map((id) => data.items.find((item) => item.id === id))
     .filter((item): item is Item => Boolean(item))
-  const targetCoreItems = targetItems.filter(isCoreTemperatureItem)
+  const targetEvidenceItems = targetItems.filter(
+    (item) => !isRecommendationEvidenceExcludedItem(item),
+  )
+  const targetCoreItems = targetEvidenceItems.filter(isCoreTemperatureItem)
   const observedItemIds = new Set<string>()
   const supportingLogs = new Map<string, WearLog>()
 
@@ -240,11 +246,21 @@ function similarOutfitEvidence(
       const candidateItems = candidate.itemIds
         .map((id) => data.items.find((item) => item.id === id))
         .filter((item): item is Item => Boolean(item))
+      const candidateEvidenceItems = candidateItems.filter(
+        (item) => !isRecommendationEvidenceExcludedItem(item),
+      )
 
-      const candidateIds = new Set(candidateItems.map((item) => item.id))
-      const sharedItems = targetItems.filter((item) => candidateIds.has(item.id))
+      const candidateIds = new Set(
+        candidateEvidenceItems.map((item) => item.id),
+      )
+      const sharedItems = targetEvidenceItems.filter((item) =>
+        candidateIds.has(item.id),
+      )
       const sharedAnchors = sharedItems.filter(isThermalAnchor)
-      const similarity = weightedSimilarity(targetItems, candidateItems)
+      const similarity = weightedSimilarity(
+        targetEvidenceItems,
+        candidateEvidenceItems,
+      )
 
       if (
         sharedItems.length < 2 ||
@@ -264,10 +280,10 @@ function similarOutfitEvidence(
         {
           outfitId: candidate.id,
           sharedItemCount: sharedItems.length,
-          targetItemCount: targetItems.length,
+          targetItemCount: targetEvidenceItems.length,
           weightedSimilarity: similarity,
           sharedItemNames: sharedItems.map((item) => item.name),
-          changedItemNames: targetItems
+          changedItemNames: targetEvidenceItems
             .filter((item) => !candidateIds.has(item.id))
             .map((item) => item.name),
           wearCount: logs.length,
@@ -314,9 +330,10 @@ function similarOutfitEvidence(
 
   return {
     confidence,
-    knownItemCount: targetItems.filter((item) => observedItemIds.has(item.id))
-      .length,
-    totalItemCount: targetItems.length,
+    knownItemCount: targetEvidenceItems.filter((item) =>
+      observedItemIds.has(item.id),
+    ).length,
+    totalItemCount: targetEvidenceItems.length,
     supportedCoreItemCount: itemEvidence.length,
     totalCoreItemCount: targetCoreItems.length,
     itemEvidence,

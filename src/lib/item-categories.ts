@@ -49,6 +49,10 @@ const groupOrder = new Map(
   ITEM_CATEGORY_GROUPS.map((group, index) => [group.id, index]),
 )
 
+const RECOMMENDATION_EVIDENCE_EXCLUDED_CATEGORIES = new Set([
+  'top-t-shirts-innerwear',
+])
+
 const outfitDisplayOrder: Record<ItemCategoryGroupId, number> = {
   outer: 1,
   top: 2,
@@ -110,6 +114,14 @@ export function getItemCategoryGroupId(
 export function isLongWalkSuitabilityCategory(category: string) {
   const groupId = getItemCategoryGroupId(category)
   return groupId === 'shoes' || groupId === 'bag'
+}
+
+export function isRecommendationEvidenceExcludedItem(
+  item: Pick<Item, 'category'>,
+) {
+  return RECOMMENDATION_EVIDENCE_EXCLUDED_CATEGORIES.has(
+    item.category.trim().toLocaleLowerCase('en-US'),
+  )
 }
 
 export function itemMatchesCategoryGroup(

@@ -3,6 +3,7 @@ import {
   type AuthoritativeNoveltyOverlay,
   type InitialNoveltyEvidence,
 } from './recent-purchase-semantics'
+import { isRecommendationEvidenceExcludedItem } from './item-categories'
 import type {
   AppData,
   Item,
@@ -183,13 +184,6 @@ function isThermalAnchor(item: Item) {
   )
 }
 
-function isBaseLayer(item: Pick<Item, 'category'>) {
-  return (
-    item.category.trim().toLocaleLowerCase('en-US') ===
-    'top-t-shirts-innerwear'
-  )
-}
-
 function distinctLogs(logs: readonly WearLog[]) {
   return [...new Map(logs.map((log) => [log.id, log])).values()].sort(
     (left, right) =>
@@ -357,7 +351,8 @@ export function calculateScopedItemDerivedEvidence({
         category: item.category,
         thermalWeight: auditThermalWeight(item),
         isThermalCore: true,
-        isBaseLayerSourceExcluded: isBaseLayer(item),
+        isBaseLayerSourceExcluded:
+          isRecommendationEvidenceExcludedItem(item),
         scopes: {
           exactContext: scopeEvidence(
             'exactContext',

@@ -435,6 +435,94 @@ export function OutfitCreatorPage() {
             />
           )}
 
+          <section className="section outfit-creator__review outfit-creator__review--with-fixed-save">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">REVIEW</p>
+                <h2>이름과 저장 검토</h2>
+              </div>
+              <span className="count">
+                평가 {ratingLabels[rating]}
+              </span>
+            </div>
+            {isEditing && (
+              <fieldset className="field">
+                <legend>평가</legend>
+                <div className="segmented segmented--four">
+                  {([
+                    ['favorite', 'Favorite'],
+                    ['ok', 'OK'],
+                    ['error', 'Error'],
+                  ] as const).map(([value, label]) => (
+                    <label key={value}>
+                      <input
+                        type="radio"
+                        name="outfit-rating"
+                        value={value}
+                        checked={rating === value}
+                        onChange={() => setRating(value)}
+                      />
+                      <span>{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+            <label className="field">
+              <span>Outfit 이름 (선택)</span>
+              <input
+                type="text"
+                value={displayName}
+                maxLength={120}
+                placeholder="예: 가볍게 걷는 날"
+                onChange={(event) => {
+                  setDisplayName(event.target.value)
+                  resetDuplicateCheck()
+                }}
+              />
+            </label>
+            <dl className="outfit-creator__review-counts">
+              <div>
+                <dt>선택 Item</dt>
+                <dd>{selectedItems.length}개</dd>
+              </div>
+              <div>
+                <dt>이미지 있음</dt>
+                <dd>{imageCount}개</dd>
+              </div>
+              <div>
+                <dt>이미지 없음</dt>
+                <dd>{selectedItems.length - imageCount}개</dd>
+              </div>
+            </dl>
+
+            {matches.length > 0 && (
+              <div className="outfit-creator__duplicate-warning" role="alert">
+                <strong>같은 Item 조합의 Outfit이 이미 있습니다.</strong>
+                <p>기존 착장을 확인한 뒤 정말 별도로 필요할 때만 저장해 주세요.</p>
+                <div>
+                  {matches.map((match) => (
+                    <Link to={`/outfits/${match.id}`} key={match.id}>
+                      {match.displayName || '이름 없는 Outfit'}
+                      {match.archivedAt ? ' · 보관됨' : ''}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {saveError && (
+              <p className="form-error" role="alert">
+                {saveError}
+              </p>
+            )}
+            <p className="outfit-creator__save-note">
+              {isEditing
+                ? '이름, 구성 Item, 평가를 수정합니다. 보관 상태와 Wear Log는 유지됩니다.'
+                : '저장할 때 새 Outfit과 모든 Item 관계를 한 번에 생성합니다. Wear Log는 자동으로 만들지 않습니다.'}
+            </p>
+          </section>
+
           <section className="filter-panel outfit-creator__filters">
             <div className="section-heading">
               <h2>Item 추가</h2>
@@ -541,93 +629,6 @@ export function OutfitCreatorPage() {
             )}
           </section>
 
-          <section className="section outfit-creator__review outfit-creator__review--with-fixed-save">
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">REVIEW</p>
-                <h2>이름과 저장 검토</h2>
-              </div>
-              <span className="count">
-                평가 {ratingLabels[rating]}
-              </span>
-            </div>
-            {isEditing && (
-              <fieldset className="field">
-                <legend>평가</legend>
-                <div className="segmented segmented--four">
-                  {([
-                    ['favorite', 'Favorite'],
-                    ['ok', 'OK'],
-                    ['error', 'Error'],
-                  ] as const).map(([value, label]) => (
-                    <label key={value}>
-                      <input
-                        type="radio"
-                        name="outfit-rating"
-                        value={value}
-                        checked={rating === value}
-                        onChange={() => setRating(value)}
-                      />
-                      <span>{label}</span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-            )}
-            <label className="field">
-              <span>Outfit 이름 (선택)</span>
-              <input
-                type="text"
-                value={displayName}
-                maxLength={120}
-                placeholder="예: 가볍게 걷는 날"
-                onChange={(event) => {
-                  setDisplayName(event.target.value)
-                  resetDuplicateCheck()
-                }}
-              />
-            </label>
-            <dl className="outfit-creator__review-counts">
-              <div>
-                <dt>선택 Item</dt>
-                <dd>{selectedItems.length}개</dd>
-              </div>
-              <div>
-                <dt>이미지 있음</dt>
-                <dd>{imageCount}개</dd>
-              </div>
-              <div>
-                <dt>이미지 없음</dt>
-                <dd>{selectedItems.length - imageCount}개</dd>
-              </div>
-            </dl>
-
-            {matches.length > 0 && (
-              <div className="outfit-creator__duplicate-warning" role="alert">
-                <strong>같은 Item 조합의 Outfit이 이미 있습니다.</strong>
-                <p>기존 착장을 확인한 뒤 정말 별도로 필요할 때만 저장해 주세요.</p>
-                <div>
-                  {matches.map((match) => (
-                    <Link to={`/outfits/${match.id}`} key={match.id}>
-                      {match.displayName || '이름 없는 Outfit'}
-                      {match.archivedAt ? ' · 보관됨' : ''}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {saveError && (
-              <p className="form-error" role="alert">
-                {saveError}
-              </p>
-            )}
-            <p className="outfit-creator__save-note">
-              {isEditing
-                ? '이름, 구성 Item, 평가를 수정합니다. 보관 상태와 Wear Log는 유지됩니다.'
-                : '저장할 때 새 Outfit과 모든 Item 관계를 한 번에 생성합니다. Wear Log는 자동으로 만들지 않습니다.'}
-            </p>
-          </section>
           <div className="outfit-creator__fixed-save">
             <button
               type="button"
