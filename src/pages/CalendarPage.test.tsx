@@ -1,6 +1,6 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { DataProvider } from '../context/DataContext'
 import { SeasonScopeProvider } from '../context/SeasonScopeContext'
@@ -65,6 +65,27 @@ describe('Phase 3.5 Calendar', () => {
     })
     expect(aprilCell).toHaveClass('calendar-cell--outside')
     expect(within(aprilCell).queryByRole('link')).not.toBeInTheDocument()
+  })
+
+  it('opens the native month chooser on a desktop mouse click', async () => {
+    const user = userEvent.setup()
+    renderCalendar('/calendar?month=2026-09')
+    const monthInput = await screen.findByLabelText('Choose month') as HTMLInputElement
+    const showPicker = vi.fn()
+    monthInput.showPicker = showPicker
+
+    await user.click(monthInput)
+
+    expect(showPicker).toHaveBeenCalledOnce()
+    expect(monthInput).toHaveValue('2026-09')
+
+    const touchClick = new MouseEvent('click', { bubbles: true })
+    Object.defineProperty(touchClick, 'pointerType', { value: 'touch' })
+    fireEvent(monthInput, touchClick)
+    expect(showPicker).toHaveBeenCalledOnce()
+
+    fireEvent.change(monthInput, { target: { value: '2024-03' } })
+    expect(await screen.findByRole('grid', { name: 'March 2024' })).toBeInTheDocument()
   })
 
   it('opens an English chooser sheet only when a date has multiple Outfits', async () => {

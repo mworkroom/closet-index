@@ -38,6 +38,46 @@ function renderItemDetail(repository: DemoRepository, itemId = 'item-knit') {
   )
 }
 
+describe('ItemDetailPage item memo', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+  afterEach(cleanup)
+
+  it('shows a saved memo beneath the three stats and omits an empty memo', async () => {
+    const repository = new DemoRepository()
+    const item = (await repository.load()).items.find(
+      (entry) => entry.id === 'item-knit',
+    )!
+    await repository.updateItem(item.id, {
+      ...item,
+      paletteId: null,
+      memo: '  첫 줄\n둘째 줄  ',
+    })
+
+    const view = renderItemDetail(repository)
+    const stats = await screen.findByRole('region', { name: '아이템 사용 정보' })
+    expect(within(stats).getByText('메모').nextElementSibling?.textContent).toBe(
+      '첫 줄\n둘째 줄',
+    )
+    expect(stats.lastElementChild).toHaveClass('detail-grid__item-memo')
+    expect(stats.children).toHaveLength(4)
+
+    view.unmount()
+    await repository.updateItem(item.id, {
+      ...item,
+      paletteId: null,
+      memo: ' \n ',
+    })
+    renderItemDetail(repository)
+    const emptyStats = await screen.findByRole('region', {
+      name: '아이템 사용 정보',
+    })
+    expect(emptyStats.children).toHaveLength(3)
+    expect(within(emptyStats).queryByText('메모')).not.toBeInTheDocument()
+  })
+})
+
 describe('ItemDetailPage Replacement Line', () => {
   beforeEach(() => {
     window.localStorage.clear()

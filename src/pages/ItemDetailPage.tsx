@@ -30,6 +30,7 @@ export function ItemDetailPage() {
   const { itemId = '' } = useParams()
   const { data, loading, error, refresh, purchases, care } = useClosetData()
   const item = data?.items.find((entry) => entry.id === itemId)
+  const itemMemo = item?.memo?.trim()
   const [visibleOutfitCount, setVisibleOutfitCount] = useState(9)
   const purchaseEventsState = useItemPurchaseEvents(purchases, itemId)
   const careEventsState = useItemCareEvents(care, itemId)
@@ -182,6 +183,12 @@ export function ItemDetailPage() {
               <span>착용 횟수</span>
               <strong>{stats?.wearCount ?? 0}회</strong>
             </div>
+            {itemMemo ? (
+              <div className="detail-grid__item-memo">
+                <span>메모</span>
+                <p>{itemMemo}</p>
+              </div>
+            ) : null}
           </section>
 
           <nav className="item-detail-actions" aria-label="Item 작업">

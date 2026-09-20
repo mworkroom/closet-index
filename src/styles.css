@@ -1836,6 +1836,19 @@ button:disabled {
   font-variant-numeric: tabular-nums;
 }
 
+.detail-grid--item-stats > .detail-grid__item-memo {
+  grid-column: 1 / -1;
+  padding: 13px 15px;
+}
+
+.detail-grid__item-memo p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
 .item-detail-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -142,6 +142,11 @@ export function CalendarPage() {
               type="month"
               value={month}
               onChange={(event) => setMonth(event.target.value)}
+              onClick={(event) => {
+                if ((event.nativeEvent as PointerEvent).pointerType !== 'touch') {
+                  event.currentTarget.showPicker?.()
+                }
+              }}
             />
           </label>
           <button
