@@ -24,8 +24,9 @@ import {
 import { isWishItem, sortItems, type ItemSort } from '../lib/items'
 import {
   buildItemTemperatureEvidenceIndex,
-  itemHasTemperatureEvidenceNear,
+  itemHasTemperatureEvidenceAt,
 } from '../lib/item-temperature-evidence'
+import { formatTemperatureRange } from '../lib/temperature-range'
 import { getItemStats } from '../lib/outfits'
 import { itemMatchesSeasonScope } from '../lib/seasons'
 import { COLLECTION_BATCH_SIZE } from '../lib/collection-pagination'
@@ -216,7 +217,7 @@ export function ClosetPage() {
             const evidence = temperatureEvidence.get(item.id)
             return (
               evidence !== undefined &&
-              itemHasTemperatureEvidenceNear(evidence, targetTemperature)
+              itemHasTemperatureEvidenceAt(evidence, targetTemperature)
             )
           }),
     [candidateItems, targetTemperature, temperatureEvidence],
@@ -229,7 +230,7 @@ export function ClosetPage() {
     for (const item of candidateItems) {
       const evidence = temperatureEvidence.get(item.id)
       if (!evidence) unknown += 1
-      else if (!itemHasTemperatureEvidenceNear(evidence, targetTemperature)) {
+      else if (!itemHasTemperatureEvidenceAt(evidence, targetTemperature)) {
         otherTemperature += 1
       }
     }
@@ -422,7 +423,7 @@ export function ClosetPage() {
                   const stats = getItemStats(item.id, data.outfits, data.wearLogs)
                   const evidence = temperatureEvidence.get(item.id)
                   const evidenceLabel = evidence
-                    ? `${evidence.okRange.min}~${evidence.okRange.max}°C`
+                    ? formatTemperatureRange(evidence.okRange)
                     : '온도 근거 없음'
                   const maintenanceSignal = maintenanceSignals.get(item.id)
                   const wish = isWishItem(item)

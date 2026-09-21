@@ -1,7 +1,6 @@
 import { isCompleteRecommendationOutfit } from './complete-outfit'
+import { temperatureRangeFor } from './temperature-range'
 import type { AppData, ItemTemperatureEvidence, WearLog } from './types'
-
-export const ITEM_TEMPERATURE_TOLERANCE = 2
 
 export interface ClosetItemTemperatureEvidence
   extends ItemTemperatureEvidence {
@@ -85,12 +84,8 @@ export function buildItemTemperatureEvidenceIndex(
     const item = itemById.get(itemId)
     if (!item || accumulator.okTemperatures.length === 0) continue
 
-    let minimum = accumulator.okTemperatures[0]
-    let maximum = accumulator.okTemperatures[0]
-    for (const temperature of accumulator.okTemperatures.slice(1)) {
-      minimum = Math.min(minimum, temperature)
-      maximum = Math.max(maximum, temperature)
-    }
+    const okRange = temperatureRangeFor(accumulator.okTemperatures)
+    if (!okRange) continue
 
     evidenceByItemId.set(itemId, {
       itemId,
@@ -98,10 +93,7 @@ export function buildItemTemperatureEvidenceIndex(
       category: item.category,
       wearCount: accumulator.wearLogIds.size,
       lastWornOn: accumulator.lastWornOn,
-      okRange: {
-        min: minimum - ITEM_TEMPERATURE_TOLERANCE,
-        max: maximum + ITEM_TEMPERATURE_TOLERANCE,
-      },
+      okRange,
       okObservationCount: accumulator.okTemperatures.length,
       okTemperatures: accumulator.okTemperatures,
     })
@@ -110,12 +102,9 @@ export function buildItemTemperatureEvidenceIndex(
   return evidenceByItemId
 }
 
-export function itemHasTemperatureEvidenceNear(
+export function itemHasTemperatureEvidenceAt(
   evidence: ClosetItemTemperatureEvidence,
   targetTemperature: number,
 ) {
-  return evidence.okTemperatures.some(
-    (temperature) =>
-      Math.abs(temperature - targetTemperature) <= ITEM_TEMPERATURE_TOLERANCE,
-  )
+  return evidence.okTemperatures.includes(targetTemperature)
 }

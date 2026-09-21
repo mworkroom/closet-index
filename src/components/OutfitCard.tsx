@@ -5,6 +5,7 @@ import { formatMonthDayYear } from '../lib/date'
 import { sortItemsForOutfitDisplay } from '../lib/item-categories'
 import type { HomeNormalRecommendationContextEvidence } from '../lib/normal-recommendation-context-home'
 import { getOutfitStats, outfitLabel } from '../lib/outfits'
+import { formatTemperatureRange } from '../lib/temperature-range'
 import { ratingLabels, recommendationLabels } from '../lib/types'
 import { OutfitVisual } from './OutfitVisual'
 
@@ -38,7 +39,7 @@ export function OutfitCard({
     ? (similarEvidence?.aggregateOkRange ?? similarMatch?.okRange)
     : recommendation?.okRange
   const homeOkCount = isTrial
-    ? similarEvidence?.aggregateOkRange
+    ? similarEvidence?.aggregateRecommendationRange
       ? similarEvidence.aggregateOkObservationCount
       : similarMatch?.okObservationCount
     : recommendation?.okObservationCount
@@ -100,10 +101,10 @@ export function OutfitCard({
               )}
               <span>
                 {homeRange
-                  ? `${homeRange.min}~${homeRange.max}°C ${
-                      isTrial ? '시험 범위' : '적정 범위'
+                  ? `${formatTemperatureRange(homeRange)} ${
+                      isTrial ? '참고 OK 범위' : 'OK 기록 범위'
                     }`
-                  : '적정 범위 없음'}
+                  : 'OK 기록 범위 없음'}
               </span>
               <span>
                 {homeOkCount

@@ -612,6 +612,7 @@ export interface SimilarOutfitEvidence {
   totalCoreItemCount: number
   itemEvidence: ItemTemperatureEvidence[]
   aggregateOkRange: { min: number; max: number } | null
+  aggregateRecommendationRange?: { min: number; max: number } | null
   aggregateOkObservationCount: number
   matches: SimilarOutfitMatch[]
 }
@@ -625,6 +626,7 @@ export interface RecommendationResult {
   reasons: string[]
   warnings: string[]
   okRange: { min: number; max: number } | null
+  recommendationRange?: { min: number; max: number } | null
   okObservationCount: number
   targetTemp: number
   wearCount: number

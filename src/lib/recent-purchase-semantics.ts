@@ -4,6 +4,10 @@ import type {
   PurchaseEvent,
   RecommendationResult,
 } from './types'
+import {
+  recommendationTemperatureRangeFor,
+  temperatureRangeContains,
+} from './temperature-range'
 
 export type InitialNoveltyKind =
   | 'first_acquisition'
@@ -373,9 +377,10 @@ export function applyAuthoritativeNoveltyOverrides(
 function resultMatchesTargetTemperature(result: RecommendationResult) {
   return (
     result.evidence === 'observed' &&
-    result.okRange !== null &&
-    result.targetTemp >= result.okRange.min &&
-    result.targetTemp <= result.okRange.max
+    temperatureRangeContains(
+      recommendationTemperatureRangeFor(result),
+      result.targetTemp,
+    )
   )
 }
 

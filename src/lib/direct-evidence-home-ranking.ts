@@ -12,6 +12,10 @@ import type {
   RecommendationInput,
   RecommendationResult,
 } from './types'
+import {
+  recommendationTemperatureRangeFor,
+  temperatureRangeDistance,
+} from './temperature-range'
 
 export type HomeRecommendationGroupName = keyof DirectEvidencePartitions<unknown>
 
@@ -92,14 +96,9 @@ export const LOCAL_P5A_DIRECT_EVIDENCE_E2_ENABLED =
   )
 
 function temperatureDistance(result: RecommendationResult) {
-  if (!result.okRange) return null
-  if (result.targetTemp < result.okRange.min) {
-    return result.okRange.min - result.targetTemp
-  }
-  if (result.targetTemp > result.okRange.max) {
-    return result.targetTemp - result.okRange.max
-  }
-  return 0
+  const range = recommendationTemperatureRangeFor(result)
+  const distance = temperatureRangeDistance(result.targetTemp, range)
+  return Number.isFinite(distance) ? distance : null
 }
 
 function itemCoverage(result: RecommendationResult) {

@@ -3,7 +3,7 @@ import { demoData } from '../data/demo-data'
 import type { AppData, WearLog } from './types'
 import {
   buildItemTemperatureEvidenceIndex,
-  itemHasTemperatureEvidenceNear,
+  itemHasTemperatureEvidenceAt,
 } from './item-temperature-evidence'
 
 function okLog(
@@ -43,12 +43,12 @@ describe('item temperature evidence', () => {
     const evidence = buildItemTemperatureEvidenceIndex(data)
 
     expect(evidence.get('item-bag')).toMatchObject({
-      okRange: { min: 16, max: 22 },
+      okRange: { min: 18, max: 20 },
       okObservationCount: 2,
       wearCount: 2,
     })
     expect(evidence.get('item-socks')).toMatchObject({
-      okRange: { min: 16, max: 22 },
+      okRange: { min: 18, max: 20 },
       okObservationCount: 2,
     })
   })
@@ -94,12 +94,12 @@ describe('item temperature evidence', () => {
     data.wearLogs.push(okLog('log-archived-belt', 'outfit-archived-belt', 25))
 
     expect(buildItemTemperatureEvidenceIndex(data).get('item-belt')).toMatchObject({
-      okRange: { min: 23, max: 27 },
+      okRange: { min: 25, max: 25 },
       okObservationCount: 1,
     })
   })
 
-  it('표시 범위 사이의 빈 구간은 실제 근처 OK 관측이 없으면 통과시키지 않는다', () => {
+  it('실제 OK 관측 온도만 검색하며 관측 사이 빈 구간과 ±2°C는 적용하지 않는다', () => {
     const data: AppData = structuredClone(demoData)
     data.outfits.push(
       {
@@ -123,9 +123,10 @@ describe('item temperature evidence', () => {
     const evidence = buildItemTemperatureEvidenceIndex(data).get('item-belt')
     if (!evidence) throw new Error('temperature evidence missing')
 
-    expect(evidence.okRange).toEqual({ min: 8, max: 32 })
-    expect(itemHasTemperatureEvidenceNear(evidence, 10)).toBe(true)
-    expect(itemHasTemperatureEvidenceNear(evidence, 20)).toBe(false)
-    expect(itemHasTemperatureEvidenceNear(evidence, 30)).toBe(true)
+    expect(evidence.okRange).toEqual({ min: 10, max: 30 })
+    expect(itemHasTemperatureEvidenceAt(evidence, 10)).toBe(true)
+    expect(itemHasTemperatureEvidenceAt(evidence, 12)).toBe(false)
+    expect(itemHasTemperatureEvidenceAt(evidence, 20)).toBe(false)
+    expect(itemHasTemperatureEvidenceAt(evidence, 30)).toBe(true)
   })
 })

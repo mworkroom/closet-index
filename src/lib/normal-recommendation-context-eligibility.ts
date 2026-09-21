@@ -9,6 +9,10 @@ import type {
   RecommendationLevel,
   RecommendationResult,
 } from './types'
+import {
+  recommendationTemperatureRangeFor,
+  temperatureRangeDistance,
+} from './temperature-range'
 
 export type NormalRecommendationContextModel = 'N0' | 'N1' | 'N2'
 
@@ -60,14 +64,10 @@ const tierRank: Record<NormalRecommendationContextTier, number> = {
 }
 
 function temperatureDistance(result: RecommendationResult) {
-  if (!result.okRange) return Number.POSITIVE_INFINITY
-  if (result.targetTemp < result.okRange.min) {
-    return result.okRange.min - result.targetTemp
-  }
-  if (result.targetTemp > result.okRange.max) {
-    return result.targetTemp - result.okRange.max
-  }
-  return 0
+  return temperatureRangeDistance(
+    result.targetTemp,
+    recommendationTemperatureRangeFor(result),
+  )
 }
 
 function tierFor(

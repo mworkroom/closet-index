@@ -25,6 +25,13 @@ import {
   isRecommendationEvidenceExcludedItem,
 } from './item-categories'
 import { isCompleteRecommendationOutfit } from './complete-outfit'
+import {
+  expandTemperatureRange,
+  formatTemperatureRange,
+  recommendationTemperatureRangeFor,
+  temperatureRangeDistance,
+  temperatureRangeFor,
+} from './temperature-range'
 
 export { isCompleteRecommendationOutfit } from './complete-outfit'
 
@@ -133,13 +140,7 @@ function okRangeFor(observations: Observation[]) {
 
   return {
     okTemps,
-    okRange:
-      okTemps.length > 0
-        ? {
-            min: Math.min(...okTemps) - 2,
-            max: Math.max(...okTemps) + 2,
-          }
-        : null,
+    okRange: temperatureRangeFor(okTemps),
   }
 }
 
@@ -235,6 +236,25 @@ function similarOutfitEvidence(
     itemRangeIntersection && itemRangeIntersection.min <= itemRangeIntersection.max
       ? itemRangeIntersection
       : null
+  const itemRecommendationRangeIntersection = hasEnoughItemEvidence
+    ? {
+        min: Math.max(
+          ...itemEvidence.map(
+            (evidence) => expandTemperatureRange(evidence.okRange)!.min,
+          ),
+        ),
+        max: Math.min(
+          ...itemEvidence.map(
+            (evidence) => expandTemperatureRange(evidence.okRange)!.max,
+          ),
+        ),
+      }
+    : null
+  const aggregateRecommendationRange =
+    itemRecommendationRangeIntersection &&
+    itemRecommendationRangeIntersection.min <= itemRecommendationRangeIntersection.max
+      ? itemRecommendationRangeIntersection
+      : null
   const aggregateOkObservationCount = okRangeFor(
     observationsFor([...supportingLogs.values()]),
   ).okTemps.length
@@ -322,7 +342,7 @@ function similarOutfitEvidence(
     best && best.weightedSimilarity >= 0.7 && supportingWearCount >= 2,
   )
   const hasMediumItemEvidence =
-    aggregateOkRange !== null &&
+    aggregateRecommendationRange !== null &&
     itemEvidence.length === targetCoreItems.length &&
     supportingLogs.size >= 2
   const confidence =
@@ -338,20 +358,17 @@ function similarOutfitEvidence(
     totalCoreItemCount: targetCoreItems.length,
     itemEvidence,
     aggregateOkRange,
+    aggregateRecommendationRange,
     aggregateOkObservationCount,
     matches,
   }
 }
 
-function partialEvidenceRange(evidence: SimilarOutfitEvidence | null) {
-  return evidence?.aggregateOkRange ?? evidence?.matches[0]?.okRange ?? null
-}
-
-function rangeDistance(target: number, range: { min: number; max: number } | null) {
-  if (!range) return Number.POSITIVE_INFINITY
-  if (target < range.min) return range.min - target
-  if (target > range.max) return target - range.max
-  return 0
+function partialRecommendationRange(evidence: SimilarOutfitEvidence | null) {
+  return (
+    evidence?.aggregateRecommendationRange ??
+    expandTemperatureRange(evidence?.matches[0]?.okRange ?? null)
+  )
 }
 
 function endpointWarning(
@@ -450,7 +467,8 @@ function evaluateOutfit(
   const targetTemp = (input.tempOut + tempBack) / 2
   const observations = observationsFor(logs)
   const { okRange, okTemps } = okRangeFor(observations)
-  const distance = rangeDistance(targetTemp, okRange)
+  const recommendationRange = expandTemperatureRange(okRange)
+  const distance = temperatureRangeDistance(targetTemp, recommendationRange)
 
   const warnings = [
     endpointWarning(input.tempOut, '출발', observations),
@@ -476,17 +494,19 @@ function evaluateOutfit(
   const reasons: string[] = []
   if (okRange) {
     reasons.push(
-      `${okRange.min}~${okRange.max}°C 적정 범위 · OK ${okTemps.length}회`,
+      `${formatTemperatureRange(okRange)} OK 기록 범위 · OK ${okTemps.length}회`,
     )
   } else if (similarEvidence) {
     const best = similarEvidence.matches[0]
-    if (similarEvidence.aggregateOkRange) {
+    if (similarEvidence.aggregateRecommendationRange) {
       reasons.push(
         `핵심 Item ${similarEvidence.supportedCoreItemCount}/${similarEvidence.totalCoreItemCount}개에 OK 온도 근거`,
       )
-      reasons.push(
-        `Item별 종합 ${similarEvidence.aggregateOkRange.min}~${similarEvidence.aggregateOkRange.max}°C · OK 관측 ${similarEvidence.aggregateOkObservationCount}개`,
-      )
+      if (similarEvidence.aggregateOkRange) {
+        reasons.push(
+          `Item별 종합 ${formatTemperatureRange(similarEvidence.aggregateOkRange)} · OK 관측 ${similarEvidence.aggregateOkObservationCount}개`,
+        )
+      }
       if (best) {
         reasons.push(
           `비슷한 과거 착장 ${best.sharedItemCount}/${best.targetItemCount}개 일치`,
@@ -498,7 +518,7 @@ function evaluateOutfit(
       )
       if (best.okRange) {
         reasons.push(
-          `유사 착장 ${best.okRange.min}~${best.okRange.max}°C · OK ${best.okObservationCount}회`,
+          `유사 착장 ${formatTemperatureRange(best.okRange)} · OK ${best.okObservationCount}회`,
         )
       } else {
         reasons.push('유사 착장에 OK 온도 기록 없음')
@@ -549,6 +569,7 @@ function evaluateOutfit(
     reasons,
     warnings,
     okRange,
+    recommendationRange,
     okObservationCount: okTemps.length,
     targetTemp,
     wearCount: logs.length,
@@ -564,10 +585,10 @@ export function partitionRecommendations(
 ) {
   const temperatureRangeFor = (result: RecommendationResult) =>
     result.evidence === 'observed'
-      ? result.okRange
-      : partialEvidenceRange(result.similarEvidence)
+      ? recommendationTemperatureRangeFor(result)
+      : partialRecommendationRange(result.similarEvidence)
   const matchesTargetTemperature = (result: RecommendationResult) =>
-    rangeDistance(result.targetTemp, temperatureRangeFor(result)) === 0
+    temperatureRangeDistance(result.targetTemp, temperatureRangeFor(result)) === 0
 
   const recentPurchases = results
     .filter(
@@ -634,8 +655,14 @@ export function recommendOutfits(
       const level = levelRank[a.level] - levelRank[b.level]
       if (level !== 0) return level
 
-      const aDistance = rangeDistance(a.targetTemp, a.okRange)
-      const bDistance = rangeDistance(b.targetTemp, b.okRange)
+      const aDistance = temperatureRangeDistance(
+        a.targetTemp,
+        recommendationTemperatureRangeFor(a),
+      )
+      const bDistance = temperatureRangeDistance(
+        b.targetTemp,
+        recommendationTemperatureRangeFor(b),
+      )
       if (aDistance !== bDistance) return aDistance - bDistance
 
       if (a.evidence === 'untried' && b.evidence === 'untried') {

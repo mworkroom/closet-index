@@ -13,6 +13,10 @@ import type {
   ThermalFeeling,
   WearLog,
 } from './types'
+import {
+  recommendationTemperatureRangeFor,
+  temperatureRangeContains,
+} from './temperature-range'
 
 export type ItemDerivedScopeName =
   | 'exactContext'
@@ -704,7 +708,10 @@ function decideSparseEligibility(
 ): SparseEligibilityDecision {
   if (
     candidate.result.evidence === 'observed' &&
-    rangeContains(candidate.result.okRange, candidate.result.targetTemp)
+    temperatureRangeContains(
+      recommendationTemperatureRangeFor(candidate.result),
+      candidate.result.targetTemp,
+    )
   ) {
     return {
       candidate,

@@ -43,14 +43,14 @@ describe('Closet 오늘 온도 필터', () => {
     cleanup()
   })
 
-  it('모든 카테고리의 온도 근거를 표시하고 오늘 온도·카테고리·검색어를 함께 적용한다', async () => {
+  it('모든 카테고리의 실제 온도 근거를 표시하고 오늘 온도에는 ±2°C를 적용하지 않는다', async () => {
     const user = userEvent.setup()
     const first = renderCloset()
 
     const bag = await screen.findByRole('link', {
       name: '여름 가방 아이템 상세 보기',
     })
-    expect(within(bag).getByText('24~28°C')).toBeInTheDocument()
+    expect(within(bag).getByText('26°C')).toBeInTheDocument()
     expect(within(bag).queryByText(/OK 관측/)).not.toBeInTheDocument()
     const unknown = screen.getByRole('link', {
       name: /버건디 벨트 아이템 상세 보기/,
@@ -58,13 +58,17 @@ describe('Closet 오늘 온도 필터', () => {
     expect(within(unknown).getByText('온도 근거 없음')).toBeInTheDocument()
 
     const temperature = screen.getByRole('spinbutton', { name: '오늘 온도' })
+    await user.type(temperature, '24')
+    expect(screen.queryByRole('link', { name: /여름 가방/ })).not.toBeInTheDocument()
+
+    await user.clear(temperature)
     await user.type(temperature, '26')
 
     expect(
-      screen.getByRole('link', { name: /여름 가방.*24~28°C/ }),
+      screen.getByRole('link', { name: /여름 가방.*26°C/ }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('link', { name: /여름 양말.*24~28°C/ }),
+      screen.getByRole('link', { name: /여름 양말.*26°C/ }),
     ).toBeInTheDocument()
     expect(
       screen.queryByRole('link', { name: /블루 가디건/ }),
@@ -86,7 +90,7 @@ describe('Closet 오늘 온도 필터', () => {
     expect(grid).toBeInTheDocument()
     expect(within(grid!).getAllByRole('link')).toHaveLength(1)
     expect(
-      within(grid!).getByRole('link', { name: /네이비 티셔츠.*24~28°C/ }),
+      within(grid!).getByRole('link', { name: /네이비 티셔츠.*26°C/ }),
     ).toBeInTheDocument()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
 

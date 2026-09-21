@@ -104,6 +104,63 @@ describe('recommendOutfits', () => {
     expect(results.find((result) => result.outfit.id === 'outfit-favorite')).toBeDefined()
   })
 
+  it('±2°C 추천 범위에 들어가도 현재 온도의 더움 기록을 우선해 경고하고 아래로 내린다', () => {
+    const data: AppData = structuredClone(demoData)
+    data.outfits = [
+      {
+        id: 'safe-at-25',
+        displayName: '25도 OK 착장',
+        rating: 'ok',
+        itemIds: ['item-knit', 'item-pants', 'item-shoes'],
+      },
+      {
+        id: 'hot-at-25',
+        displayName: '25도 더운 착장',
+        rating: 'ok',
+        itemIds: ['item-cardigan', 'item-knit', 'item-pants', 'item-shoes'],
+      },
+    ]
+    data.wearLogs = [
+      {
+        ...wearLog('safe-25', 'safe-at-25', '2026-07-03'),
+        tempOut: 25,
+        tempBack: null,
+        feelingOut: 'ok',
+        feelingBack: null,
+      },
+      {
+        ...wearLog('hot-ok-23', 'hot-at-25', '2026-07-01'),
+        tempOut: 23,
+        tempBack: null,
+        feelingOut: 'ok',
+        feelingBack: null,
+      },
+      {
+        ...wearLog('hot-25', 'hot-at-25', '2026-07-02'),
+        tempOut: 25,
+        tempBack: null,
+        feelingOut: 'hot',
+        feelingBack: null,
+      },
+    ]
+
+    const results = recommendOutfits(data, { ...baseInput, tempOut: 25 })
+    const hotResult = results.find((result) => result.outfit.id === 'hot-at-25')
+
+    expect(hotResult).toMatchObject({
+      level: 'caution',
+      okRange: { min: 23, max: 23 },
+      recommendationRange: { min: 21, max: 25 },
+    })
+    expect(hotResult?.warnings).toContain(
+      '출발 25°C — 25°C에서 더웠던 기록 있음',
+    )
+    expect(results.map((result) => result.outfit.id)).toEqual([
+      'safe-at-25',
+      'hot-at-25',
+    ])
+  })
+
   it('Error와 Retired 아이템 포함 착장을 기본 추천에서 제외한다', () => {
     const results = recommendOutfits(demoData, baseInput)
     expect(results.map((result) => result.outfit.id)).not.toContain('outfit-error')
@@ -323,15 +380,16 @@ describe('recommendOutfits', () => {
       expect.arrayContaining([
         expect.objectContaining({
           itemId: 'target-bottom',
-          okRange: { min: 19, max: 26 },
+          okRange: { min: 21, max: 24 },
         }),
         expect.objectContaining({
           itemId: 'target-top',
-          okRange: { min: 23, max: 27 },
+          okRange: { min: 25, max: 25 },
         }),
       ]),
     )
-    expect(result?.similarEvidence?.aggregateOkRange).toEqual({
+    expect(result?.similarEvidence?.aggregateOkRange).toBeNull()
+    expect(result?.similarEvidence?.aggregateRecommendationRange).toEqual({
       min: 23,
       max: 26,
     })

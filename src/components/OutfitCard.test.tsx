@@ -7,6 +7,7 @@ import { recommendOutfits } from '../lib/recommendation'
 import type { RecommendationInput } from '../lib/types'
 import { outfitLabel } from '../lib/outfits'
 import type { HomeNormalRecommendationContextEvidence } from '../lib/normal-recommendation-context-home'
+import { formatTemperatureRange } from '../lib/temperature-range'
 import { OutfitCard } from './OutfitCard'
 
 const input: RecommendationInput = {
@@ -51,9 +52,11 @@ describe('OutfitCard home layout', () => {
     ).toBeInTheDocument()
     expect(
       screen.getByText(
-        `${recommendation.okRange.min}~${recommendation.okRange.max}°C 적정 범위`,
+        `${formatTemperatureRange(recommendation.okRange)} OK 기록 범위`,
       ),
     ).toBeInTheDocument()
+    expect(recommendation.recommendationRange).toEqual({ min: 16, max: 22 })
+    expect(screen.queryByText('16~22°C OK 기록 범위')).not.toBeInTheDocument()
     expect(
       screen.getByText(`OK ${recommendation.okObservationCount}회`),
     ).toBeInTheDocument()

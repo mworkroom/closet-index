@@ -3,6 +3,10 @@ import {
   type AuthoritativeNoveltyOverlay,
   type InitialNoveltyEvidence,
 } from './recent-purchase-semantics'
+import {
+  recommendationTemperatureRangeFor,
+  temperatureRangeContains,
+} from './temperature-range'
 import type {
   AppData,
   RecommendationInput,
@@ -422,7 +426,10 @@ function rangeContains(
 function currentC0Eligible(candidate: ContextEligibilityCandidate) {
   return (
     candidate.result.evidence === 'observed' &&
-    rangeContains(candidate.result.okRange, candidate.result.targetTemp)
+    temperatureRangeContains(
+      recommendationTemperatureRangeFor(candidate.result),
+      candidate.result.targetTemp,
+    )
   )
 }
 

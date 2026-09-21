@@ -29,6 +29,7 @@ import { formatMonthDayYear } from '../lib/date'
 import { sortItemsForOutfitDisplay } from '../lib/item-categories'
 import type { RecommendationNavigationState } from '../lib/navigation'
 import { getOutfitStats, outfitLabel } from '../lib/outfits'
+import { formatTemperatureRange } from '../lib/temperature-range'
 import { feelingLabels, ratingLabels, recommendationLabels } from '../lib/types'
 
 function TransportIcon({ name }: { name: string }) {
@@ -241,7 +242,7 @@ export function OutfitDetailPage() {
                                 </small>
                               </span>
                               <span className="similar-outfit-row__range">
-                                {evidence.okRange.min}~{evidence.okRange.max}°C
+                                {formatTemperatureRange(evidence.okRange)}
                               </span>
                             </div>
                           ),
@@ -285,7 +286,7 @@ export function OutfitDetailPage() {
                                 </span>
                                 <span className="similar-outfit-row__range">
                                   {match.okRange
-                                    ? `${match.okRange.min}~${match.okRange.max}°C`
+                                    ? formatTemperatureRange(match.okRange)
                                     : 'OK 온도 없음'}
                                 </span>
                               </Link>

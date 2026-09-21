@@ -4,6 +4,10 @@ import type {
 } from './context-conditioned-recent-purchase'
 import type { AuthoritativeNoveltyOverlay } from './recent-purchase-semantics'
 import type { RecommendationResult } from './types'
+import {
+  recommendationTemperatureRangeFor,
+  temperatureRangeContains,
+} from './temperature-range'
 
 export type RecencyWindowModel = 'W1' | 'W2' | 'W3'
 export type MissingContextRecencyBehavior = 'overall' | 'hide'
@@ -87,9 +91,10 @@ function baselineThermalEligible(candidate: ContextEligibilityCandidate) {
   const result = candidate.result
   return Boolean(
     result.evidence === 'observed' &&
-      result.okRange &&
-      result.targetTemp >= result.okRange.min &&
-      result.targetTemp <= result.okRange.max,
+      temperatureRangeContains(
+        recommendationTemperatureRangeFor(result),
+        result.targetTemp,
+      ),
   )
 }
 

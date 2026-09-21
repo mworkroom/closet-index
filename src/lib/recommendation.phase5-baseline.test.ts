@@ -24,13 +24,14 @@ function summarize(data: AppData, nextInput: RecommendationInput = input) {
     reasons: result.reasons,
     warnings: result.warnings,
     okRange: result.okRange,
+    recommendationRange: result.recommendationRange,
     okObservationCount: result.okObservationCount,
     wearCount: result.wearCount,
     lastWornOn: result.lastWornOn,
   }))
 }
 
-describe('Phase 5 pre-change recommendation baseline', () => {
+describe('Phase 5 recommendation range baseline', () => {
   it('freezes the complete current result order and explanation payload', () => {
     expect(summarize(phase5RecommendationBaselineFixture)).toEqual(
       phase5BaselineExpectedResults,
@@ -165,4 +166,3 @@ describe('Phase 5 pre-change recommendation baseline', () => {
     ])
   })
 })
-

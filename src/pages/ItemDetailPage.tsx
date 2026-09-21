@@ -21,6 +21,7 @@ import {
 import { useItemPurchaseEvents } from '../features/replenishment/useItemPurchaseEvents'
 import { formatMonthDayYear, todayInKorea } from '../lib/date'
 import { buildItemTemperatureEvidenceIndex } from '../lib/item-temperature-evidence'
+import { formatTemperatureRange } from '../lib/temperature-range'
 import { isWishItem } from '../lib/items'
 import { getItemStats, getOutfitStats } from '../lib/outfits'
 
@@ -135,7 +136,7 @@ export function ItemDetailPage() {
                 <dt>착용 온도</dt>
                 <dd>
                   {temperatureEvidence
-                    ? `${temperatureEvidence.okRange.min} ~ ${temperatureEvidence.okRange.max}°C`
+                    ? formatTemperatureRange(temperatureEvidence.okRange, ' ~ ')
                     : '근거 없음'}
                 </dd>
               </div>
