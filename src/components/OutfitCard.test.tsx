@@ -94,6 +94,19 @@ describe('OutfitCard home layout', () => {
           : '최근 기록 없음',
       ),
     ).toBeInTheDocument()
+    expect(screen.getByText('18~20°C')).toBeInTheDocument()
+    expect(screen.queryByText('16~22°C')).not.toBeInTheDocument()
+  })
+
+  it('착용 온도 근거가 없는 썸네일에는 빈값 대신 안내를 표시한다', () => {
+    const outfit = demoData.outfits.find((entry) => entry.id === 'outfit-unrated')!
+    render(
+      <MemoryRouter>
+        <OutfitCard outfit={outfit} data={demoData} layout="grid" />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('온도 근거 없음')).toBeInTheDocument()
   })
 
   it('renders the structured normal-context evidence label only when supplied', () => {

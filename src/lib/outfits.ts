@@ -1,5 +1,6 @@
 import type { Item, Outfit, WearLog } from './types'
 import { sortItemsForOutfitDisplay } from './item-categories'
+import { temperatureRangeFor } from './temperature-range'
 
 export function outfitLabel(outfit: Outfit, items: Item[]): string {
   if (outfit.displayName?.trim()) return outfit.displayName
@@ -19,10 +20,16 @@ export function getOutfitStats(outfitId: string, wearLogs: WearLog[]) {
   const logs = wearLogs
     .filter((log) => log.outfitId === outfitId)
     .sort((a, b) => b.wornOn.localeCompare(a.wornOn))
+  const okTemperatures = logs.flatMap((log) => [
+    ...(log.feelingOut === 'ok' && log.tempOut !== null ? [log.tempOut] : []),
+    ...(log.feelingBack === 'ok' && log.tempBack !== null ? [log.tempBack] : []),
+  ])
 
   return {
     wearCount: logs.length,
     lastWornOn: logs[0]?.wornOn ?? null,
+    firstWornOn: logs.at(-1)?.wornOn ?? null,
+    okRange: temperatureRangeFor(okTemperatures),
   }
 }
 

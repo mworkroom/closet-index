@@ -989,13 +989,13 @@ button:disabled {
 
 .outfit-card__grid-summary {
   display: flex;
-  min-height: 50px;
+  min-height: 72px;
   justify-content: center;
   flex-direction: column;
   gap: 3px;
   padding: 7px 8px;
   color: var(--muted);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   line-height: 1.3;
 }
 
@@ -1352,7 +1352,7 @@ button:disabled {
   gap: 6px;
   padding: 7px 8px;
   color: var(--muted);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   line-height: 1.3;
 }
 
@@ -1737,13 +1737,13 @@ button:disabled {
 
 .item-attribute-summary dt {
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: 0.875rem;
 }
 
 .item-attribute-summary dd {
   margin: 0;
   overflow-wrap: anywhere;
-  font-size: clamp(0.78rem, 3.2vw, 0.96rem);
+  font-size: 1rem;
   font-weight: 750;
   line-height: 1.25;
 }
@@ -1754,42 +1754,6 @@ button:disabled {
   flex: none;
   aspect-ratio: 3 / 4;
   border-right: 1px solid var(--line);
-}
-
-.outfit-summary {
-  display: grid;
-  min-width: 0;
-  flex: 1;
-  grid-template-rows: repeat(3, minmax(0, 1fr));
-  margin: 0;
-}
-
-.outfit-summary__item {
-  display: flex;
-  min-width: 0;
-  justify-content: center;
-  flex-direction: column;
-  gap: 3px;
-  border-bottom: 1px solid var(--line);
-  padding: 10px 12px;
-}
-
-.outfit-summary__item:last-child {
-  border-bottom: 0;
-}
-
-.outfit-summary dt {
-  color: var(--muted);
-  font-size: 0.72rem;
-}
-
-.outfit-summary dd {
-  margin: 0;
-  overflow: hidden;
-  font-size: clamp(0.82rem, 3.4vw, 1.02rem);
-  font-weight: 750;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .detail-grid,
@@ -1816,12 +1780,12 @@ button:disabled {
 .detail-grid span,
 .metric-grid span {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.875rem;
 }
 
 .detail-grid strong {
   overflow-wrap: anywhere;
-  font-size: 0.86rem;
+  font-size: 1rem;
 }
 
 .detail-grid--item-stats {
@@ -1844,7 +1808,7 @@ button:disabled {
 .detail-grid__item-memo p {
   margin: 0;
   overflow-wrap: anywhere;
-  font-size: 0.86rem;
+  font-size: 1rem;
   line-height: 1.5;
   white-space: pre-wrap;
 }
@@ -2590,7 +2554,7 @@ a.item-detail-lineage__item:focus-visible {
 
 .outfit-card__grid-summary strong {
   color: var(--warning);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
 }
 
 .position-editor__display-modes {
@@ -4834,9 +4798,9 @@ a.item-detail-lineage__item:focus-visible {
 
   .item-card__summary,
   .outfit-card__grid-summary {
-    min-height: 58px;
+    min-height: 72px;
     padding: 6px;
-    font-size: 0.61rem;
+    font-size: 0.75rem;
   }
 
   .outfit-card--grid .outfit-visual__fallback {

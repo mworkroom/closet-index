@@ -130,6 +130,11 @@ export function OutfitCard({
               ? `최근 ${formatMonthDayYear(stats.lastWornOn)}`
               : '최근 기록 없음'}
           </span>
+          <span className={stats.okRange ? undefined : 'item-card__temperature--unknown'}>
+            {stats.okRange
+              ? formatTemperatureRange(stats.okRange)
+              : '온도 근거 없음'}
+          </span>
         </div>
       ) : (
         <div className="outfit-card__body">

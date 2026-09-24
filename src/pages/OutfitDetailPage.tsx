@@ -86,6 +86,10 @@ export function OutfitDetailPage() {
       .filter((log) => log.outfitId === outfitId)
       .sort((a, b) => b.wornOn.localeCompare(a.wornOn)) ?? []
   const stats = data ? getOutfitStats(outfitId, data.wearLogs) : null
+  const isWearable =
+    Boolean(outfit?.itemIds.length) &&
+    items.length === outfit?.itemIds.length &&
+    items.every((item) => !item.retired)
   const placeName = (id: string | null) =>
     data?.places.find((place) => place.id === id)?.name ?? null
   const transportName = (id: string | null) =>
@@ -316,20 +320,39 @@ export function OutfitDetailPage() {
                 maxSwatches={items.length}
               />
             )}
-            <dl className="outfit-summary" aria-label="착장 요약">
-              <div className="outfit-summary__item">
+            <dl className="item-attribute-summary" aria-label="착장 요약">
+              <div>
                 <dt>선호도</dt>
                 <dd>{outfit.rating ? ratingLabels[outfit.rating] : 'OK'}</dd>
               </div>
-              <div className="outfit-summary__item">
-                <dt>마지막 착용</dt>
-                <dd>{formatMonthDayYear(stats?.lastWornOn ?? null)}</dd>
+              <div>
+                <dt>착용 온도</dt>
+                <dd>
+                  {stats?.okRange
+                    ? formatTemperatureRange(stats.okRange, ' ~ ')
+                    : '근거 없음'}
+                </dd>
               </div>
-              <div className="outfit-summary__item">
-                <dt>착용 횟수</dt>
-                <dd>{stats?.wearCount ?? 0}회</dd>
+              <div>
+                <dt>상태</dt>
+                <dd>{isWearable ? '착용 가능' : '착용 불가능'}</dd>
               </div>
             </dl>
+          </section>
+
+          <section className="detail-grid detail-grid--item-stats" aria-label="착장 사용 정보">
+            <div>
+              <span>최초 착용일</span>
+              <strong>{formatMonthDayYear(stats?.firstWornOn ?? null)}</strong>
+            </div>
+            <div>
+              <span>마지막 착용</span>
+              <strong>{formatMonthDayYear(stats?.lastWornOn ?? null)}</strong>
+            </div>
+            <div>
+              <span>착용 횟수</span>
+              <strong>{stats?.wearCount ?? 0}회</strong>
+            </div>
           </section>
 
           {items.length !== outfit.itemIds.length && (
