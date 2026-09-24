@@ -1693,6 +1693,7 @@ button:disabled {
 
 .identity-card--outfit {
   align-items: stretch;
+  gap: 0;
   padding: 0;
   overflow: hidden;
 }
@@ -1728,7 +1729,7 @@ button:disabled {
   flex-direction: column;
   gap: 3px;
   border-bottom: 1px solid var(--line);
-  padding: 10px 12px;
+  padding: 10px 8px;
 }
 
 .item-attribute-summary > div:last-child {
